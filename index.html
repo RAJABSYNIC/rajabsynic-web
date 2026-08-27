@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RAJABSYNIC - Movies & Games</title>
+    <meta name="description" content="Stream movies, games, live TV na zaidi - RAJABSYNIC">
+    <meta name="theme-color" content="#00ff00">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RAJABSYNIC">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logo.jpeg">
+    <link rel="icon" type="image/jpeg" href="/logo.jpeg">
+    
+    <!-- OneSignal Push Notifications -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        // Load the OneSignal app id from the server (.env), no hardcoded value here.
+        let oneSignalAppId = window.__ONESIGNAL_APP_ID__;
+        if (!oneSignalAppId) {
+          try {
+            const res = await fetch('/api/public-config');
+            const cfg = await res.json();
+            oneSignalAppId = cfg.oneSignalAppId;
+          } catch (e) {
+            console.error('❌ Failed to load OneSignal app id:', e);
+            return;
+          }
+        }
+        await OneSignal.init({
+          appId: oneSignalAppId,
+          notifyButton: {
+            enable: true,
+            displayPredicate: function() {
+                return OneSignal.Notifications.isPushSupported();
+            }
+          },
+          serviceWorkerParam: { scope: "/" },
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          allowLocalhostAsSecureOrigin: true,
+        });
+        // Prompt for push notifications immediately on load
+        OneSignal.Slidedown.promptPush();
+      });
+    </script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <!-- HLS Support for Stability -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" defer></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/main.css">
+
+    <!-- Image Protection -->
+    <style>
+        img {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            pointer-events: none;
+        }
+        /* Allow pointer events on clickable cards only via wrapper */
+        .media-card, .card-wrapper, [onclick] img {
+            pointer-events: auto;
+        }
+        .img-protect-wrap {
+            position: relative;
+            display: block;
+            overflow: hidden;
+        }
+        .img-protect-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            background: transparent;
+        }
+    </style>
+    
+    <!-- SweetAlert2 for beautiful alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+
+    <!-- 1. Top Navbar -->
+    <nav class="top-nav flex justify-between items-center">
+        <div class="logo">
+            <span style="color:#ffffff; margin-right:2px;">RAJAB</span><span
+                style="color:#00ff00">SYNIC</span>
+        </div>
+        <div class="nav-actions flex items-center" style="gap: 15px;">
+            <div class="install-btn flex items-center" style="color: #00ff00; cursor: pointer; gap: 5px; font-weight: 600; font-size: 1rem;" onclick="triggerInstall()">
+                <ion-icon name="download-outline" style="font-size: 1.4rem;"></ion-icon>
+                <span>Install</span>
+            </div>
+            <ion-icon name="search-outline" style="font-size: 1.5rem;" id="search-trigger"
+                onclick="app.router.toggleSearch()"></ion-icon>
+            <div class="profile-icon" id="profile-trigger" onclick="app.router.navigate('account')">
+                <ion-icon name="person-circle-outline" style="font-size: 1.8rem;"></ion-icon>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. Main Content Area (Dynamic) -->
+    <main id="app-root">
+
+        <!-- Home Page View -->
+        <div id="home-view" class="fade-in">
+
+            <!-- Trending Section -->
+            <div class="section-header">
+                <div class="section-title">Trending Tanzania Games</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'tanzania-games')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-trending">
+                <!-- Items injected here -->
+                <div class="media-card shimmer"></div>
+                <div class="media-card shimmer"></div>
+                <div class="media-card shimmer"></div>
+            </div>
+
+            <!-- Games Section -->
+            <div class="section-header">
+                <div class="section-title">Games</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'free-games')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-games">
+                <!-- Items injected here -->
+            </div>
+
+            <!-- Maleo Bus Mod Section -->
+            <div class="section-header">
+                <div class="section-title">Maleo Bus Mod</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'maleo-bus-mod')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-maleo-bus-mod"></div>
+
+            <!-- Maleo Bus Skin Section -->
+            <div class="section-header">
+                <div class="section-title">Maleo Bus Skin</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'maleo-bus-skin')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-maleo-bus-skin"></div>
+
+            <!-- Maleo Map Mod Section -->
+            <div class="section-header">
+                <div class="section-title">Maleo Map Mod</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'maleo-map-mod')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-maleo-map-mod"></div>
+
+
+            <!-- Program and App Section -->
+            <div class="section-header">
+                <div class="section-title">Program and App</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'program-and-app')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-program-and-app">
+                <!-- Items injected here -->
+            </div>
+
+            <!-- Free Games Section -->
+            <div class="section-header">
+                <div class="section-title">Free Games</div>
+                <div class="see-all" onclick="app.router.navigate('category', 'free-games-all')">See All</div>
+            </div>
+            <div class="media-scroller" id="scroller-free">
+                <!-- Items injected here -->
+            </div>
+        </div>
+
+        <!-- Details View (Hidden by default) -->
+        <!-- Populated dynamically -->
+
+    </main>
+
+    <!-- 3. Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="app.router.navigate('home')">
+            <ion-icon name="home"></ion-icon>
+            <span>Home</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='https://www.nambawin.online/'">
+            <ion-icon name="game-controller"></ion-icon>
+            <span>Casino</span>
+        </div>
+        <div class="nav-item" onclick="app.router.navigate('account')">
+            <ion-icon name="person"></ion-icon>
+            <span>Account</span>
+        </div>
+    </nav>
+
+    <!-- 4. Overlays / Modals -->
+    <div id="modal-container"></div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
+        <div class="modal-content" style="background: #f4f5f7; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden; font-family: 'Inter', sans-serif;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 15px; background: #ffffff; border-bottom: 1px solid #f4f5f7; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h3 id="payment-modal-title" style="color: #000; font-size: 1.25rem; font-weight: 700; margin: 0;">Kamilisha Malipo</h3>
+                <button class="modal-close" onclick="app.closePaymentModal()" style="background: none; border: none; color: #6b7280; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; padding: 0;">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 20px; background: #f4f5f7; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                <!-- Payment Form -->
+                <div id="payment-form-section">
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label style="color: #374151; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; display: block;">Maudhui</label>
+                        <input type="text" id="payment-content-title" readonly
+                            style="background: #e5e7eb; border: none; color: #374151; border-radius: 8px; padding: 14px 12px; width: 100%; font-size: 0.95rem; outline: none; cursor: default; box-sizing: border-box;">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label style="color: #374151; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; display: block;">Kiasi</label>
+                        <input type="text" id="payment-amount-display" readonly
+                            style="background: #e5e7eb; border: none; color: #10b981; border-radius: 8px; padding: 14px 12px; width: 100%; font-weight: 600; font-size: 1rem; outline: none; cursor: default; box-sizing: border-box;">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 20px;">
+                        <label style="color: #374151; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; display: block;">Namba ya Simu (Tanzania)</label>
+                        <input type="tel" id="payment-phone" maxlength="10" placeholder="Mfano: 0712345678"
+                            style="background: #ffffff; border: 1px solid #d1d5db; color: #000; border-radius: 8px; padding: 14px 12px; width: 100%; font-size: 1rem; outline: none; margin-bottom: 8px; box-sizing: border-box;">
+                        <p style="color: #6b7280; font-size: 0.85rem; margin: 0; line-height: 1.4;">Weka namba yako ya M-Pesa/Tigo Pesa/Airtel Money/Halopesa</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.submitPayment()"
+                        style="width: 100%; background: #10b981; color: white; padding: 16px; font-weight: 600; font-size: 1rem; border-radius: 12px; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">
+                        <ion-icon name="card-outline" style="font-size: 1.3rem;"></ion-icon> Thibitisha Malipo
+                    </button>
+                </div>
+
+                <!-- Payment Processing -->
+                <div id="payment-processing-section" style="display: none; text-align: center; padding: 30px 0;">
+                    <!-- TEST MODE Banner -->
+                    <div id="test-mode-banner" style="display:none; background:#fef08a; color:#78350f; border:1px solid #fbbf24; border-radius:8px; padding:8px 14px; margin-bottom:18px; font-size:0.82rem; font-weight:700; letter-spacing:0.5px;">
+                        ⚙️ TEST MODE — Malipo ya majaribio tu. Hakuna pesa halisi inayotumika.
+                    </div>
+                    <div class="spinner" style="margin: 0 auto 20px; border: 4px solid #e5e7eb; border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                    <h4 style="color: #10b981; margin-bottom: 10px; font-size: 1.2rem;">Ombi la Malipo Limetumwa!</h4>
+                    <p style="color: #374151; margin-bottom: 5px; font-weight: 500;">Angalia simu yako na uweke Namba ya Siri (PIN)</p>
+                    <p style="color: #6b7280; font-size: 0.9rem;" id="payment-status-text">Inasubiri uthibitisho...
+                    </p>
+
+                    <button class="btn btn-secondary" onclick="app.cancelPayment()" style="margin-top: 20px; background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Ghairi
+                    </button>
+                </div>
+
+
+                <!-- Payment Success -->
+                <div id="payment-success-section" style="display: none; text-align: center; padding: 30px 0;">
+                    <div style="font-size: 4rem; color: #10b981; margin-bottom: 15px;">✓</div>
+                    <h4 style="color: #10b981; margin-bottom: 10px; font-size: 1.2rem;">Malipo Yamefanikiwa!</h4>
+                    <p style="color: #374151; margin-bottom: 20px; font-weight: 500;" id="payment-success-msg">Sasa unaweza kutumia maudhui haya kikamilifu</p>
+                    <button class="btn btn-primary" onclick="app.closePaymentModal(true)" style="width: 100%; background: #10b981; color: white; padding: 14px; font-weight: 600; font-size: 1rem; border-radius: 8px; border: none; cursor: pointer;">
+                        Endelea
+                    </button>
+                </div>
+
+                <!-- Payment Failed -->
+                <div id="payment-failed-section" style="display: none; text-align: center; padding: 30px 0;">
+                    <div style="font-size: 4rem; color: #ef4444; margin-bottom: 15px;">✗</div>
+                    <h4 style="color: #ef4444; margin-bottom: 10px; font-size: 1.2rem;">Malipo Yameshindwa</h4>
+                    <p style="color: #6b7280; margin-bottom: 20px;" id="payment-error-text">Tafadhali jaribu tena</p>
+                    <button class="btn btn-primary" onclick="app.retryPayment()" style="width: 100%; background: #10b981; color: white; padding: 14px; font-weight: 600; font-size: 1rem; border-radius: 8px; border: none; cursor: pointer;">
+                        Jaribu Tena
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔔 Notification Toast Banner -->
+    <div id="notif-toast" style="
+        display:none; position:fixed; top:70px; left:50%;
+        transform:translateX(-50%); max-width:420px; width:calc(100% - 32px);
+        background:linear-gradient(135deg,#0f2f0f,#1a1a1a);
+        border:1px solid #22c55e; border-radius:16px; padding:14px 16px;
+        z-index:9999; box-shadow:0 8px 32px rgba(0,0,0,0.6);
+        flex-direction:row; align-items:flex-start; gap:12px;
+        animation:notifSlide 0.4s ease;">
+        <div style="width:40px;height:40px;background:#22c55e;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <ion-icon name="notifications" style="color:#000;font-size:1.4rem;"></ion-icon>
+        </div>
+        <div style="flex:1;min-width:0;">
+            <div id="notif-toast-title" style="color:#fff;font-weight:700;font-size:0.95rem;margin-bottom:4px;"></div>
+            <div id="notif-toast-body" style="color:#9ca3af;font-size:0.85rem;line-height:1.4;"></div>
+        </div>
+        <button onclick="document.getElementById('notif-toast').style.display='none'"
+            style="background:none;border:none;color:#6b7280;font-size:1.3rem;cursor:pointer;padding:0;flex-shrink:0;line-height:1;">✕</button>
+    </div>
+
+    <style>
+        @keyframes notifSlide {
+            from { opacity:0; transform:translateX(-50%) translateY(-20px); }
+            to   { opacity:1; transform:translateX(-50%) translateY(0); }
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script type="module" src="scripts/payment.js?v=2"></script>
+    <script type="module" src="scripts/app.js?v=2"></script>
+    
+    <!-- Error Detection -->
+    <script type="module">
+        window.addEventListener('error', (e) => {
+            console.error('❌ Global Error:', e.message, e.filename, e.lineno);
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('❌ Unhandled Promise Rejection:', e.reason);
+        });
+    </script>
+
+    <!-- Real-time Notification Listener (Firestore-based) -->
+    <script type="module">
+        import { db, collection, query, orderBy, limit } from './scripts/firebase-config.js';
+        import { onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+        const pageLoadTime = Date.now();
+
+        function showToast(title, body) {
+            const toast = document.getElementById('notif-toast');
+            document.getElementById('notif-toast-title').textContent = title;
+            document.getElementById('notif-toast-body').textContent = body;
+            toast.style.display = 'flex';
+            clearTimeout(window._notifTimer);
+            window._notifTimer = setTimeout(() => {
+                toast.style.display = 'none';
+            }, 8000);
+        }
+
+        try {
+            const notifQuery = query(
+                collection(db, 'notifications'),
+                orderBy('timestamp', 'desc'),
+                limit(1)
+            );
+
+            onSnapshot(notifQuery, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const data = change.doc.data();
+                        if (data.timestamp && data.timestamp > pageLoadTime) {
+                            showToast(data.title, data.body);
+                        }
+                    }
+                });
+            });
+        } catch(e) {
+            console.warn('Notification listener error:', e);
+        }
+    </script>
+
+    <!-- PWA: Service Worker + Install Prompt -->
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+
+        // Capture install prompt
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show install button in nav
+            const installBtn = document.querySelector('.install-btn');
+            if (installBtn) installBtn.style.display = 'flex';
+        });
+
+        // Called when user taps Install button
+        window.triggerInstall = function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(choice => {
+                    if (choice.outcome === 'accepted') {
+                        console.log('App installed!');
+                        const installBtn = document.querySelector('.install-btn');
+                        if (installBtn) installBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        };
+
+        // Hide install button if already installed
+        window.addEventListener('appinstalled', () => {
+            const installBtn = document.querySelector('.install-btn');
+            if (installBtn) installBtn.style.display = 'none';
+            deferredPrompt = null;
+        });
+    </script>
+
+    <script>
+        // ── Image Protection ──────────────────────────────────
+        // Block right-click on images
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Block drag on images
+        document.addEventListener('dragstart', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Block long-press save on mobile (touchstart hold)
+        let _imgHoldTimer = null;
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.tagName === 'IMG') {
+                _imgHoldTimer = setTimeout(function() {
+                    e.preventDefault();
+                }, 300);
+            }
+        }, { passive: false });
+        document.addEventListener('touchend', function() {
+            clearTimeout(_imgHoldTimer);
+        });
+        document.addEventListener('touchmove', function() {
+            clearTimeout(_imgHoldTimer);
+        });
+        // ─────────────────────────────────────────────────────
+    </script>
+</body>
+
+</html>

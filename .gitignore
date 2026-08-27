@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Secrets - never commit
+.env
+.env.local
+.env.*.local
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+.vercel
+.env*

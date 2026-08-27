@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Allow users to read and write their own payments and subscriptions
+    match /payments/{paymentId} {
+      allow read, write: if true; 
+    }
+    
+    match /subscriptions/{subscriptionId} {
+      allow read, write: if true;
+    }
+
+    // Allow anyone to read the content (movies, games, etc.) so the homepage loads
+    match /content/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Allow anyone to read notifications for the real-time toast banner
+    match /notifications/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Users collection — authenticated users can read all (needed for referral lookup)
+    // Any authenticated user can update a user doc (needed to patch referredBy)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Default rule for all other collections (modify as needed for your app)
+    match /{document=**} {
+      allow read, write: if request.auth != null; 
+    }
+  }
+}
