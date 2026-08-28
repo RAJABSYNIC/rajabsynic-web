@@ -2174,35 +2174,8 @@ const app = {
             }
 
             // STEP 3: Try to sync with server (but don't block on failure)
-            if (contentId && this.currentPaymentData) {
-                try {
-                    // Record payment to server
-                    await api.recordPayment({
-                        orderId: orderId,
-                        reference: orderId,
-                        gateway: 'PressoPay',
-                        userId: this.currentPaymentData.userId,
-                        username: this.currentPaymentData.username,
-                        contentId: contentId,
-                        contentTitle: contentTitle,
-                        amount: this.currentPaymentData.price,
-                        status: 'completed',
-                        phone: document.getElementById('payment-phone')?.value.trim() || ''
-                    });
-                    console.log('✅ Payment recorded on server');
-
-                    // Create subscription on server
-                    await api.createSubscription(
-                        this.currentPaymentData.userId,
-                        contentId,
-                        orderId,
-                        durationDays
-                    );
-                    console.log('✅ Subscription created on server');
-                } catch (error) {
-                    console.error('⚠️  Server sync failed (but local access granted):', error);
-                }
-            }
+            // (REMOVED: The server webhook already records the payment and creates the subscription automatically. 
+            // Doing it here caused duplicate database entries.)
         } catch (fatalError) {
             console.error("Non-fatal error in handlePaymentSuccess setup:", fatalError);
         }

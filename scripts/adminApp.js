@@ -945,6 +945,7 @@
                         else if (gateway.includes('mpesa') || gateway.includes('m-pesa')) gateway = 'M-Pesa';
                         else if (gateway.includes('airtel')) gateway = 'Airtel';
                         else if (gateway.includes('test')) gateway = 'Test';
+                        else if (p.method === 'manual_admin_grant' || (p.status || '').toLowerCase() === 'manual') gateway = 'Bure (Admin)';
                         else gateway = 'PressoPay'; // Default — all new payments via PressoPay
                         
                         if (isCompleted) completedCount++;
@@ -1125,6 +1126,7 @@
                     else if (gateway.includes('mpesa') || gateway.includes('m-pesa')) gateway = 'M-Pesa';
                     else if (gateway.includes('airtel')) gateway = 'Airtel';
                     else if (gateway.includes('test')) gateway = 'Test';
+                    else if (p.method === 'manual_admin_grant' || (p.status || '').toLowerCase() === 'manual') gateway = 'Bure (Admin)';
                     else gateway = 'PressoPay'; // Default — all new payments via PressoPay
                     
                     html += '<tr data-status="' + status + '">' +
@@ -1260,6 +1262,7 @@
                     else if (gateway.includes('mpesa') || gateway.includes('m-pesa')) gateway = 'M-Pesa';
                     else if (gateway.includes('airtel')) gateway = 'Airtel';
                     else if (gateway.includes('test')) gateway = 'Test';
+                    else if (p.method === 'manual_admin_grant' || (p.status || '').toLowerCase() === 'manual') gateway = 'Bure (Admin)';
                     else gateway = 'PressoPay'; // Default — all new payments via PressoPay
 
                     const amt = p.amount ? parseInt(p.amount) : 0;
