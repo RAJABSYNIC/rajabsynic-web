@@ -85,9 +85,9 @@ class Router {
         }
         const lowerQ = query.toLowerCase();
         const results = this.cachedContent.filter(item => {
-            if (item.category === 'adult') return false; // Hide adult content from search
-            return item.title.toLowerCase().includes(lowerQ) ||
-                   item.category.toLowerCase().includes(lowerQ);
+            const cat = (item.category || '').toLowerCase();
+            if (item.isAdult || cat.includes('adult') || cat.includes('18+')) return false; // Hide all adult/live-adult content
+            return (item.title || '').toLowerCase().includes(lowerQ) || cat.includes(lowerQ);
         });
         if (results.length === 0) {
             container.innerHTML = '<div style="text-align:center; color:#666; width:100%; margin-top:50px;">No results found.</div>';
