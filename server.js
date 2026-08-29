@@ -498,6 +498,8 @@ app.post('/api/payment/initiate', async (req, res) => {
     try {
         let gw;
 
+        let usedGateway = 'pressopay';
+
         if (TEST_MODE) {
             console.log('⚙️  TEST MODE: Simulating PressoPay checkout');
             gw = { reference: merchantReference, status: 'COMPLETED', checkoutUrl: null };
@@ -513,27 +515,68 @@ app.post('/api/payment/initiate', async (req, res) => {
             };
             const rawBody = JSON.stringify(bodyObj);
 
-            const resp = await axios.post(
-                `${PRESSSO_BASE_URL}${path}`,
-                rawBody,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Idempotency-Key': crypto.randomUUID(),
-                        ...pressoAuthHeaders('POST', path, rawBody)
-                    },
-                    timeout: 15000
+            try {
+                const resp = await axios.post(
+                    `${PRESSSO_BASE_URL}${path}`,
+                    rawBody,
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': crypto.randomUUID(),
+                            ...pressoAuthHeaders('POST', path, rawBody)
+                        },
+                        timeout: 15000
+                    }
+                );
+                const data = resp.data || {};
+                const pStatus = String(data.status || 'PENDING').toUpperCase();
+                
+                if (pStatus === 'FAILED' || pStatus === 'ERROR') {
+                    throw new Error(`PressoPay returned status: ${pStatus}`);
                 }
-            );
-            const data = resp.data || {};
-            gw = {
-                reference: data.reference || merchantReference,
-                status: (data.status || 'PENDING'),
-                checkoutUrl: data.checkoutUrl || null
-            };
+
+                gw = {
+                    reference: data.reference || merchantReference,
+                    status: (data.status || 'PENDING'),
+                    checkoutUrl: data.checkoutUrl || null
+                };
+            } catch (pressoErr) {
+                console.warn(`⚠️ PressoPay failed (${pressoErr.message}), falling back to HarakaPay...`);
+                try {
+                    const harakaApiKey = process.env.HARAKAPAY_API_KEY || 'hpk_2956fec8e3e5f80597bb59c734275096e99a6e6628046826';
+                    const harakaResp = await axios.post(
+                        'https://harakapay.net/api/v1/collect',
+                        {
+                            phone: normalizedPhone,
+                            amount: parseInt(amount),
+                            description: description || `Rajabsynic - ${contentTitle || 'Content'}`,
+                            webhook_url: `${process.env.WEBHOOK_BASE_URL || 'https://rajabsynic.com'}/api/payment/webhook`
+                        },
+                        {
+                            headers: { 'X-API-Key': harakaApiKey },
+                            timeout: 15000
+                        }
+                    );
+                    
+                    const hData = harakaResp.data || {};
+                    if (!hData.success) {
+                        throw new Error(`HarakaPay returned error: ${hData.error || hData.message}`);
+                    }
+                    
+                    gw = {
+                        reference: hData.order_id,
+                        status: 'PENDING',
+                        checkoutUrl: null
+                    };
+                    usedGateway = 'harakapay';
+                } catch (harakaErr) {
+                    console.error(`❌ Both PressoPay and HarakaPay failed. HarakaErr: ${harakaErr.message}`);
+                    return res.status(500).json({ success: false, error: 'Mifumo yote ya malipo inasumbua kwa sasa. Tafadhali jaribu tena baadae.' });
+                }
+            }
         }
 
-        console.log('✅ PressoPay Response:', gw);
+        console.log(`✅ ${usedGateway} Response:`, gw);
         const orderId = gw.reference;
         const rawStatus = String(gw.status || 'PENDING').toUpperCase();
         const isCompleted = TEST_MODE || rawStatus === 'COMPLETED';
@@ -552,7 +595,7 @@ app.post('/api/payment/initiate', async (req, res) => {
                 amount: parseInt(amount),
                 fullPrice: fullPrice ? parseInt(fullPrice) : parseInt(amount),
                 status: isCompleted ? 'completed' : 'pending',
-                gateway: TEST_MODE ? 'test' : 'pressopay',
+                gateway: TEST_MODE ? 'test' : usedGateway,
                 referredBy: referredBy || '',
                 checkoutUrl: gw.checkoutUrl || '',
                 fee: 0,
@@ -601,15 +644,26 @@ app.post('/api/payment/initiate', async (req, res) => {
                     return;
                 }
                 try {
-                    const apiPath = `/api/v1/checkouts/${orderId}`;
-                    const pollResp = await axios.get(`${PRESSSO_BASE_URL}${apiPath}`, {
-                        headers: {
-                            ...pressoAuthHeaders('GET', apiPath),
-                            'X-API-Key': PRESSSO_API_KEY
+                    let pStatus = '';
+                    if (usedGateway === 'pressopay') {
+                        const apiPath = `/api/v1/checkouts/${orderId}`;
+                        const pollResp = await axios.get(`${PRESSSO_BASE_URL}${apiPath}`, {
+                            headers: {
+                                ...pressoAuthHeaders('GET', apiPath),
+                                'X-API-Key': PRESSSO_API_KEY
+                            }
+                        });
+                        pStatus = String(pollResp.data.status || '').toUpperCase();
+                    } else if (usedGateway === 'harakapay') {
+                        const harakaApiKey = process.env.HARAKAPAY_API_KEY || 'hpk_2956fec8e3e5f80597bb59c734275096e99a6e6628046826';
+                        const pollResp = await axios.get(`https://harakapay.net/api/v1/status/${orderId}`, {
+                            headers: { 'X-API-Key': harakaApiKey }
+                        });
+                        if (pollResp.data && pollResp.data.payment) {
+                            pStatus = String(pollResp.data.payment.status || '').toUpperCase();
                         }
-                    });
+                    }
                     
-                    const pStatus = String(pollResp.data.status || '').toUpperCase();
                     if (pStatus === 'COMPLETED' || pStatus === 'SUCCESS') {
                         clearInterval(pollTimer);
                         
