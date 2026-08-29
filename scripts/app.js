@@ -84,10 +84,11 @@ class Router {
             return;
         }
         const lowerQ = query.toLowerCase();
-        const results = this.cachedContent.filter(item =>
-            item.title.toLowerCase().includes(lowerQ) ||
-            item.category.toLowerCase().includes(lowerQ)
-        );
+        const results = this.cachedContent.filter(item => {
+            if (item.category === 'adult') return false; // Hide adult content from search
+            return item.title.toLowerCase().includes(lowerQ) ||
+                   item.category.toLowerCase().includes(lowerQ);
+        });
         if (results.length === 0) {
             container.innerHTML = '<div style="text-align:center; color:#666; width:100%; margin-top:50px;">No results found.</div>';
             return;
