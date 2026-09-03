@@ -62,7 +62,6 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/promo.css">
 
     <!-- Image Protection -->
     <style>
@@ -206,6 +205,10 @@
         <div class="nav-item" onclick="window.location.href='https://www.rajabsynic.online/'">
             <ion-icon name="newspaper"></ion-icon>
             <span>Blog</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='https://ngwambi.site/'">
+            <ion-icon name="globe"></ion-icon>
+            <span>Ngwambi</span>
         </div>
         <div class="nav-item" onclick="app.router.navigate('account')">
             <ion-icon name="person"></ion-icon>
@@ -451,18 +454,6 @@
         });
         // ─────────────────────────────────────────────────────
     </script>
-    <!-- Promo Popup -->
-    <div id="promo-popup" class="promo-overlay hidden">
-        <div class="promo-content fade-in">
-            <div class="promo-close" onclick="app.closePromoPopup()"><ion-icon name="close"></ion-icon></div>
-            <h2 class="promo-title">WAKUBWA</h2>
-            <p class="promo-text">Gusa hapa chini kujiunga na Wakubwa sasa hivi!</p>
-            <button class="promo-btn" onclick="window.location.href='https://ngwambi.site/'">
-                Ingia Hapa <ion-icon name="arrow-forward-outline"></ion-icon>
-            </button>
-        </div>
-    </div>
-
 </body>
 
 </html>
