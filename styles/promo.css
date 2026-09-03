@@ -1,0 +1,89 @@
+
+/* Promo Popup Styles */
+.promo-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.promo-overlay.hidden {
+    display: none !important;
+}
+
+.promo-content {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-color);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    width: 90%;
+    max-width: 350px;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0, 255, 0, 0.2);
+}
+
+.promo-close {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    background: #ff3333;
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 51, 51, 0.4);
+    border: 2px solid white;
+}
+
+.promo-title {
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.promo-text {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.promo-btn {
+    background: var(--accent-color);
+    color: #000;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(0, 255, 0, 0.4);
+    transition: transform 0.2s;
+}
+
+.promo-btn:active {
+    transform: scale(0.95);
+}

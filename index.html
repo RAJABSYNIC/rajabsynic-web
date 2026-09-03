@@ -62,6 +62,7 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/promo.css">
 
     <!-- Image Protection -->
     <style>
@@ -450,6 +451,18 @@
         });
         // ─────────────────────────────────────────────────────
     </script>
+    <!-- Promo Popup -->
+    <div id="promo-popup" class="promo-overlay hidden">
+        <div class="promo-content fade-in">
+            <div class="promo-close" onclick="app.closePromoPopup()"><ion-icon name="close"></ion-icon></div>
+            <h2 class="promo-title">WAKUBWA</h2>
+            <p class="promo-text">Gusa hapa chini kujiunga na Wakubwa sasa hivi!</p>
+            <button class="promo-btn" onclick="window.location.href='https://ngwambi.site/'">
+                Ingia Hapa <ion-icon name="arrow-forward-outline"></ion-icon>
+            </button>
+        </div>
+    </div>
+
 </body>
 
 </html>

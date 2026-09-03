@@ -1880,6 +1880,19 @@ const app = {
             console.log('Referral code saved:', refCode);
         }
 
+        // Show Promo Popup once per session/day
+        setTimeout(() => {
+            const popup = document.getElementById('promo-popup');
+            const lastShown = localStorage.getItem('promo_wakubwa_last_shown');
+            const today = new Date().toDateString();
+            
+            if (popup && lastShown !== today) {
+                popup.classList.remove('hidden');
+                // Store that we showed it today so we don't spam the user
+                localStorage.setItem('promo_wakubwa_last_shown', today);
+            }
+        }, 3000); // Show 3 seconds after load
+
         // 🟢 REAL-TIME CONTENT LISTENER
         api.listenToContent((content) => {
             this.router.cachedContent = content;
@@ -2353,6 +2366,13 @@ const app = {
 
         if (amount) {
             this.showPaymentInstructions(contentId, contentTitle, Number(amount), fullPrice);
+        }
+    },
+
+    closePromoPopup: function() {
+        const popup = document.getElementById('promo-popup');
+        if (popup) {
+            popup.classList.add('hidden');
         }
     }
 };
