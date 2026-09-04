@@ -34,6 +34,9 @@ class ApiService {
                 content.push({ id: doc.id, ...doc.data() });
             });
             console.log('🔥 Real-time content update:', content.length, 'items');
+            try {
+                localStorage.setItem('rajabsynic_cached_content', JSON.stringify(content));
+            } catch (e) {}
             callback(content);
         }, (error) => {
             console.error("Error in real-time content listener:", error);

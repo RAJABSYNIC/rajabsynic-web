@@ -1901,7 +1901,24 @@ const app = {
             console.log('Referral code saved:', refCode);
         }
 
-        // 🟢 REAL-TIME CONTENT LISTENER
+        // 🚀 INSTANT LOAD: Attempt to load previously cached content immediately
+        try {
+            const savedCache = localStorage.getItem('rajabsynic_cached_content');
+            if (savedCache) {
+                const parsedContent = JSON.parse(savedCache);
+                if (parsedContent && parsedContent.length > 0) {
+                    this.router.cachedContent = parsedContent;
+                    if (this.router.currentRoute === 'home') {
+                        this.router.renderHero();
+                        this.router.renderSections();
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load cached content', e);
+        }
+
+        // 🟢 REAL-TIME CONTENT LISTENER (Will silently update the UI when data arrives)
         api.listenToContent((content) => {
             this.router.cachedContent = content;
             // Re-render UI dynamically based on the current view
