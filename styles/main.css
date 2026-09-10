@@ -283,6 +283,29 @@ a {
     color: var(--text-secondary);
 }
 
+/* NEW badge for recent content */
+.card-new-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: #ff0000; /* Red for high visibility */
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 3px 6px;
+    border-radius: 4px;
+    z-index: 10;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    animation: pulseNew 2s infinite;
+}
+
+@keyframes pulseNew {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); box-shadow: 0 0 8px rgba(255,0,0,0.8); }
+    100% { transform: scale(1); }
+}
+
 /* Price / Free badges on cards */
 .card-price-badge {
     background: #111;

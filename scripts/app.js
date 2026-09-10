@@ -246,9 +246,20 @@ class Router {
             ? `<div class="card-price-badge"><ion-icon name="lock-closed"></ion-icon> ${priceLabel}</div>`
             : (isFree ? `<div class="card-free-badge">FREE</div>` : '');
 
+        let newBadgeHTML = '';
+        if (item.createdAt) {
+            const createdDate = new Date(item.createdAt).getTime();
+            const now = Date.now();
+            const diffDays = (now - createdDate) / (1000 * 60 * 60 * 24);
+            if (diffDays >= 0 && diffDays <= 7) {
+                newBadgeHTML = `<div class="card-new-badge">NEW</div>`;
+            }
+        }
+
         return `
             <div class="media-card" onclick='event.preventDefault(); window.app.router.navigate("details", "${item.id}")'>
                 <div style="position:relative;">
+                    ${newBadgeHTML}
                     <img src="${item.image}" class="poster" loading="lazy" decoding="async" alt="${item.title}">
                 </div>
                 <div class="media-info">
