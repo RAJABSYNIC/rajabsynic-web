@@ -247,8 +247,14 @@ class Router {
             : (isFree ? `<div class="card-free-badge">FREE</div>` : '');
 
         let newBadgeHTML = '';
-        if (item.createdAt) {
-            const createdDate = new Date(item.createdAt).getTime();
+        const tsRaw = item.timestamp || item.createdAt || item.created_at;
+        if (tsRaw) {
+            let createdDate = 0;
+            if (tsRaw.seconds) {
+                createdDate = tsRaw.seconds * 1000; // Firebase timestamp
+            } else {
+                createdDate = new Date(tsRaw).getTime(); // ISO String or milliseconds
+            }
             const now = Date.now();
             const diffDays = (now - createdDate) / (1000 * 60 * 60 * 24);
             if (diffDays >= 0 && diffDays <= 7) {
