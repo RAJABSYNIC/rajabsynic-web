@@ -246,26 +246,9 @@ class Router {
             ? `<div class="card-price-badge"><ion-icon name="lock-closed"></ion-icon> ${priceLabel}</div>`
             : (isFree ? `<div class="card-free-badge">FREE</div>` : '');
 
-        let newBadgeHTML = '';
-        const tsRaw = item.timestamp || item.createdAt || item.created_at;
-        if (tsRaw) {
-            let createdDate = 0;
-            if (tsRaw.seconds) {
-                createdDate = tsRaw.seconds * 1000; // Firebase timestamp
-            } else {
-                createdDate = new Date(tsRaw).getTime(); // ISO String or milliseconds
-            }
-            const now = Date.now();
-            const diffDays = (now - createdDate) / (1000 * 60 * 60 * 24);
-            if (diffDays >= 0 && diffDays <= 7) {
-                newBadgeHTML = `<div class="card-new-badge">NEW</div>`;
-            }
-        }
-
         return `
             <div class="media-card" onclick='event.preventDefault(); window.app.router.navigate("details", "${item.id}")'>
                 <div style="position:relative;">
-                    ${newBadgeHTML}
                     <img src="${item.image}" class="poster" loading="lazy" decoding="async" alt="${item.title}">
                 </div>
                 <div class="media-info">
@@ -1217,20 +1200,107 @@ class Router {
         const savedPhone = user?.phone || localStorage.getItem('savedPhone') || '';
 
         const content = user ? `
-            <div style="padding: 80px 20px; text-align:center;">
-                <div class="profile-header" style="margin-bottom:30px;">
-                     <div style="width:100px; height:100px; border-radius:50%; background:var(--accent-color); margin:0 auto 20px; display:flex; align-items:center; justify-content:center; font-size:3rem; color:black; font-weight:bold;">
+            <div style="padding: 80px 20px 40px; max-width: 480px; margin: 0 auto;">
+
+                <!-- Profile Header -->
+                <div style="text-align:center; margin-bottom:32px;">
+                    <div style="width:90px; height:90px; border-radius:50%; background:var(--accent-color); margin:0 auto 14px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; color:#000; font-weight:900; box-shadow: 0 0 24px rgba(0,255,0,0.4);">
                         ${user.username ? user.username[0].toUpperCase() : 'U'}
-                     </div>
-                     <h2>${user.username || 'User'}</h2>
-                     <p style="color:#888;">${user.phone || ''}</p>
-                </div>
-                <div class="account-menu" style="text-align:left; background:var(--bg-secondary); border-radius:12px; padding:10px;">
-                    <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between; cursor:pointer;" onclick="window.app.router.showMyList()">
-                        <span>My List</span> <ion-icon name="chevron-forward"></ion-icon>
                     </div>
-                    <div style="padding:15px; color:#ff4444; cursor:pointer;" onclick="window.app.router.logout()">
-                        Sign Out
+                    <h2 style="font-size:1.3rem; font-weight:800; color:#fff; margin-bottom:4px;">${user.username || 'User'}</h2>
+                    <p style="color:#666; font-size:0.9rem;">${user.phone || ''}</p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:32px;">
+
+                    <!-- Historia ya Malipo -->
+                    <button onclick="window.app.router.showMyList()" style="
+                        width:100%; padding:16px; border-radius:14px;
+                        background:var(--accent-color); color:#000; border:none;
+                        font-size:1rem; font-weight:800; cursor:pointer;
+                        display:flex; align-items:center; justify-content:center; gap:10px;
+                        box-shadow: 0 4px 20px rgba(0,255,0,0.25);
+                        transition: transform 0.15s, box-shadow 0.15s;
+                    " onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
+                        <ion-icon name="receipt-outline" style="font-size:1.3rem;"></ion-icon>
+                        Historia ya Malipo
+                    </button>
+
+                    <!-- Referral -->
+                    <button onclick="window.app.router.showReferral()" style="
+                        width:100%; padding:16px; border-radius:14px;
+                        background:transparent; color:var(--accent-color); border:2px solid var(--accent-color);
+                        font-size:1rem; font-weight:700; cursor:pointer;
+                        display:flex; align-items:center; justify-content:center; gap:10px;
+                        transition: transform 0.15s;
+                    " onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
+                        <ion-icon name="gift-outline" style="font-size:1.3rem;"></ion-icon>
+                        Referral Program
+                    </button>
+
+                    <!-- Sign Out -->
+                    <button onclick="window.app.router.logout()" style="
+                        width:100%; padding:16px; border-radius:14px;
+                        background:transparent; color:var(--accent-color); border:2px solid var(--accent-color);
+                        font-size:1rem; font-weight:700; cursor:pointer;
+                        display:flex; align-items:center; justify-content:center; gap:10px;
+                        transition: transform 0.15s;
+                    " onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
+                        <ion-icon name="log-out-outline" style="font-size:1.3rem;"></ion-icon>
+                        Ondoka / Sign Out
+                    </button>
+                </div>
+
+                <!-- Divider -->
+                <div style="border-top:1px solid #222; margin-bottom:24px;"></div>
+
+                <!-- Follow Us -->
+                <div style="text-align:center;">
+                    <p style="color:#555; font-size:0.85rem; margin-bottom:18px; letter-spacing:0.5px;">Tufuate / Follow Us</p>
+                    <div style="display:flex; justify-content:center; align-items:center; gap:20px;">
+
+                        <!-- Instagram -->
+                        <a href="https://www.instagram.com/rajabsynic_?stkn=dXplZnB1c28yaXdz" target="_blank" style="
+                            width:52px; height:52px; border-radius:14px;
+                            background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%,#d6249f 60%,#285AEB 90%);
+                            display:flex; align-items:center; justify-content:center; text-decoration:none;
+                            box-shadow: 0 4px 12px rgba(214,36,159,0.3);
+                        ">
+                            <ion-icon name="logo-instagram" style="font-size:1.7rem; color:#fff;"></ion-icon>
+                        </a>
+
+                        <!-- TikTok -->
+                        <a href="https://www.tiktok.com/@rajabsynic?_r=1&_t=ZS-99hMHLZgQjv" target="_blank" style="
+                            width:52px; height:52px; border-radius:14px;
+                            background:#010101;
+                            border: 1px solid #333;
+                            display:flex; align-items:center; justify-content:center; text-decoration:none;
+                            box-shadow: 0 4px 12px rgba(255,0,80,0.2);
+                        ">
+                            <ion-icon name="logo-tiktok" style="font-size:1.6rem; color:#fff;"></ion-icon>
+                        </a>
+
+                        <!-- YouTube -->
+                        <a href="https://youtube.com/@rajabsynic?si=fD3XDW0DOXA8cnC-" target="_blank" style="
+                            width:52px; height:52px; border-radius:14px;
+                            background:#FF0000;
+                            display:flex; align-items:center; justify-content:center; text-decoration:none;
+                            box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+                        ">
+                            <ion-icon name="logo-youtube" style="font-size:1.7rem; color:#fff;"></ion-icon>
+                        </a>
+
+                        <!-- WhatsApp -->
+                        <a href="https://whatsapp.com/channel/0029VbA73u1KmCPVaksIDK2Q" target="_blank" style="
+                            width:52px; height:52px; border-radius:14px;
+                            background:#25D366;
+                            display:flex; align-items:center; justify-content:center; text-decoration:none;
+                            box-shadow: 0 4px 12px rgba(37,211,102,0.3);
+                        ">
+                            <ion-icon name="logo-whatsapp" style="font-size:1.7rem; color:#fff;"></ion-icon>
+                        </a>
+
                     </div>
                 </div>
             </div>
@@ -1258,6 +1328,7 @@ class Router {
             </div>
         `;
     }
+
 
     async checkPhone() {
         const phoneInput = document.getElementById('auth-phone');
