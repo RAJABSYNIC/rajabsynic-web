@@ -515,3 +515,26 @@ a {
 .success-toast {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* NEW Badge for recently posted content (within 90 days) */
+.card-new-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: var(--accent-color);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    z-index: 10;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(0, 255, 0, 0.5);
+    animation: newBadgePulse 2s infinite;
+}
+
+@keyframes newBadgePulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(0, 255, 0, 0.5); }
+    50%       { box-shadow: 0 2px 16px rgba(0, 255, 0, 0.9); }
+}
