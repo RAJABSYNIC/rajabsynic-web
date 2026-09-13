@@ -1227,18 +1227,6 @@ class Router {
                         Historia ya Malipo
                     </button>
 
-                    <!-- Referral -->
-                    <button onclick="window.app.router.showReferral()" style="
-                        width:100%; padding:16px; border-radius:14px;
-                        background:transparent; color:var(--accent-color); border:2px solid var(--accent-color);
-                        font-size:1rem; font-weight:700; cursor:pointer;
-                        display:flex; align-items:center; justify-content:center; gap:10px;
-                        transition: transform 0.15s;
-                    " onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
-                        <ion-icon name="gift-outline" style="font-size:1.3rem;"></ion-icon>
-                        Referral Program
-                    </button>
-
                     <!-- Sign Out -->
                     <button onclick="window.app.router.logout()" style="
                         width:100%; padding:16px; border-radius:14px;
