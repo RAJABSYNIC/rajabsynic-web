@@ -251,7 +251,7 @@ class Router {
         if (item.createdAt) {
             const createdDate = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
             const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-            if (daysDiff <= 90) {
+            if (daysDiff >= 0 && daysDiff <= 90) {
                 newBadgeHTML = `<div class="card-new-badge">NEW</div>`;
             }
         }

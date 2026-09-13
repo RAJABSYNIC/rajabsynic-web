@@ -503,8 +503,9 @@
                 const selectedCats = Array.from(document.querySelectorAll('#l-categories .cat-chip.active')).map(c => c.innerText);
                 if (selectedCats.length === 0) return alert('Select at least one category');
 
+                const itemId = document.getElementById('l-id').value;
                 const item = {
-                    id: document.getElementById('l-id').value,
+                    id: itemId,
                     title: name,
                     description: document.getElementById('l-description').value,
                     movieLink: url,
@@ -516,8 +517,11 @@
                     category: 'Live TV',
                     isFree: !document.getElementById('l-price').value.trim(),
                     status: 'public',
-                    createdAt: new Date().toISOString()
+                    // Only set createdAt for NEW items; existing items keep their original date
+                    createdAt: itemId ? undefined : new Date().toISOString()
                 };
+                // Remove undefined createdAt for existing items
+                if (item.createdAt === undefined) delete item.createdAt;
                 if (!item.id) delete item.id;
 
                 const res = await api.saveContent(item);
@@ -532,8 +536,9 @@
 
             saveContent: async function () {
                 try {
+                    const itemId = document.getElementById('c-id').value;
                     const item = {
-                        id: document.getElementById('c-id').value,
+                        id: itemId,
                         title: document.getElementById('c-title').value,
                         category: document.getElementById('c-category').value,
                         contentType: document.getElementById('c-context').value,
@@ -567,8 +572,11 @@
                         isTrending: false, // Automated: defaulting to false if manual control removed
                         isFree: !document.getElementById('c-price').value.trim(),
                         isAdult: document.getElementById('c-context').value === 'adult',
-                        createdAt: new Date().toISOString()
+                        // Only set createdAt for NEW items; existing items keep their original date
+                        createdAt: itemId ? undefined : new Date().toISOString()
                     };
+                    // Remove undefined createdAt for existing items (they'll keep their original value)
+                    if (item.createdAt === undefined) delete item.createdAt;
                     if (!item.id) delete item.id;
 
                     console.log("Saving item:", item); // Debug
