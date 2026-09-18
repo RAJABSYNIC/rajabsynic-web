@@ -41,6 +41,11 @@ app.use(express.static(__dirname, {
 }));
 
 
+// Serve home page at / and /index.html
+app.get(['/', '/index.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Route to serve admin panel at /admin and /admin/
 app.get(['/admin', '/admin/'], (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
