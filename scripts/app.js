@@ -227,6 +227,11 @@ class Router {
         });
         if (maleoMapModContainer) maleoMapModContainer.innerHTML = maleoMapModItems.map(item => this.createCard(item)).join('');
 
+        // ETS 2 Mod Bus Section
+        const ets2ModBusContainer = document.getElementById('scroller-ets-2-mod-bus');
+        const ets2ModBusItems = this.cachedContent.filter(i => i.category === 'ets-2-mod-bus');
+        if (ets2ModBusContainer) ets2ModBusContainer.innerHTML = ets2ModBusItems.map(item => this.createCard(item)).join('');
+
         // Movies Section
         const moviesContainer = document.getElementById('scroller-movies');
         const moviesItems = this.cachedContent.filter(i => i.contentType === 'movies' || i.category === 'movies');
@@ -323,6 +328,7 @@ class Router {
         if (catId === 'maleo-bus-mod') catName = 'Maleo Bus Mod';
         if (catId === 'maleo-bus-skin') catName = 'Maleo Bus Skin';
         if (catId === 'maleo-map-mod') catName = 'Maleo Map Mod';
+        if (catId === 'ets-2-mod-bus') catName = 'ETS 2 Mod Bus';
         if (catId === 'movies') catName = 'Movies';
         if (catId === 'program-and-app') catName = 'Program and App';
         if (catId === 'Connection') catName = 'Connection';
@@ -540,7 +546,7 @@ class Router {
         let playerHTML = '';
 
         // 1. Detect if this is a game/downloadable item (not a stream)
-        const gameCategories = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-skin', 'maleo-map-mod', 'program-and-app'];
+        const gameCategories = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'];
         const isGameItem = item.contentType === 'games' || (!item.contentType && gameCategories.includes(item.category));
 
         // For games: movieLink is a download URL, NOT a stream — keep it out of the player
