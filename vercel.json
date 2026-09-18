@@ -1,20 +1,17 @@
 {
-  "version": 2,
-  "builds": [
+  "headers": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "**/*",
-      "use": "@vercel/static"
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate, max-age=0" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
     }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" },
-    { "src": "/admin/?", "dest": "/admin.html" },
-    { "src": "/sw.js", "dest": "/sw.js" },
-    { "src": "/manifest.json", "dest": "/manifest.json" },
-    { "src": "/(.*)", "dest": "/$1" }
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/server.js" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin/", "destination": "/admin.html" }
   ]
 }
