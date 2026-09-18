@@ -1,9 +1,10 @@
-const CACHE_NAME = 'rajabsynic-v2';
+const CACHE_NAME = 'rajabsynic-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/styles/main.css',
   '/scripts/app.js',
+  '/scripts/adminApp.js',
   '/scripts/payment.js',
   '/scripts/firebase-config.js',
   '/scripts/api.js',

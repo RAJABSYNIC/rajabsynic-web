@@ -29,8 +29,16 @@ app.use(compression()); // Compress all responses
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files with 1-year cache (except HTML, which is usually not cached this way natively without express.static options, but we can set maxAge: '1y')
-app.use(express.static(__dirname, { maxAge: '1y' }));
+// Serve static files (ensure HTML and JS are revalidated so code updates apply immediately)
+app.use(express.static(__dirname, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html') || filePath.endsWith('.js')) {
+            res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        } else {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+        }
+    }
+}));
 
 
 // Route to serve admin panel at /admin and /admin/
