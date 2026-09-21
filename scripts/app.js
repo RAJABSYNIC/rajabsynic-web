@@ -1253,47 +1253,58 @@ class Router {
                 <!-- Follow Us -->
                 <div style="text-align:center;">
                     <p style="color:#555; font-size:0.85rem; margin-bottom:18px; letter-spacing:0.5px;">Tufuate / Follow Us</p>
-                    <div style="display:flex; justify-content:center; align-items:center; gap:20px;">
+                    <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
 
                         <!-- Instagram -->
                         <a href="https://www.instagram.com/rajabsynic_?stkn=dXplZnB1c28yaXdz" target="_blank" style="
-                            width:52px; height:52px; border-radius:14px;
+                            width:50px; height:50px; border-radius:14px;
                             background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%,#d6249f 60%,#285AEB 90%);
                             display:flex; align-items:center; justify-content:center; text-decoration:none;
                             box-shadow: 0 4px 12px rgba(214,36,159,0.3);
                         ">
-                            <ion-icon name="logo-instagram" style="font-size:1.7rem; color:#fff;"></ion-icon>
+                            <ion-icon name="logo-instagram" style="font-size:1.6rem; color:#fff;"></ion-icon>
                         </a>
 
                         <!-- TikTok -->
                         <a href="https://www.tiktok.com/@rajabsynic?_r=1&_t=ZS-99hMHLZgQjv" target="_blank" style="
-                            width:52px; height:52px; border-radius:14px;
+                            width:50px; height:50px; border-radius:14px;
                             background:#010101;
                             border: 1px solid #333;
                             display:flex; align-items:center; justify-content:center; text-decoration:none;
                             box-shadow: 0 4px 12px rgba(255,0,80,0.2);
                         ">
-                            <ion-icon name="logo-tiktok" style="font-size:1.6rem; color:#fff;"></ion-icon>
+                            <ion-icon name="logo-tiktok" style="font-size:1.5rem; color:#fff;"></ion-icon>
+                        </a>
+
+                        <!-- Threads -->
+                        <a href="https://www.threads.net/@rajabsynic_" target="_blank" style="
+                            width:50px; height:50px; border-radius:14px;
+                            background:#000000;
+                            border: 1px solid #333;
+                            display:flex; align-items:center; justify-content:center; text-decoration:none;
+                            box-shadow: 0 4px 12px rgba(255,255,255,0.15);
+                        ">
+                            <ion-icon name="logo-threads" style="font-size:1.6rem; color:#fff;"></ion-icon>
                         </a>
 
                         <!-- YouTube -->
                         <a href="https://youtube.com/@rajabsynic?si=fD3XDW0DOXA8cnC-" target="_blank" style="
-                            width:52px; height:52px; border-radius:14px;
+                            width:50px; height:50px; border-radius:14px;
                             background:#FF0000;
                             display:flex; align-items:center; justify-content:center; text-decoration:none;
                             box-shadow: 0 4px 12px rgba(255,0,0,0.3);
                         ">
-                            <ion-icon name="logo-youtube" style="font-size:1.7rem; color:#fff;"></ion-icon>
+                            <ion-icon name="logo-youtube" style="font-size:1.6rem; color:#fff;"></ion-icon>
                         </a>
 
                         <!-- WhatsApp -->
                         <a href="https://whatsapp.com/channel/0029VbA73u1KmCPVaksIDK2Q" target="_blank" style="
-                            width:52px; height:52px; border-radius:14px;
+                            width:50px; height:50px; border-radius:14px;
                             background:#25D366;
                             display:flex; align-items:center; justify-content:center; text-decoration:none;
                             box-shadow: 0 4px 12px rgba(37,211,102,0.3);
                         ">
-                            <ion-icon name="logo-whatsapp" style="font-size:1.7rem; color:#fff;"></ion-icon>
+                            <ion-icon name="logo-whatsapp" style="font-size:1.6rem; color:#fff;"></ion-icon>
                         </a>
 
                     </div>

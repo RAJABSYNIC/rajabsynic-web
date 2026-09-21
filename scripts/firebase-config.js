@@ -4,18 +4,29 @@ import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
 // Load config from the server (values come from .env, nothing hardcoded here).
-// Top-level await is supported because all scripts load as ES modules.
-let firebaseConfig;
+// Fallback to the known public Firebase keys so the app still loads even when the
+// config endpoint is temporarily unavailable or blocked.
+const defaultFirebaseConfig = {
+  apiKey: "AIzaSyCE7Kk23t6490SDSTujHL1SKg2AzMNsHTo",
+  authDomain: "rajabsynicmob.firebaseapp.com",
+  projectId: "rajabsynicmob",
+  storageBucket: "rajabsynicmob.firebasestorage.app",
+  messagingSenderId: "519704126018",
+  appId: "1:519704126018:web:da0f0a911de5b21bc283db"
+};
+
+let firebaseConfig = { ...defaultFirebaseConfig };
 try {
   const res = await fetch('/api/public-config');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const cfg = await res.json();
-  firebaseConfig = cfg.firebase;
-  // Expose OneSignal app id for index.html to pick up
-  if (cfg.oneSignalAppId) window.__ONESIGNAL_APP_ID__ = cfg.oneSignalAppId;
+  if (res.ok) {
+    const cfg = await res.json();
+    firebaseConfig = { ...firebaseConfig, ...(cfg.firebase || {}) };
+    if (cfg.oneSignalAppId) window.__ONESIGNAL_APP_ID__ = cfg.oneSignalAppId;
+  } else {
+    console.warn('⚠️ /api/public-config returned non-OK status, using fallback Firebase config');
+  }
 } catch (err) {
-  console.error('❌ Failed to load public config from /api/public-config:', err);
-  throw err;
+  console.warn('⚠️ Failed to load public config from /api/public-config, using fallback Firebase config:', err);
 }
 
 // Initialize Firebase
