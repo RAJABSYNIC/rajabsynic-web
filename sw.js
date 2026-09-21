@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v3';
+const CACHE_NAME = 'rajabsynic-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const STATIC_ASSETS = [
   '/scripts/payment.js',
   '/scripts/firebase-config.js',
   '/scripts/api.js',
+  '/threads-icon.png',
   '/manifest.json'
 ];
 
