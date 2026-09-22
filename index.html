@@ -107,7 +107,7 @@
                 style="color:#00ff00">SYNIC</span>
         </div>
         <div class="nav-actions flex items-center" style="gap: 15px;">
-            <div class="install-btn flex items-center" style="color: #00ff00; cursor: pointer; gap: 5px; font-weight: 600; font-size: 1rem;" onclick="triggerInstall()">
+            <div class="install-btn flex items-center" style="display: none; color: #00ff00; cursor: pointer; gap: 5px; font-weight: 600; font-size: 1rem;" onclick="triggerInstall()">
                 <ion-icon name="download-outline" style="font-size: 1.4rem;"></ion-icon>
                 <span>Install</span>
             </div>
@@ -393,14 +393,36 @@
             });
         }
 
-        // Capture install prompt
+        // Helper: Check if app is already installed or running in standalone mode
+        function isAppInstalled() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                               window.navigator.standalone === true ||
+                               document.referrer.includes('android-app://');
+            const isSaved = localStorage.getItem('pwa_installed') === 'true';
+            return isStandalone || isSaved;
+        }
+
+        // Hide install button immediately if app is already installed or running as PWA
+        function checkInstallButtonVisibility() {
+            const installBtn = document.querySelector('.install-btn');
+            if (!installBtn) return;
+            if (isAppInstalled()) {
+                localStorage.setItem('pwa_installed', 'true');
+                installBtn.style.display = 'none';
+            }
+        }
+        checkInstallButtonVisibility();
+        document.addEventListener('DOMContentLoaded', checkInstallButtonVisibility);
+
+        // Capture install prompt (only show if not installed)
         let deferredPrompt = null;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Show install button in nav
-            const installBtn = document.querySelector('.install-btn');
-            if (installBtn) installBtn.style.display = 'flex';
+            if (!isAppInstalled()) {
+                const installBtn = document.querySelector('.install-btn');
+                if (installBtn) installBtn.style.display = 'flex';
+            }
         });
 
         // Called when user taps Install button
@@ -410,6 +432,7 @@
                 deferredPrompt.userChoice.then(choice => {
                     if (choice.outcome === 'accepted') {
                         console.log('App installed!');
+                        localStorage.setItem('pwa_installed', 'true');
                         const installBtn = document.querySelector('.install-btn');
                         if (installBtn) installBtn.style.display = 'none';
                     }
@@ -418,8 +441,10 @@
             }
         };
 
-        // Hide install button if already installed
+        // Hide install button when appinstalled event fires
         window.addEventListener('appinstalled', () => {
+            console.log('App installed event triggered');
+            localStorage.setItem('pwa_installed', 'true');
             const installBtn = document.querySelector('.install-btn');
             if (installBtn) installBtn.style.display = 'none';
             deferredPrompt = null;
