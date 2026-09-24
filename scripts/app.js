@@ -200,6 +200,11 @@ class Router {
         const maleoBusModItems = this.cachedContent.filter(i => i.category === 'maleo-bus-mod');
         if (maleoBusModContainer) maleoBusModContainer.innerHTML = maleoBusModItems.map(item => this.createCard(item)).join('');
 
+        // Maleo Bus Mod Multiplayer Section
+        const maleoBusModMultiContainer = document.getElementById('scroller-maleo-bus-mod-multi');
+        const maleoBusModMultiItems = this.cachedContent.filter(i => i.category === 'maleo-bus-mod-multi');
+        if (maleoBusModMultiContainer) maleoBusModMultiContainer.innerHTML = maleoBusModMultiItems.map(item => this.createCard(item)).join('');
+
         // Maleo Bus Skin Section
         const maleoBusSkinContainer = document.getElementById('scroller-maleo-bus-skin');
         const maleoBusSkinItems = this.cachedContent.filter(i => i.category === 'maleo-bus-skin');
@@ -326,6 +331,7 @@ class Router {
         if (catId === 'free-games') catName = 'Games';
         if (catId === 'free-games-all') catName = 'Free Games';
         if (catId === 'maleo-bus-mod') catName = 'Maleo Bus Mod';
+        if (catId === 'maleo-bus-mod-multi') catName = 'Maleo Bus Mod (Multiplayer)';
         if (catId === 'maleo-bus-skin') catName = 'Maleo Bus Skin';
         if (catId === 'maleo-map-mod') catName = 'Maleo Map Mod';
         if (catId === 'ets-2-mod-bus') catName = 'ETS 2 Mod Bus';
@@ -546,7 +552,7 @@ class Router {
         let playerHTML = '';
 
         // 1. Detect if this is a game/downloadable item (not a stream)
-        const gameCategories = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'];
+        const gameCategories = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'];
         const isGameItem = item.contentType === 'games' || (!item.contentType && gameCategories.includes(item.category));
 
         // For games: movieLink is a download URL, NOT a stream — keep it out of the player

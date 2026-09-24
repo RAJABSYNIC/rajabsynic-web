@@ -151,7 +151,7 @@
 
                 // Filtering Logic: Prioritize 'contentType' (new field), fallback to 'category' (legacy)
                 const isLive = (i) => i.contentType === 'live';
-                const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
+                const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
                 const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
 
                 if (type === 'movies') {
@@ -254,6 +254,7 @@
                         <option value="tanzania-games">Tanzania Games</option>
                         <option value="free-games">Games</option>
                         <option value="maleo-bus-mod">Maleo Bus Mod</option>
+                        <option value="maleo-bus-mod-multi">Maleo Bus Mod (Multiplayer)</option>
                         <option value="maleo-bus-skin">Maleo Bus Skin</option>
                         <option value="maleo-map-mod">Maleo Map Mod</option>
                         <option value="ets-2-mod-bus">ETS 2 Mod Bus</option>
@@ -802,7 +803,7 @@
                     items = data.filter(i => i.contentType === 'live');
                 } else if (type === 'games') {
                     labelEl.innerText = "Select Game";
-                    const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
+                    const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
                     items = data.filter(i => isGame(i) && i.contentType !== 'live');
                 } else if (type === 'adult') {
                     labelEl.innerText = "Select Adult Content";
