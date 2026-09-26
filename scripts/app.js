@@ -2007,6 +2007,12 @@ const app = {
             console.log('Referral code saved:', refCode);
         }
 
+        // Hide Ngwambi nav tab when switched off from the admin panel
+        fetch('/api/public-config').then(r => r.json()).then(cfg => {
+            const nav = document.getElementById('nav-ngwambi');
+            if (nav && cfg.showNgwambi === false) nav.style.display = 'none';
+        }).catch(() => {});
+
         // 🚀 INSTANT LOAD: Attempt to load previously cached content immediately
         try {
             const savedCache = localStorage.getItem('rajabsynic_cached_content');

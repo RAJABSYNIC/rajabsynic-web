@@ -237,11 +237,15 @@ async function grantAccessForPayment(payment) {
 // GET /api/public-config
 app.get('/api/public-config', async (req, res) => {
     let onesignal = process.env.ONESIGNAL_APP_ID || '';
+    let showNgwambi = true;
     if (fsdb) {
         try {
             const doc = await fsdb.collection('config').doc('settings').get();
             if (doc.exists && doc.data().onesignal_app_id) {
                 onesignal = doc.data().onesignal_app_id;
+            }
+            if (doc.exists && typeof doc.data().show_ngwambi === 'boolean') {
+                showNgwambi = doc.data().show_ngwambi;
             }
         } catch(e) {}
     }
@@ -255,8 +259,25 @@ app.get('/api/public-config', async (req, res) => {
             messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
             appId: process.env.FIREBASE_APP_ID
         },
-        oneSignalAppId: onesignal
+        oneSignalAppId: onesignal,
+        showNgwambi
     });
+});
+
+// POST /api/settings — admin-only site settings (navigation visibility etc.)
+app.post('/api/settings', requireAdmin, async (req, res) => {
+    if (!fsdb) return res.status(500).json({ success: false, error: 'Database disconnected' });
+    const { showNgwambi } = req.body || {};
+    if (typeof showNgwambi !== 'boolean') {
+        return res.status(400).json({ success: false, error: 'showNgwambi (boolean) required' });
+    }
+    try {
+        await fsdb.collection('config').doc('settings').set({ show_ngwambi: showNgwambi }, { merge: true });
+        res.json({ success: true, showNgwambi });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, error: 'Failed to save settings' });
+    }
 });
 
 // GET /api/subscription/check?userId=&contentId=

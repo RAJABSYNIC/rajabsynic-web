@@ -98,6 +98,7 @@
             },
 
             loadDashboard: async function () {
+                this.loadNgwambiSwitch();
                 // Fetch payments ONCE and reuse across every dashboard widget
                 // (previously this collection was fetched 4x per load).
                 const payments = await api.getPayments();
@@ -113,6 +114,46 @@
 
                 const txnEl = document.getElementById('stat-total-txns');
                 if (txnEl) txnEl.textContent = `${completed.length} malipo yaliyokamilika`;
+            },
+
+            loadNgwambiSwitch: async function () {
+                try {
+                    const res = await fetch('/api/public-config');
+                    const cfg = await res.json();
+                    this.setNgwambiSwitchUI(cfg.showNgwambi !== false);
+                } catch (e) {
+                    console.error('Failed to load ngwambi setting:', e);
+                }
+            },
+
+            setNgwambiSwitchUI: function (on) {
+                const sw = document.getElementById('ngwambi-switch');
+                const knob = document.getElementById('ngwambi-knob');
+                if (!sw || !knob) return;
+                sw.dataset.on = on ? '1' : '0';
+                sw.style.background = on ? '#00ff80' : '#374151';
+                knob.style.left = on ? '29px' : '3px';
+            },
+
+            toggleNgwambi: async function () {
+                const sw = document.getElementById('ngwambi-switch');
+                if (!sw) return;
+                const next = sw.dataset.on !== '1';
+                try {
+                    const res = await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                        },
+                        body: JSON.stringify({ showNgwambi: next })
+                    });
+                    const out = await res.json();
+                    if (!res.ok || !out.success) throw new Error(out.error || 'Save failed');
+                    this.setNgwambiSwitchUI(next);
+                } catch (e) {
+                    alert('Imeshindwa kuhifadhi setting: ' + e.message);
+                }
             },
 
             // --- CONTENT (Combined Logic) ---
