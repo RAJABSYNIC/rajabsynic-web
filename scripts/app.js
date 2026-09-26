@@ -1316,6 +1316,8 @@ class Router {
                         </a>
 
                     </div>
+
+                    <img src="/logo.jpeg" alt="Rajabsynic" style="width:130px; height:auto; margin-top:24px;">
                 </div>
             </div>
         ` : `
