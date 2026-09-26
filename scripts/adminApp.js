@@ -135,16 +135,25 @@
                 knob.style.left = on ? '29px' : '3px';
             },
 
+            getAdminToken: async function () {
+                const user = auth.currentUser;
+                if (!user) throw new Error('Session imeisha — ingia tena');
+                const token = await user.getIdToken(true);
+                sessionStorage.setItem('rajab_admin_token', token);
+                return token;
+            },
+
             toggleNgwambi: async function () {
                 const sw = document.getElementById('ngwambi-switch');
                 if (!sw) return;
                 const next = sw.dataset.on !== '1';
                 try {
+                    const token = await this.getAdminToken();
                     const res = await fetch('/api/settings', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                            'Authorization': 'Bearer ' + token
                         },
                         body: JSON.stringify({ showNgwambi: next })
                     });
