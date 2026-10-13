@@ -170,11 +170,26 @@ class Router {
         dots[this.currentSlide].classList.add('active');
     }
 
+    sortTanzaniaGames(items) {
+        const tier = (item) => {
+            const t = (item.title || '').toLowerCase();
+            if (/bus|maleo/.test(t)) return 0;
+            if (/dls|pes/.test(t)) return 1;
+            return 2;
+        };
+        items.sort((a, b) => {
+            const ta = tier(a);
+            const tb = tier(b);
+            if (ta !== tb) return ta - tb;
+            return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+        });
+        return items;
+    }
+
     renderSections() {
         // Trending Section -> specifically Tanzania Games
         const trendingContainer = document.getElementById('scroller-trending');
-        const tanzaniaGames = this.cachedContent.filter(i => i.category === 'tanzania-games');
-        tanzaniaGames.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+        const tanzaniaGames = this.sortTanzaniaGames(this.cachedContent.filter(i => i.category === 'tanzania-games'));
         if (trendingContainer) trendingContainer.innerHTML = tanzaniaGames.map(item => this.createCard(item)).join('');
 
         // Games Section -> Paid Games
@@ -287,7 +302,7 @@ class Router {
         }
 
         if (catId === 'tanzania-games') {
-            items.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+            this.sortTanzaniaGames(items);
         }
 
         if (catId === 'maleo-map-mod') {
