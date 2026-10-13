@@ -7,12 +7,17 @@
     <title>Admin - RAJABSYNIC</title>
 
     <link rel="icon" type="image/jpeg" href="/logo.jpeg">
+    <!-- Start Firebase SDK downloads immediately; adminApp.js needs them before login works -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js" crossorigin>
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <!-- Icons -->
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <!-- Styles -->
     <link rel="stylesheet" href="/styles/main.css">
 <link rel="stylesheet" href="/styles/admin.css">
@@ -38,7 +43,34 @@
             document.querySelector('.sidebar').classList.toggle('show');
             document.getElementById('sidebar-overlay').classList.toggle('show');
         }
-        
+
+        // adminApp.js is a module that only exists after the Firebase SDK finishes
+        // loading. Instead of alerting "still loading", queue the click and log in
+        // automatically the moment the app is ready.
+        window.__adminLoginClick = function () {
+            const btn = document.getElementById('login-btn');
+            const err = document.getElementById('login-error');
+            if (window.adminApp) { window.adminApp.login(); return; }
+            btn.disabled = true;
+            const label = btn.innerText;
+            btn.innerText = 'Inapaka... subiri kidogo';
+            err.innerText = '';
+            const started = Date.now();
+            const iv = setInterval(() => {
+                if (window.adminApp) {
+                    clearInterval(iv);
+                    btn.innerText = label;
+                    btn.disabled = false;
+                    window.adminApp.login();
+                } else if (Date.now() - started > 20000) {
+                    clearInterval(iv);
+                    btn.innerText = label;
+                    btn.disabled = false;
+                    err.innerText = 'App imeshindwa kupakia. Check internet yako kisha reload ukurasa.';
+                }
+            }, 250);
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             const menuItems = document.querySelectorAll('.menu-item');
             menuItems.forEach(item => {
@@ -61,14 +93,14 @@
                 <div style="width:48px;height:2px;background:linear-gradient(90deg,transparent,#00ff80,transparent);margin:14px auto 0;"></div>
             </div>
             <input type="email" id="admin-user" placeholder="Email" autocomplete="username"
-                onkeydown="if(event.key===&apos;Enter&apos;)adminApp.login()"
+                onkeydown="if(event.key===&apos;Enter&apos;)window.__adminLoginClick()"
                 onfocus="this.style.borderColor=&apos;rgba(0,255,128,0.5)&apos;" onblur="this.style.borderColor=&apos;#1f2937&apos;"
                 style="width:100%;margin-bottom:14px;padding:14px 16px;border-radius:10px;background:#0b0c10;border:1px solid #1f2937;color:#fff;font-size:0.95rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;">
             <input type="password" id="admin-pass" placeholder="Password"
-                onkeydown="if(event.key===&apos;Enter&apos;)adminApp.login()"
+                onkeydown="if(event.key===&apos;Enter&apos;)window.__adminLoginClick()"
                 onfocus="this.style.borderColor=&apos;rgba(0,255,128,0.5)&apos;" onblur="this.style.borderColor=&apos;#1f2937&apos;"
                 style="width:100%;margin-bottom:24px;padding:14px 16px;border-radius:10px;background:#0b0c10;border:1px solid #1f2937;color:#fff;font-size:0.95rem;outline:none;box-sizing:border-box;transition:border-color 0.2s;">
-            <button id="login-btn" onclick="if(window.adminApp) { window.adminApp.login(); } else { alert('App is still loading, please wait...'); console.error('adminApp is not defined'); }"
+            <button id="login-btn" onclick="window.__adminLoginClick()"
                 onmouseover="this.style.boxShadow='0 8px 30px rgba(0,255,128,0.45)';this.style.transform='translateY(-1px)'"
                 onmouseout="this.style.boxShadow='0 4px 20px rgba(0,255,128,0.25)';this.style.transform='translateY(0)'"
                 style="width:100%;padding:14px;border-radius:10px;background:linear-gradient(135deg,#00ff80,#00cc66);border:none;color:#000;font-size:0.95rem;font-weight:800;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;box-shadow:0 4px 20px rgba(0,255,128,0.25);">

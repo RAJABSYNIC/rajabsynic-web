@@ -16,18 +16,23 @@ const defaultFirebaseConfig = {
 };
 
 let firebaseConfig = { ...defaultFirebaseConfig };
-try {
-  const res = await fetch('/api/public-config');
-  if (res.ok) {
-    const cfg = await res.json();
-    firebaseConfig = { ...firebaseConfig, ...(cfg.firebase || {}) };
+
+// The server-side config matches the bundled default, so don't block Firebase
+// init (and the admin login button) behind /api/public-config — on Vercel that
+// endpoint can take seconds to cold-start. The OneSignal id is applied whenever
+// it arrives; index.html also fetches it itself if still missing at init time.
+fetch('/api/public-config')
+  .then(res => (res.ok ? res.json() : null))
+  .then(cfg => {
+    if (!cfg) return;
     if (cfg.oneSignalAppId) window.__ONESIGNAL_APP_ID__ = cfg.oneSignalAppId;
-  } else {
-    console.warn('⚠️ /api/public-config returned non-OK status, using fallback Firebase config');
-  }
-} catch (err) {
-  console.warn('⚠️ Failed to load public config from /api/public-config, using fallback Firebase config:', err);
-}
+    const srv = cfg.firebase || {};
+    const drift = Object.keys(firebaseConfig).some(k => srv[k] && srv[k] !== firebaseConfig[k]);
+    if (drift) console.warn('⚠️ Server Firebase config differs from bundled config; update scripts/firebase-config.js');
+  })
+  .catch(err => {
+    console.warn('⚠️ Failed to load public config from /api/public-config, using fallback Firebase config:', err);
+  });
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
