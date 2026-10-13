@@ -174,15 +174,7 @@ class Router {
         // Trending Section -> specifically Tanzania Games
         const trendingContainer = document.getElementById('scroller-trending');
         const tanzaniaGames = this.cachedContent.filter(i => i.category === 'tanzania-games');
-        tanzaniaGames.sort((a, b) => {
-            const aPrice = parseFloat(a.price) || 0;
-            const bPrice = parseFloat(b.price) || 0;
-            const aUnder = aPrice > 0 && aPrice <= 15000;
-            const bUnder = bPrice > 0 && bPrice <= 15000;
-            if (aUnder && !bUnder) return -1;
-            if (!aUnder && bUnder) return 1;
-            return 0;
-        });
+        tanzaniaGames.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
         if (trendingContainer) trendingContainer.innerHTML = tanzaniaGames.map(item => this.createCard(item)).join('');
 
         // Games Section -> Paid Games
@@ -295,15 +287,7 @@ class Router {
         }
 
         if (catId === 'tanzania-games') {
-            items.sort((a, b) => {
-                const aPrice = parseFloat(a.price) || 0;
-                const bPrice = parseFloat(b.price) || 0;
-                const aUnder = aPrice > 0 && aPrice <= 15000;
-                const bUnder = bPrice > 0 && bPrice <= 15000;
-                if (aUnder && !bUnder) return -1;
-                if (!aUnder && bUnder) return 1;
-                return 0;
-            });
+            items.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
         }
 
         if (catId === 'maleo-map-mod') {
