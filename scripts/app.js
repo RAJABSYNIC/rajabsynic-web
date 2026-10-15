@@ -586,7 +586,7 @@ class Router {
                     ${cleanDesc ? `
                     <div style="margin-bottom:20px;">
                         <div style="border-left:4px solid #22c55e; padding-left:12px; margin-bottom:12px;">
-                            <h3 style="color:#22c55e; font-size:1.1rem; font-weight:800; margin:0;">📋 Maelezo ya Content</h3>
+                            <h3 style="color:#22c55e; font-size:1.1rem; font-weight:800; margin:0;">📋 Mambo ya kuzingatia</h3>
                         </div>
                         <div style="color:#d1d5db; line-height:1.7; font-size:0.95rem;">
                             ${cleanDesc}
