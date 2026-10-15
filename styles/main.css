@@ -538,3 +538,51 @@ a {
     0%, 100% { box-shadow: 0 2px 8px rgba(0, 255, 0, 0.5); }
     50%       { box-shadow: 0 2px 16px rgba(0, 255, 0, 0.9); }
 }
+
+/* ─── Category filter bar (horizontal swipe / scroll) ─────────────────── */
+.category-filter-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 16px 10px;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+}
+
+.category-filter-bar::-webkit-scrollbar { display: none; }
+
+.category-filter-bar.dragging { cursor: grabbing; }
+
+.cat-pill {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid #26282c;
+    background: #141519;
+    color: #c9cdd3;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.cat-pill.active {
+    background: #00ff00;
+    border-color: #00ff00;
+    color: #000;
+}
+
+.category-filter-results { display: none; padding: 4px 16px 24px; }
+
+#home-view.filtering .section-header,
+#home-view.filtering .media-scroller { display: none; }
+
+#home-view.filtering .category-filter-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 15px;
+}

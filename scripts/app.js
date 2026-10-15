@@ -114,6 +114,70 @@ class Router {
     async showHome() {
         await this.ensureContent();
         this.renderSections();
+        this.initCategoryFilter();
+    }
+
+    initCategoryFilter() {
+        const bar = document.getElementById('category-filter-bar');
+        if (!bar || bar.dataset.wired) return;
+        bar.dataset.wired = '1';
+
+        let dragged = false;
+        bar.addEventListener('click', (e) => {
+            if (dragged) { dragged = false; return; }
+            const pill = e.target.closest('.cat-pill');
+            if (!pill) return;
+            bar.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            this.applyCategoryFilter(pill.dataset.cat);
+        });
+
+        let isDown = false, startX = 0, startScroll = 0;
+        bar.addEventListener('pointerdown', (e) => {
+            isDown = true;
+            dragged = false;
+            startX = e.clientX;
+            startScroll = bar.scrollLeft;
+            bar.classList.add('dragging');
+        });
+        window.addEventListener('pointerup', () => {
+            isDown = false;
+            bar.classList.remove('dragging');
+        });
+        bar.addEventListener('pointermove', (e) => {
+            if (!isDown) return;
+            const dx = e.clientX - startX;
+            if (Math.abs(dx) > 6) dragged = true;
+            bar.scrollLeft = startScroll - dx;
+        });
+    }
+
+    async applyCategoryFilter(cat) {
+        const home = document.getElementById('home-view');
+        const results = document.getElementById('category-filter-results');
+        if (!home || !results) return;
+        if (cat === 'all') {
+            home.classList.remove('filtering');
+            results.innerHTML = '';
+            return;
+        }
+        await this.ensureContent();
+        let items;
+        if (cat === 'games') {
+            items = this.cachedContent.filter(i => i.category === 'free-games' && (i.isFree !== true && i.price > 0));
+        } else if (cat === 'free') {
+            items = this.cachedContent.filter(i => (i.isFree === true || !i.price || i.price == 0) && i.contentType === 'games' && i.category !== 'program-and-app');
+        } else if (cat === 'movies') {
+            items = this.cachedContent.filter(i => i.contentType === 'movies' || i.category === 'movies');
+        } else {
+            items = this.cachedContent.filter(i => i.category === cat);
+        }
+        if (cat === 'tanzania-games') this.sortTanzaniaGames(items);
+        results.innerHTML = items.length
+            ? items.map(item => this.createCard(item)).join('')
+            : '<p style="grid-column:1/-1;color:#9ca3af;padding:20px 0;">Hakuna content katika category hii.</p>';
+        home.classList.add('filtering');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     renderSlider() {
