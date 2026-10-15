@@ -1290,7 +1290,7 @@ class Router {
                 <!-- Action Buttons -->
                 <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:32px;">
 
-                    <!-- Historia ya Malipo -->
+                    <!-- Historia ya Malipo (hidden for now - not in use; uncomment to restore)
                     <button onclick="window.app.router.showMyList()" style="
                         width:100%; padding:16px; border-radius:14px;
                         background:var(--accent-color); color:#000; border:none;
@@ -1302,6 +1302,7 @@ class Router {
                         <ion-icon name="receipt-outline" style="font-size:1.3rem;"></ion-icon>
                         Historia ya Malipo
                     </button>
+                    -->
 
                     <!-- Sign Out -->
                     <button onclick="window.app.router.logout()" style="
