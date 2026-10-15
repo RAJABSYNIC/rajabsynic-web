@@ -575,7 +575,7 @@ class Router {
                     <!-- Video ya Maonyesho (Gameplay Preview) - inaonekana kabla ya malipo -->
                     ${previewGameplayUrl ? `
                     <div style="margin-bottom:20px;">
-                        <div style="color:#f59e0b; font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:8px; letter-spacing:1px;">🎮 Maonyesho ya Content</div>
+                        <div style="color:#f59e0b; font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:8px; letter-spacing:1px;">🎮 Lilivyo ndani</div>
                         <div style="position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; background:#000; border:1px solid #374151;">
                             <iframe src="${previewGameplayUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                         </div>
