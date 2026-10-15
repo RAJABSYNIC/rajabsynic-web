@@ -821,7 +821,7 @@ class Router {
                     <!-- Video ya Mwongozo (How to Set) -->
                     ${(howToSetVideoUrl || item.howToSetVideo) ? `
                     <div style="height:1px; background:#1f2937; margin:20px 0;"></div>
-                    <p style="color:#6b7280; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 12px;">VIDEO YA MWONGOZO WA KUWEKA</p>
+                    <p style="color:#6b7280; font-size:0.7rem; font-weight:700; letter-spacing:0.5px; margin:0 0 12px;">Jinsi ya kudownload na kuset — angalia mpaka mwisho kisha anza setup.</p>
                     <div style="position:relative; padding-top:56.25%; border-radius:10px; overflow:hidden; background:#000; cursor:pointer; border: 1px solid #374151;" 
                          onclick="this.innerHTML='<iframe src=\\'${howToSetVideoUrl || this.resolveVideoUrl(item.howToSetVideo)}\\' style=\\'position:absolute; top:0; left:0; width:100%; height:100%; border:none;\\' allowfullscreen allow=\\'autoplay; encrypted-media; picture-in-picture\\' referrerpolicy=\\'origin\\'></iframe>'">
                         ${item.howToSetThumbnail ? `
