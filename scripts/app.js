@@ -173,6 +173,7 @@ class Router {
             items = this.cachedContent.filter(i => i.category === cat);
         }
         if (cat === 'tanzania-games') this.sortTanzaniaGames(items);
+        if (cat === 'maleo-map-mod') this.sortMaleoMapMods(items);
         results.innerHTML = items.length
             ? items.map(item => this.createCard(item)).join('')
             : '<p style="grid-column:1/-1;color:#9ca3af;padding:20px 0;">Hakuna content katika category hii.</p>';
@@ -250,6 +251,27 @@ class Router {
         return items;
     }
 
+    sortMaleoMapMods(items) {
+        const mapKeywords = [
+            ["handeni", "lushoto"],
+            ["mwanza", "nzega"],
+            ["singida", "katesh"],
+            ["songea"],
+            ["dodoma", "gairo"],
+            ["mikumi"]
+        ];
+        items.sort((a, b) => {
+            const titleA = (a.title || "").toLowerCase();
+            const titleB = (b.title || "").toLowerCase();
+            let idxA = mapKeywords.findIndex(kw => kw.every(k => titleA.includes(k)));
+            let idxB = mapKeywords.findIndex(kw => kw.every(k => titleB.includes(k)));
+            if (idxA === -1) idxA = 999;
+            if (idxB === -1) idxB = 999;
+            return idxA - idxB;
+        });
+        return items;
+    }
+
     renderSections() {
         // Trending Section -> specifically Tanzania Games
         const trendingContainer = document.getElementById('scroller-trending');
@@ -283,24 +305,7 @@ class Router {
 
         // Maleo Map Mod Section
         const maleoMapModContainer = document.getElementById('scroller-maleo-map-mod');
-        let maleoMapModItems = this.cachedContent.filter(i => i.category === 'maleo-map-mod');
-        const mapKeywords = [
-            ["dodoma", "gairo"],
-            ["mwanza", "nzega"],
-            ["handeni", "lushoto"],
-            ["singida", "katesh"],
-            ["mikumi"],
-            ["songea", "masasi"]
-        ];
-        maleoMapModItems.sort((a, b) => {
-            const titleA = (a.title || "").toLowerCase();
-            const titleB = (b.title || "").toLowerCase();
-            let idxA = mapKeywords.findIndex(kw => kw.every(k => titleA.includes(k)));
-            let idxB = mapKeywords.findIndex(kw => kw.every(k => titleB.includes(k)));
-            if (idxA === -1) idxA = 999;
-            if (idxB === -1) idxB = 999;
-            return idxA - idxB;
-        });
+        const maleoMapModItems = this.sortMaleoMapMods(this.cachedContent.filter(i => i.category === 'maleo-map-mod'));
         if (maleoMapModContainer) maleoMapModContainer.innerHTML = maleoMapModItems.map(item => this.createCard(item)).join('');
 
         // ETS 2 Mod Bus Section
@@ -370,23 +375,7 @@ class Router {
         }
 
         if (catId === 'maleo-map-mod') {
-            const mapKeywords = [
-                ["dodoma", "gairo"],
-                ["mwanza", "nzega"],
-                ["handeni", "lushoto"],
-                ["singida", "katesh"],
-                ["mikumi"],
-                ["songea", "masasi"]
-            ];
-            items.sort((a, b) => {
-                const titleA = (a.title || "").toLowerCase();
-                const titleB = (b.title || "").toLowerCase();
-                let idxA = mapKeywords.findIndex(kw => kw.every(k => titleA.includes(k)));
-                let idxB = mapKeywords.findIndex(kw => kw.every(k => titleB.includes(k)));
-                if (idxA === -1) idxA = 999;
-                if (idxB === -1) idxB = 999;
-                return idxA - idxB;
-            });
+            this.sortMaleoMapMods(items);
         }
 
         let catName = catId;
