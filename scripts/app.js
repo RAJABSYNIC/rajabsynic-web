@@ -700,7 +700,7 @@ class Router {
             }
             actionsHTML += `
                 <a href="javascript:void(0)" onclick="window.app.forceDownload('${finalDownload}', '${item.title}')" class="btn btn-primary" style="width:100%; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
-                    <ion-icon name="cloud-download"></ion-icon> Download Now
+                    <!-- download icon hidden for now; uncomment to restore <ion-icon name="cloud-download"></ion-icon> --> Download Now
                 </a>
             `;
         }
@@ -729,7 +729,7 @@ class Router {
 
                 actionsHTML += `
                     <a href="${finalLink}" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; background: linear-gradient(135deg,#16a34a,#15803d);">
-                         <ion-icon name="cloud-download-outline"></ion-icon> ${name}
+                         <!-- download icon hidden for now; uncomment to restore <ion-icon name="cloud-download-outline"></ion-icon> --> ${name}
                     </a>
                 `;
             });
