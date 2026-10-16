@@ -741,6 +741,26 @@ class Router {
                     </div>
                </div>`;
 
+        // WhatsApp prefilled help message with user + payment info
+        let waMessage = '';
+        if (item.whatsapp) {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            let txnPhone = '';
+            try {
+                const txnPhones = JSON.parse(localStorage.getItem('txn_phones') || '{}');
+                txnPhone = txnPhones[item.id] || '';
+            } catch (e) {}
+            const msgLines = [
+                `Habari, mimi ni ${user.username || '-'}.`,
+                `Jina la kusajili: ${user.username || '-'}`,
+                `Namba niliyojisajilia: ${user.phone || '-'}`,
+                `Namba niliyofanyia muamala: ${txnPhone || '-'}`,
+                `Nimelipia: ${item.title || '-'}`,
+                'Nahitaji msaada wako.'
+            ];
+            waMessage = '?text=' + encodeURIComponent(msgLines.join('\n'));
+        }
+
         const modal = `
             <div class="full-page-modal fade-in" style="background: #0d0d0d;">
                 <div class="back-btn" onclick="window.app.router.navigate('home')">
@@ -829,7 +849,7 @@ class Router {
                     <div style="height:1px; background:#1f2937; margin:20px 0;"></div>
                     <div style="margin-top:20px;">
                         <p style="color:#9ca3af; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">MSAADA</p>
-                        <a href="https://wa.me/${item.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="btn" style="width:100%; background:#25D366; color:white; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
+                        <a href="https://wa.me/${item.whatsapp.replace(/[^0-9]/g, '')}${waMessage}" target="_blank" class="btn" style="width:100%; background:#25D366; color:white; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
                              <ion-icon name="logo-whatsapp"></ion-icon> WhatsApp
                         </a>
                     </div>` : ''}
@@ -2196,6 +2216,13 @@ const app = {
             // Validate phone number
             const cleanedPhone = paymentService.validatePhone(phone);
             console.log('✅ Phone validated:', cleanedPhone);
+
+            // Remember which phone paid for this content (used to prefill the WhatsApp help message)
+            try {
+                const txnPhones = JSON.parse(localStorage.getItem('txn_phones') || '{}');
+                txnPhones[this.currentPaymentData.contentId] = cleanedPhone;
+                localStorage.setItem('txn_phones', JSON.stringify(txnPhones));
+            } catch (e) {}
 
             // Show processing state
             this.showPaymentSection('processing');
