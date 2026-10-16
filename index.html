@@ -35,6 +35,21 @@
         }
         await OneSignal.init({
           appId: oneSignalAppId,
+          promptOptions: {
+            slidedown: {
+              prompts: [
+                {
+                  type: 'push',
+                  autoPrompt: true,
+                  text: {
+                    actionMessage: 'Pata taarifa za michezo na habari mpya moja kwa moja kwenye simu yako. Unaweza kuzima wakati wowote.',
+                    acceptMessage: 'Ndiyo, nitumie taarifa',
+                    cancelMessage: 'Si Sasa'
+                  }
+                }
+              ]
+            }
+          },
           notifyButton: {
             enable: true,
             displayPredicate: function() {

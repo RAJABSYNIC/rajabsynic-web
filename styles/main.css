@@ -586,3 +586,41 @@ a {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 15px;
 }
+
+/* OneSignal slidedown prompt — match site dark theme */
+#onesignal-slidedown-dialog {
+    background: #16161f !important;
+    border-radius: 16px !important;
+    border: 1px solid #2d2d4e !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+#onesignal-slidedown-dialog .slidedown-body-message,
+#onesignal-slidedown-dialog .slidedown-body {
+    color: #e5e7eb !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+#onesignal-slidedown-dialog #onesignal-slidedown-accept-button {
+    background: #22c55e !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+#onesignal-slidedown-dialog #onesignal-slidedown-cancel-button {
+    background: #2d2d4e !important;
+    color: #d1d5db !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+#onesignal-slidedown-dialog #onesignal-slidedown-cancel-button:hover {
+    background: #3d3d5e !important;
+}
+
+#onesignal-slidedown-dialog .slidedown-close-button svg,
+#onesignal-slidedown-dialog .close-button svg {
+    fill: #9ca3af !important;
+}

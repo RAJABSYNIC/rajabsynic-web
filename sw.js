@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v13';
+const CACHE_NAME = 'rajabsynic-v14';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
