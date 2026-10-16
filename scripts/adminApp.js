@@ -310,9 +310,9 @@
                 }
 
                 // Append custom categories (added via "+ Add New Category") for games,
-                // skipping slugs that already exist as built-in options
+                // skipping slugs that already exist as built-in options or are unused
                 if (context === 'games' && this.customCategories && this.customCategories.length) {
-                    const builtinSlugs = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'];
+                    const builtinSlugs = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app', 'Connection', 'X-Video', 'movies'];
                     this.customCategories.forEach(c => {
                         if (builtinSlugs.includes(c.id)) return;
                         const opt = document.createElement('option');
