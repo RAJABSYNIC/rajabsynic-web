@@ -1323,22 +1323,26 @@ class Router {
             videos = Array.isArray(data) ? data : [];
         } catch (e) {}
 
-        const cardsHTML = videos.length ? videos.map(v => `
-            <div class="media-card" onclick="window.app.router.playHelpVideo('${v.id}')" style="cursor:pointer;">
-                <div style="position:relative; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:#111;">
-                    ${v.thumbnail ? `<img src="${v.thumbnail}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">` : ''}
-                    <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.25);">
-                        <div style="width:56px; height:56px; background:rgba(34,197,94,0.95); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(0,0,0,0.5);">
-                            <ion-icon name="play" style="color:#000; font-size:1.8rem; margin-left:4px;"></ion-icon>
+        const v = videos[0];
+        const bodyHTML = v ? `
+            <div style="min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; padding:90px 20px 40px;">
+                <div style="width:100%; max-width:420px; cursor:pointer;" onclick="window.app.router.playHelpVideo('${v.id}')">
+                    <div style="color:#fff; font-weight:700; font-size:1rem; line-height:1.4; margin-bottom:12px; text-align:center;">${v.title || ''}</div>
+                    <div style="position:relative; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#111;">
+                        ${v.thumbnail ? `<img src="${v.thumbnail}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">` : ''}
+                        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.25);">
+                            <div style="width:60px; height:60px; background:rgba(34,197,94,0.95); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+                                <ion-icon name="play" style="color:#000; font-size:1.9rem; margin-left:4px;"></ion-icon>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div style="margin-top:10px; color:#fff; font-weight:700; font-size:0.95rem; line-height:1.35;">${v.title || ''}</div>
-            </div>
-        `).join('') : `
-            <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#888;">
-                <ion-icon name="videocam-off-outline" style="font-size:3rem; margin-bottom:12px;"></ion-icon>
-                <p style="margin:0;">Bado hakuna video za msaada.</p>
+            </div>` : `
+            <div style="min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; padding:90px 20px 40px; text-align:center; color:#888;">
+                <div>
+                    <ion-icon name="videocam-off-outline" style="font-size:3rem; margin-bottom:12px;"></ion-icon>
+                    <p style="margin:0;">Bado hakuna video za msaada.</p>
+                </div>
             </div>`;
 
         document.getElementById('modal-container').innerHTML = `
@@ -1349,11 +1353,7 @@ class Router {
                     </div>
                     <h2 style="margin:0; font-size:1.1rem;">Msaada — Jifunze Kutumia App</h2>
                 </nav>
-                <div style="padding:80px 20px 40px;">
-                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px;">
-                        ${cardsHTML}
-                    </div>
-                </div>
+                ${bodyHTML}
             </div>`;
 
         this.helpVideos = videos;
