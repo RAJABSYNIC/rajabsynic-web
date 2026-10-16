@@ -49,8 +49,7 @@ class Router {
     updateBottomNav(route) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         if (route === 'home') document.querySelector('.bottom-nav .nav-item:nth-child(1)').classList.add('active');
-        if (route === 'live') document.querySelector('.bottom-nav .nav-item:nth-child(2)').classList.add('active');
-        if (route === 'account') document.querySelector('.bottom-nav .nav-item:nth-child(3)').classList.add('active');
+        if (route === 'account') document.querySelector('.bottom-nav .nav-item:nth-child(4)').classList.add('active');
     }
 
     toggleSearch() {
