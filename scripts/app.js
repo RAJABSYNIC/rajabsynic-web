@@ -787,7 +787,7 @@ class Router {
 
                     <!-- Jinsi ya Kuweka (Maandishi) -->
                     <div style="height:1px; background:#1f2937; margin:20px 0;"></div>
-                    <p style="color:#6b7280; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 14px;">JINSI YA KUWEKA</p>
+                    <p style="color:#6b7280; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 14px;">maelekezo ya msingi na ya kuzingatia</p>
 
                     ${(item.howToSetText || item.howToSet) ? `
                     <div style="background:#111827; border-left:3px solid #22c55e; border-radius:0 8px 8px 0; padding:14px 16px; margin-bottom:14px;">
