@@ -9,6 +9,7 @@ class Router {
             'details': (id) => this.showDetails(id),
             'live': () => this.showLive(),
             'adult': () => this.checkAdult(),
+            'help': () => this.showHelp(),
             'account': () => this.showAccount()
         };
         this.currentRoute = 'home';
@@ -49,7 +50,8 @@ class Router {
     updateBottomNav(route) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         if (route === 'home') document.querySelector('.bottom-nav .nav-item:nth-child(1)').classList.add('active');
-        if (route === 'account') document.querySelector('.bottom-nav .nav-item:nth-child(4)').classList.add('active');
+        if (route === 'help') document.querySelector('.bottom-nav .nav-item:nth-child(3)').classList.add('active');
+        if (route === 'account') document.querySelector('.bottom-nav .nav-item:nth-child(5)').classList.add('active');
     }
 
     toggleSearch() {
@@ -1297,6 +1299,85 @@ class Router {
                 </div>
             </div>
         `;
+    }
+
+    async showHelp() {
+        document.getElementById('modal-container').innerHTML = `
+            <div class="full-page-modal fade-in" style="background:#0d0d0d;">
+                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
+                    <div onclick="window.app.router.navigate('home')" style="cursor:pointer; margin-right:14px;">
+                        <ion-icon name="arrow-back" style="font-size:1.5rem;"></ion-icon>
+                    </div>
+                    <h2 style="margin:0; font-size:1.1rem;">Msaada — Jifunze Kutumia App</h2>
+                </nav>
+                <div style="padding:80px 20px 40px; text-align:center; color:#888;">
+                    <ion-icon name="videocam-outline" style="font-size:2.5rem;"></ion-icon>
+                    <p>Inapakia video za msaada...</p>
+                </div>
+            </div>`;
+
+        let videos = [];
+        try {
+            const res = await fetch('/api/public-help');
+            const data = await res.json();
+            videos = Array.isArray(data) ? data : [];
+        } catch (e) {}
+
+        const cardsHTML = videos.length ? videos.map(v => `
+            <div class="media-card" onclick="window.app.router.playHelpVideo('${v.id}')" style="cursor:pointer;">
+                <div style="position:relative; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:#111;">
+                    ${v.thumbnail ? `<img src="${v.thumbnail}" loading="lazy" decoding="async" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'">` : ''}
+                    <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.25);">
+                        <div style="width:56px; height:56px; background:rgba(34,197,94,0.95); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+                            <ion-icon name="play" style="color:#000; font-size:1.8rem; margin-left:4px;"></ion-icon>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:10px; color:#fff; font-weight:700; font-size:0.95rem; line-height:1.35;">${v.title || ''}</div>
+            </div>
+        `).join('') : `
+            <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#888;">
+                <ion-icon name="videocam-off-outline" style="font-size:3rem; margin-bottom:12px;"></ion-icon>
+                <p style="margin:0;">Bado hakuna video za msaada.</p>
+            </div>`;
+
+        document.getElementById('modal-container').innerHTML = `
+            <div class="full-page-modal fade-in" style="background:#0d0d0d;">
+                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
+                    <div onclick="window.app.router.navigate('home')" style="cursor:pointer; margin-right:14px;">
+                        <ion-icon name="arrow-back" style="font-size:1.5rem;"></ion-icon>
+                    </div>
+                    <h2 style="margin:0; font-size:1.1rem;">Msaada — Jifunze Kutumia App</h2>
+                </nav>
+                <div style="padding:80px 20px 40px;">
+                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px;">
+                        ${cardsHTML}
+                    </div>
+                </div>
+            </div>`;
+
+        this.helpVideos = videos;
+    }
+
+    playHelpVideo(id) {
+        const v = (this.helpVideos || []).find(x => x.id === id);
+        if (!v) return;
+        const embedUrl = this.resolveVideoUrl(v.videoUrl, { autoplay: true });
+        const overlay = document.createElement('div');
+        overlay.id = 'help-player-overlay';
+        overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:10000; display:flex; align-items:center; justify-content:center; padding:16px;';
+        overlay.innerHTML = `
+            <div style="width:100%; max-width:900px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span style="color:#fff; font-weight:700;">${v.title || ''}</span>
+                    <button onclick="document.getElementById('help-player-overlay').remove()" style="background:none; border:none; color:#fff; font-size:1.6rem; cursor:pointer;">✕</button>
+                </div>
+                <div style="aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden;">
+                    <iframe src="${embedUrl}" style="width:100%; height:100%; border:none;" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+                </div>
+            </div>`;
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
     }
 
     showAccount() {

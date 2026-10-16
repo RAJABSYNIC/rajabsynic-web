@@ -95,6 +95,44 @@ class ApiService {
         }
     }
 
+    // --- HELP VIDEOS (Msaada) ---
+    async getHelpVideos() {
+        try {
+            const snapshot = await getDocs(collection(db, "helpVideos"));
+            return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+            console.error("Error loading help videos:", err);
+            return [];
+        }
+    }
+
+    async saveHelpVideo(item) {
+        try {
+            if (item.id) {
+                const docRef = doc(db, "helpVideos", item.id);
+                const dataToUpdate = { ...item };
+                delete dataToUpdate.id;
+                await updateDoc(docRef, dataToUpdate);
+                return { success: true };
+            }
+            const docRef = await addDoc(collection(db, "helpVideos"), item);
+            return { success: true, id: docRef.id };
+        } catch (err) {
+            console.error("Error saving help video:", err);
+            return { success: false, message: err.message };
+        }
+    }
+
+    async deleteHelpVideo(id) {
+        try {
+            await deleteDoc(doc(db, "helpVideos", id));
+            return { success: true };
+        } catch (err) {
+            console.error("Error deleting help video:", err);
+            return { success: false, message: err.message };
+        }
+    }
+
     // --- USERS (Firestore Users) ---
     async getUsers() {
         try {

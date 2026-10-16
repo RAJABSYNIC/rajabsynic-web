@@ -35,6 +35,126 @@
                 }
             },
 
+            // ─── HELP VIDEOS (MSAADA) ─────────────────────────────────────
+            loadHelp: async function () {
+                const tbody = document.getElementById('msaada-list');
+                if (!tbody) return;
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#9ca3af; padding:20px;">Loading...</td></tr>';
+                try {
+                    this.helpVideos = await api.getHelpVideos();
+                    if (!this.helpVideos || this.helpVideos.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#9ca3af; padding:20px;">Hakuna video za msaada bado.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = this.helpVideos.map(v => `
+                        <tr>
+                            <td><img src="${v.thumbnail || ''}" style="width:80px; height:45px; object-fit:cover; border-radius:4px; background:#000;" onerror="this.style.display='none'"></td>
+                            <td style="color:#fff;">${v.title || ''}</td>
+                            <td style="color:#9ca3af; font-size:0.8rem; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.videoUrl || ''}</td>
+                            <td>
+                                <button onclick="adminApp.openHelpModal('${v.id}')" style="background:#3b82f6; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; margin-right:6px;">Edit</button>
+                                <button onclick="adminApp.deleteHelp('${v.id}')" style="background:crimson; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } catch (e) {
+                    console.error(e);
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:crimson; padding:20px;">Error kupakua video.</td></tr>';
+                }
+            },
+
+            openHelpModal: function (id) {
+                const modal = document.getElementById('help-modal');
+                const item = id ? (this.helpVideos || []).find(v => v.id === id) : null;
+                document.getElementById('h-id').value = item ? item.id : '';
+                document.getElementById('h-title').value = item ? (item.title || '') : '';
+                document.getElementById('h-video').value = item ? (item.videoUrl || '') : '';
+                document.getElementById('h-thumbnail').value = item ? (item.thumbnail || '') : '';
+                document.getElementById('h-thumb-file').value = '';
+                document.getElementById('h-upload-status').innerText = '';
+                modal.classList.add('show');
+            },
+
+            closeHelpModal: function () {
+                document.getElementById('help-modal').classList.remove('show');
+            },
+
+            saveHelp: async function () {
+                const id = document.getElementById('h-id').value;
+                const title = document.getElementById('h-title').value.trim();
+                const videoUrl = document.getElementById('h-video').value.trim();
+                const thumbnail = document.getElementById('h-thumbnail').value.trim();
+
+                if (!title) { alert('Weka title ya video.'); return; }
+                if (!videoUrl) { alert('Weka link ya YouTube video.'); return; }
+
+                const payload = { title, videoUrl, thumbnail };
+                if (!id) payload.createdAt = new Date().toISOString();
+
+                try {
+                    const res = await api.saveHelpVideo(id ? { id, ...payload } : payload);
+                    if (res.success) {
+                        alert('Video ya msaada imehifadhiwa!');
+                        this.closeHelpModal();
+                        this.loadHelp();
+                    } else {
+                        alert('Error: ' + (res.message || 'Imeshindwa kuhifadhi video'));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error: ' + e.message);
+                }
+            },
+
+            deleteHelp: async function (id) {
+                if (!confirm('Una uhakika unataka kufuta video hii ya msaada?')) return;
+                try {
+                    const res = await api.deleteHelpVideo(id);
+                    if (res.success) {
+                        this.loadHelp();
+                    } else {
+                        alert('Error: ' + (res.message || 'Imeshindwa kufuta video'));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error: ' + e.message);
+                }
+            },
+
+            uploadHelpImage: async function () {
+                const input = document.getElementById('h-thumb-file');
+                if (!input.files || !input.files[0]) return;
+                const status = document.getElementById('h-upload-status');
+                status.innerText = 'Uploading... Please wait.';
+                status.style.color = '#fff';
+
+                const formData = new FormData();
+                formData.append('image', input.files[0]);
+
+                try {
+                    const res = await fetch('https://api.imgbb.com/1/upload?key=e4a54b1c8d8e2411273e5036b9f9bf12', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        document.getElementById('h-thumbnail').value = data.data.url;
+                        status.innerText = 'Upload Complete!';
+                        status.style.color = '#00ff00';
+                        alert('Thumbnail Uploaded Successfully!');
+                    } else {
+                        status.innerText = 'Upload Failed: ' + (data.error ? data.error.message : 'Unknown error');
+                        status.style.color = 'crimson';
+                        alert('Upload Failed: ' + (data.error.message || 'Unknown Error'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    status.innerText = 'Network Error during upload';
+                    status.style.color = 'crimson';
+                    alert('Network Error: Check internet connection');
+                }
+            },
+
             filterTable: function(tableId, query) {
                 const lowerQuery = query.toLowerCase();
                 document.querySelectorAll(`#${tableId} tr`).forEach(row => {
@@ -66,7 +186,7 @@
                 // are managed only in Firebase). Order: Dashboard, Users, Games,
                 // LiveTV, Adult, Payments, Settings, Withdrawals.
                 const menuMap = {
-                    'dashboard': 0, 'users': 1, 'games': 2, 'livetv': 3, 'payments': 4
+                    'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'msaada': 4
                 };
 
                 const menuItems = document.querySelectorAll('.menu-item');
@@ -90,6 +210,7 @@
                 if (viewId === 'adult') this.loadContent('adult');
                 if (viewId === 'livetv') this.loadContent('live');
                 if (viewId === 'payments') this.loadPayments();
+                if (viewId === 'msaada') this.loadHelp();
 
                 if (viewId === 'withdrawals') {
                     this.loadWithdrawals();

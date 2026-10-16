@@ -272,6 +272,21 @@ app.get('/api/public-categories', async (req, res) => {
     }
 });
 
+// GET /api/public-help
+// Help videos (Msaada) added by admin — shown to all visitors.
+app.get('/api/public-help', async (req, res) => {
+    if (!fsdb) return res.json([]);
+    try {
+        const snap = await fsdb.collection('helpVideos').get();
+        const videos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        videos.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        res.setHeader('Cache-Control', 'no-cache');
+        res.json(videos);
+    } catch (e) {
+        res.json([]);
+    }
+});
+
 // GET /api/subscription/check?userId=&contentId=
 // Source of truth the client falls back to when Firebase shows no access.
 app.get('/api/subscription/check', async (req, res) => {

@@ -144,6 +144,13 @@
                     <span class="menu-desc">Subscriptions and payments</span>
                 </div>
             </div>
+            <div class="menu-item" onclick="adminApp.navigate('msaada')">
+                <ion-icon name="help-circle-outline"></ion-icon>
+                <div class="menu-text">
+                    <span class="menu-title">Msaada (Help)</span>
+                    <span class="menu-desc">Video za kuelekeza watumiaji</span>
+                </div>
+            </div>
 
 
             <div class="menu-item" onclick="location.reload()" style="margin-top: auto;">
@@ -415,6 +422,29 @@
                 </table>
             </div>
 
+        </div>
+
+        <!-- MSAADA (HELP VIDEOS) VIEW -->
+        <div id="view-msaada" class="view-section">
+            <div class="flex justify-between items-center"
+                style="margin-bottom: 25px; display: flex; justify-content: space-between;">
+                <h2>Msaada — Video za Kuelekeza</h2>
+                <button class="btn btn-primary" onclick="adminApp.openHelpModal()">+ Add Video</button>
+            </div>
+            <p style="color:#9ca3af; margin:-15px 0 20px; font-size:0.9rem;">Video hizi huonekana kwenye ukurasa wa Msaada kwa watumiaji wote. Weka link ya YouTube na thumbnail.</p>
+            <div class="data-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Thumbnail</th>
+                            <th>Title</th>
+                            <th>YouTube Link</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="msaada-list"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- LIVE TV VIEW -->
@@ -890,6 +920,44 @@
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top:20px;">
                 <button class="btn btn-secondary" onclick="document.getElementById('grant-access-modal').classList.remove('show')" style="background: transparent; border: 1px solid #374151; color: #d1d5db; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
                 <button class="btn btn-primary" onclick="window.adminApp.confirmGrantAccess()" style="background:#10b981; border:none; padding:10px 20px; border-radius:8px; color:white; font-weight:600; cursor:pointer;">Grant Access</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Video Modal (Msaada) -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #374151; padding-bottom:15px;">
+                <h2 style="margin:0; font-size:1.25rem; font-weight:700;">Add / Edit Help Video (Msaada)</h2>
+                <ion-icon name="close" style="font-size:1.5rem; cursor:pointer; color:#9ca3af;" onclick="adminApp.closeHelpModal()"></ion-icon>
+            </div>
+
+            <input type="hidden" id="h-id">
+
+            <div class="input-group">
+                <label>Title *</label>
+                <input type="text" id="h-title" placeholder="e.g. Jinsi ya kupakua game" style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px;">
+            </div>
+
+            <div class="input-group">
+                <label>YouTube Video Link *</label>
+                <input type="text" id="h-video" placeholder="https://youtube.com/watch?v=..." style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px;">
+            </div>
+
+            <div class="input-group">
+                <label>Thumbnail Image URL</label>
+                <input type="text" id="h-thumbnail" placeholder="https://... (thumbnail ya video)" style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px;">
+            </div>
+
+            <div class="input-group">
+                <label>au Upload Thumbnail (picha)</label>
+                <input type="file" id="h-thumb-file" accept="image/*" onchange="adminApp.uploadHelpImage()" style="color:#9ca3af; font-size:0.85rem;">
+            </div>
+            <div id="h-upload-status" style="font-size:0.8rem; color:#9ca3af; margin-bottom:10px;"></div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top:20px;">
+                <button class="btn btn-secondary" onclick="adminApp.closeHelpModal()" style="background: transparent; border: 1px solid #374151; color: #d1d5db; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
+                <button class="btn btn-primary" onclick="adminApp.saveHelp()" style="background:#3b82f6; border:none; padding:10px 20px; border-radius:8px; color:white; font-weight:600; cursor:pointer;">Save Video</button>
             </div>
         </div>
     </div>
