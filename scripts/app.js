@@ -768,7 +768,7 @@ class Router {
                             <p style="font-size:0.85rem; color:#9ca3af; margin:0;">Hakuna upakuaji — tazama moja kwa moja.</p>
                         </div>
                     ` : `<div style="margin-bottom:16px;">
-                        <p style="color:#6b7280; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 10px;">VIUNGO VYA KUPAKUA</p>
+                        <p style="color:#6b7280; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 10px;">sehemu hii ni ya kudownload(kupakua)</p>
                         ${actionsHTML}
                     </div>`}
 
