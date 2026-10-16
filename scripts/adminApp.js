@@ -300,8 +300,11 @@
                     specificLinks.style.display = 'block';
                     multiLinks.style.display = 'none';
                     catSelect.innerHTML = `
+                        <option value="adult">Adult</option>
+                        <!-- Adult categories hidden for now - not in use; uncomment to restore
                         <option value="Connection">Connection</option>
                         <option value="X-Video">X-Video</option>
+                        -->
                     `;
                     linkLabel.innerText = 'Movie Link (Google Drive)';
                 }

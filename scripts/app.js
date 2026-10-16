@@ -132,12 +132,14 @@ class Router {
         if (!bar) return;
 
         // Append pills for custom categories added by admin.
-        // Skip slugs that already exist as built-in pills/options.
+        // Skip built-in slugs, and hide categories that have no content.
         const builtinCats = ['movies', 'free-games', 'Connection', 'X-Video',
             'tanzania-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin',
             'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app', 'games', 'free', 'all'];
+        const hasContent = (id) => (this.cachedContent || []).some(i => i.category === id);
         (this.customCategories || []).forEach(c => {
             if (builtinCats.includes(c.id)) return;
+            if (!hasContent(c.id)) return;
             if (bar.querySelector(`[data-cat="${c.id}"]`)) return;
             const btn = document.createElement('button');
             btn.className = 'cat-pill';
