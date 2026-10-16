@@ -259,6 +259,19 @@ app.get('/api/public-config', async (req, res) => {
     });
 });
 
+// GET /api/public-categories
+// Custom categories added by admin — used to build the filter bar pills.
+app.get('/api/public-categories', async (req, res) => {
+    if (!fsdb) return res.json([]);
+    try {
+        const snap = await fsdb.collection('categories').get();
+        res.setHeader('Cache-Control', 'no-cache');
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+        res.json([]);
+    }
+});
+
 // GET /api/subscription/check?userId=&contentId=
 // Source of truth the client falls back to when Firebase shows no access.
 app.get('/api/subscription/check', async (req, res) => {

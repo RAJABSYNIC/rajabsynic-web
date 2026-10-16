@@ -3,6 +3,37 @@
 
         const adminApp = {
             token: null,
+            customCategories: [],
+
+            loadCustomCategories: async function () {
+                this.customCategories = await api.getCategories();
+            },
+
+            addCategory: async function () {
+                const name = prompt('Ingiza jina la category mpya (mfano: Bus Simulator Games):');
+                if (!name || !name.trim()) return;
+                const clean = name.trim();
+                const slug = clean.toLowerCase()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-');
+                if (!slug) { alert('Jina la category si sahihi. Tumia herufi au namba tu.'); return; }
+                const res = await api.saveCategory(slug, { name: clean, createdAt: new Date().toISOString() });
+                if (res.success) {
+                    alert('Category "' + clean + '" imeongezwa!');
+                    await this.loadCustomCategories();
+                    const catSelect = document.getElementById('c-category');
+                    if (catSelect && document.getElementById('c-context').value === 'games') {
+                        const opt = document.createElement('option');
+                        opt.value = slug;
+                        opt.textContent = clean;
+                        catSelect.appendChild(opt);
+                        catSelect.value = slug;
+                    }
+                } else {
+                    alert('Error: ' + (res.message || 'Imeshindwa kuokoa category'));
+                }
+            },
 
             filterTable: function(tableId, query) {
                 const lowerQuery = query.toLowerCase();
@@ -273,6 +304,19 @@
                         <option value="X-Video">X-Video</option>
                     `;
                     linkLabel.innerText = 'Movie Link (Google Drive)';
+                }
+
+                // Append custom categories (added via "+ Add New Category") for games,
+                // skipping slugs that already exist as built-in options
+                if (context === 'games' && this.customCategories && this.customCategories.length) {
+                    const builtinSlugs = ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'];
+                    this.customCategories.forEach(c => {
+                        if (builtinSlugs.includes(c.id)) return;
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        catSelect.appendChild(opt);
+                    });
                 }
 
                 if (id) {
@@ -2001,6 +2045,7 @@
                 if (overlay) overlay.style.display = 'none';
                 adminApp.token = tok;
                 adminApp.navigate('dashboard');
+                adminApp.loadCustomCategories();
 
                 // 🟢 START REAL-TIME ADMIN LISTENERS
                 if (!adminApp._realtimeStarted) {

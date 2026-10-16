@@ -112,13 +112,41 @@ class Router {
 
     async showHome() {
         await this.ensureContent();
+        await this.loadCustomCategories();
         this.renderSections();
         this.initCategoryFilter();
     }
 
+    async loadCustomCategories() {
+        try {
+            const res = await fetch('/api/public-categories');
+            const cats = await res.json();
+            this.customCategories = Array.isArray(cats) ? cats : [];
+        } catch (e) {
+            this.customCategories = [];
+        }
+    }
+
     initCategoryFilter() {
         const bar = document.getElementById('category-filter-bar');
-        if (!bar || bar.dataset.wired) return;
+        if (!bar) return;
+
+        // Append pills for custom categories added by admin.
+        // Skip slugs that already exist as built-in pills/options.
+        const builtinCats = ['movies', 'free-games', 'Connection', 'X-Video',
+            'tanzania-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin',
+            'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app', 'games', 'free', 'all'];
+        (this.customCategories || []).forEach(c => {
+            if (builtinCats.includes(c.id)) return;
+            if (bar.querySelector(`[data-cat="${c.id}"]`)) return;
+            const btn = document.createElement('button');
+            btn.className = 'cat-pill';
+            btn.dataset.cat = c.id;
+            btn.textContent = c.name;
+            bar.appendChild(btn);
+        });
+
+        if (bar.dataset.wired) return;
         bar.dataset.wired = '1';
 
         let dragged = false;

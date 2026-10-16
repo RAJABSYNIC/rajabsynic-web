@@ -74,6 +74,27 @@ class ApiService {
         }
     }
 
+    // --- CATEGORIES (custom categories added by admin) ---
+    async getCategories() {
+        try {
+            const snapshot = await getDocs(collection(db, "categories"));
+            return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+            console.error("Error loading categories:", err);
+            return [];
+        }
+    }
+
+    async saveCategory(id, data) {
+        try {
+            await setDoc(doc(db, "categories", id), data);
+            return { success: true };
+        } catch (err) {
+            console.error("Error saving category:", err);
+            return { success: false, message: err.message };
+        }
+    }
+
     // --- USERS (Firestore Users) ---
     async getUsers() {
         try {
