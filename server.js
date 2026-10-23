@@ -1592,8 +1592,18 @@ app.post('/api/support/chat', async (req, res) => {
         const catalogSummary = await getCatalogSummary();
         const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
 
+        let customInstructions = knowledge.systemInstructions || knowledge.customKnowledge || '';
+        if (knowledge.trainings && Array.isArray(knowledge.trainings) && knowledge.trainings.length > 0) {
+            const trainingsFormatted = knowledge.trainings
+                .map((t, idx) => `[Funzo / Muongozo #${idx + 1}]:\n${t.text}`)
+                .join('\n\n');
+            customInstructions = customInstructions 
+                ? (customInstructions + '\n\n' + trainingsFormatted)
+                : trainingsFormatted;
+        }
+
         const systemPrompt = `
-${knowledge.systemInstructions || knowledge.customKnowledge || 'Wewe ni "rajabsynic ai agent", msaidizi rasmi wa huduma kwa wateja katika tovuti ya RAJABSYNIC (Movies & Games). Jibu kwa staha na ukarimu.'}
+${customInstructions || 'Wewe ni "rajabsynic ai agent", msaidizi rasmi wa huduma kwa wateja katika tovuti ya RAJABSYNIC (Movies & Games). Jibu kwa staha na ukarimu.'}
 
 --- KANUNI MUHIMU ZA KUZINGATIA ---
 1. KATAZO LA KUTOA NAMBA YA SIMU AU WHATSAPP:

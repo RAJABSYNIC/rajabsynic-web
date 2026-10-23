@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v23-auth-save-fix';
+const CACHE_NAME = 'rajabsynic-v24-training-list-below';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

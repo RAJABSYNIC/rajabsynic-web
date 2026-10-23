@@ -2250,6 +2250,57 @@ if (viewId === 'ai-support') this.loadAISupport();
                 }
             },
 
+            _cachedTrainings: [],
+            _editingTrainingId: null,
+
+            renderAITrainings: function() {
+                const list = document.getElementById('ai-trainings-list');
+                const countBadge = document.getElementById('ai-trainings-count');
+                if (!list) return;
+
+                const trainings = this._cachedTrainings || [];
+                if (countBadge) countBadge.textContent = trainings.length;
+
+                if (trainings.length === 0) {
+                    list.innerHTML = `
+                        <div style="text-align:center; padding:35px 20px; background:#0b0f19; border:1px dashed #374151; border-radius:10px; color:#6b7280; font-size:0.9rem;">
+                            <ion-icon name="school-outline" style="font-size:2rem; color:#4b5563; margin-bottom:8px; display:block;"></ion-icon>
+                            Bado hakuna mafunzo yaliyohifadhiwa chini. Andika maelekezo mapya kwenye sanduku hapo juu kisha bonyeza <strong>"Hifadhi"</strong> ili kuanza kumfunza AI!
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = trainings.map((t, idx) => {
+                    const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleString('sw-TZ', { dateStyle: 'medium', timeStyle: 'short' }) : 'Hivi karibuni';
+                    const safeText = (t.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    return `
+                        <div class="ai-training-card" style="background:#0b0f19; border:1px solid #1f2937; border-left:4px solid #00ff80; border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; transition:border-color 0.2s;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="width:8px; height:8px; border-radius:50%; background:#00ff80; box-shadow:0 0 6px #00ff80;"></span>
+                                    <span style="color:#00ff80; font-size:0.82rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Funzo #${trainings.length - idx} &bull; Live</span>
+                                    <span style="color:#6b7280; font-size:0.78rem;">(${dateStr})</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <button type="button" onclick="adminApp.editAITraining('${t.id}')"
+                                        style="background:rgba(255,255,255,0.06); border:1px solid #374151; color:#9ca3af; padding:5px 12px; border-radius:6px; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;"
+                                        onmouseover="this.style.color='#fff'; this.style.borderColor='#9ca3af'" onmouseout="this.style.color='#9ca3af'; this.style.borderColor='#374151'">
+                                        <ion-icon name="create-outline"></ion-icon> Hariri
+                                    </button>
+                                    <button type="button" onclick="adminApp.deleteAITraining('${t.id}')"
+                                        style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#ef4444; padding:5px 12px; border-radius:6px; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;"
+                                        onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+                                        <ion-icon name="trash-outline"></ion-icon> Futa
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="color:#e5e7eb; font-size:0.92rem; line-height:1.65; white-space:pre-wrap; word-break:break-word;">${safeText}</div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
             loadAISupport: async function() {
                 try {
                     if (auth && auth.currentUser) {
@@ -2263,13 +2314,81 @@ if (viewId === 'ai-support') this.loadAISupport();
                     if (!data) return;
                     this._cachedAIKnowledge = data;
 
-                    const textarea = document.getElementById('ai-cfg-instructions');
-                    if (textarea) {
-                        textarea.value = data.systemInstructions || data.customKnowledge || '';
+                    // Extract trainings list or initialize from existing single instruction
+                    if (data.trainings && Array.isArray(data.trainings) && data.trainings.length > 0) {
+                        this._cachedTrainings = data.trainings;
+                    } else if (data.systemInstructions || data.customKnowledge) {
+                        const legacyText = (data.systemInstructions || data.customKnowledge).trim();
+                        if (legacyText) {
+                            this._cachedTrainings = [{
+                                id: 'tr_' + Date.now(),
+                                text: legacyText,
+                                createdAt: data.lastUpdated || new Date().toISOString()
+                            }];
+                        } else {
+                            this._cachedTrainings = [];
+                        }
+                    } else {
+                        this._cachedTrainings = [];
                     }
+
+                    // Render list below
+                    this.renderAITrainings();
+
+                    // Leave top box empty and clean for new training
+                    const textarea = document.getElementById('ai-cfg-instructions');
+                    if (textarea) textarea.value = '';
                 } catch (e) {
                     console.error('Error loading AI support data:', e);
                 }
+            },
+
+            editAITraining: function(id) {
+                const item = (this._cachedTrainings || []).find(t => t.id === id);
+                if (!item) return;
+
+                const textarea = document.getElementById('ai-cfg-instructions');
+                const cancelBtn = document.getElementById('ai-cancel-edit-btn');
+                const saveBtnText = document.getElementById('ai-save-btn-text');
+
+                if (textarea) {
+                    textarea.value = item.text;
+                    textarea.focus();
+                    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                this._editingTrainingId = id;
+                if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+                if (saveBtnText) saveBtnText.textContent = 'Sasisha Funzo (Update)';
+            },
+
+            cancelEditAITraining: function() {
+                this._editingTrainingId = null;
+                const textarea = document.getElementById('ai-cfg-instructions');
+                const cancelBtn = document.getElementById('ai-cancel-edit-btn');
+                const saveBtnText = document.getElementById('ai-save-btn-text');
+
+                if (textarea) textarea.value = '';
+                if (cancelBtn) cancelBtn.style.display = 'none';
+                if (saveBtnText) saveBtnText.textContent = 'Hifadhi';
+            },
+
+            deleteAITraining: async function(id) {
+                if (!confirm('Je, una uhakika unataka kufuta funzo hili kwenye akili ya AI?')) return;
+
+                this._cachedTrainings = (this._cachedTrainings || []).filter(t => t.id !== id);
+                this.renderAITrainings();
+
+                const combinedText = this._cachedTrainings.map(t => t.text).join('\n\n---\n\n');
+                const payload = {
+                    botName: 'rajabsynic ai agent',
+                    systemInstructions: combinedText,
+                    customKnowledge: combinedText,
+                    trainings: this._cachedTrainings,
+                    supportPhone: '',
+                    whatsappLink: ''
+                };
+
+                await api.saveAIKnowledge(payload);
             },
 
             saveAIKnowledge: async function() {
@@ -2277,32 +2396,43 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const text = textarea ? textarea.value.trim() : '';
 
                 if (!text) {
-                    alert('Tafadhali andika maelekezo ya kumfunza AI kabla ya kuhifadhi.');
+                    alert('Tafadhali andika maelekezo ya kumfunza AI kwenye kisanduku kabla ya kuhifadhi.');
                     return;
                 }
 
                 const saveBtn = document.getElementById('ai-save-btn') || document.querySelector('#view-ai-support button.btn');
+                const cancelBtn = document.getElementById('ai-cancel-edit-btn');
+
                 if (saveBtn) {
                     saveBtn.disabled = true;
                     saveBtn.innerHTML = '<ion-icon name="sync-outline" style="animation:spin 1s linear infinite; font-size:1.15rem;"></ion-icon> <span>Inahifadhi...</span>';
                     saveBtn.style.opacity = '0.8';
                 }
 
-                // Ensure token is fresh
-                if (auth && auth.currentUser) {
-                    try {
-                        const fresh = await auth.currentUser.getIdToken(true);
-                        sessionStorage.setItem('rajab_admin_token', fresh);
-                        this.token = fresh;
-                    } catch (tokenErr) {
-                        console.warn('Could not refresh auth token:', tokenErr);
+                if (this._editingTrainingId) {
+                    // Update existing training
+                    const idx = (this._cachedTrainings || []).findIndex(t => t.id === this._editingTrainingId);
+                    if (idx !== -1) {
+                        this._cachedTrainings[idx].text = text;
+                        this._cachedTrainings[idx].updatedAt = new Date().toISOString();
                     }
+                    this._editingTrainingId = null;
+                } else {
+                    // Add new training at the beginning
+                    this._cachedTrainings = this._cachedTrainings || [];
+                    this._cachedTrainings.unshift({
+                        id: 'tr_' + Date.now(),
+                        text: text,
+                        createdAt: new Date().toISOString()
+                    });
                 }
 
+                const combinedText = this._cachedTrainings.map(t => t.text).join('\n\n---\n\n');
                 const payload = {
                     botName: 'rajabsynic ai agent',
-                    systemInstructions: text,
-                    customKnowledge: text,
+                    systemInstructions: combinedText,
+                    customKnowledge: combinedText,
+                    trainings: this._cachedTrainings,
                     supportPhone: '',
                     whatsappLink: ''
                 };
@@ -2311,6 +2441,14 @@ if (viewId === 'ai-support') this.loadAISupport();
                     const res = await api.saveAIKnowledge(payload);
                     if (res && res.success) {
                         this._cachedAIKnowledge = payload;
+
+                        // Clear textarea so user can type the next training cleanly!
+                        if (textarea) textarea.value = '';
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+
+                        // Render updated list below immediately
+                        this.renderAITrainings();
+
                         if (saveBtn) {
                             saveBtn.disabled = false;
                             saveBtn.innerHTML = '<ion-icon name="checkmark-done" style="font-size:1.25rem;"></ion-icon> <span>Imesave!</span>';
@@ -2318,20 +2456,21 @@ if (viewId === 'ai-support') this.loadAISupport();
                             saveBtn.style.color = '#fff';
                             saveBtn.style.opacity = '1';
                             setTimeout(() => {
-                                saveBtn.innerHTML = '<ion-icon name="save" style="font-size:1.15rem;"></ion-icon> <span>Hifadhi</span>';
+                                saveBtn.innerHTML = '<ion-icon id="ai-save-btn-icon" name="save" style="font-size:1.15rem;"></ion-icon> <span id="ai-save-btn-text">Hifadhi</span>';
                                 saveBtn.style.background = 'linear-gradient(135deg,#00ff80,#00cc66)';
                                 saveBtn.style.color = '#000';
-                            }, 3500);
+                            }, 3000);
                         }
+
                         if (window.Swal) {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Imesave Kikamilifu! 🚀',
-                                text: 'Mafunzo ya rajabsynic ai agent yamehifadhiwa na sasa yanafanya kazi moja kwa moja kule front!',
+                                text: 'Funzo limehifadhiwa na sasa lipo kwenye orodha ya mafunzo hapo chini!',
                                 background: '#111827',
                                 color: '#fff',
                                 confirmButtonColor: '#00ff80',
-                                timer: 2800,
+                                timer: 2500,
                                 showConfirmButton: false
                             });
                         }
