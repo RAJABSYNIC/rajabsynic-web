@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v26-smart-intent-routing';
+const CACHE_NAME = 'rajabsynic-v27-complete-ai-intelligence';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
