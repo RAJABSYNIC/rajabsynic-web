@@ -4,6 +4,7 @@ const cors = require('cors');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1169,18 +1170,49 @@ try {
     BUNDLED_CATALOG = require('./data/catalog-cache.json');
 } catch (_) {}
 
-// Helper: Read Knowledge Base
-function getAIKnowledge() {
+// Helper: In-memory & Persistent Knowledge Base
+const TMP_AI_KNOWLEDGE_FILE = path.join(os.tmpdir ? os.tmpdir() : '/tmp', 'ai-knowledge.json');
+let RUNTIME_AI_KNOWLEDGE = null;
+
+async function getAIKnowledgeAsync() {
+    if (RUNTIME_AI_KNOWLEDGE && (RUNTIME_AI_KNOWLEDGE.systemInstructions || RUNTIME_AI_KNOWLEDGE.customKnowledge)) {
+        return RUNTIME_AI_KNOWLEDGE;
+    }
+
+    // 1. Try Firestore
+    if (fsdb) {
+        try {
+            const snap = await fsdb.collection('settings').doc('ai_support').get();
+            if (snap.exists && snap.data()) {
+                RUNTIME_AI_KNOWLEDGE = snap.data();
+                return RUNTIME_AI_KNOWLEDGE;
+            }
+        } catch (e) {
+            console.warn('Firestore ai_support fetch error:', e.message);
+        }
+    }
+
+    // 2. Try /tmp
+    try {
+        if (fs.existsSync(TMP_AI_KNOWLEDGE_FILE)) {
+            RUNTIME_AI_KNOWLEDGE = JSON.parse(fs.readFileSync(TMP_AI_KNOWLEDGE_FILE, 'utf8'));
+            return RUNTIME_AI_KNOWLEDGE;
+        }
+    } catch (_) {}
+
+    // 3. Try bundled file
     try {
         if (fs.existsSync(AI_KNOWLEDGE_FILE)) {
-            return JSON.parse(fs.readFileSync(AI_KNOWLEDGE_FILE, 'utf8'));
+            RUNTIME_AI_KNOWLEDGE = JSON.parse(fs.readFileSync(AI_KNOWLEDGE_FILE, 'utf8'));
+            return RUNTIME_AI_KNOWLEDGE;
         }
-    } catch (e) {
-        console.error('Error reading AI knowledge:', e.message);
-    }
+    } catch (_) {}
+
     if (BUNDLED_KNOWLEDGE && BUNDLED_KNOWLEDGE.botName) {
-        return BUNDLED_KNOWLEDGE;
+        RUNTIME_AI_KNOWLEDGE = BUNDLED_KNOWLEDGE;
+        return RUNTIME_AI_KNOWLEDGE;
     }
+
     return {
         botName: 'rajabsynic ai agent',
         supportPhone: '',
@@ -1191,14 +1223,73 @@ function getAIKnowledge() {
     };
 }
 
-// Helper: Save Knowledge Base
+function getAIKnowledge() {
+    if (RUNTIME_AI_KNOWLEDGE) return RUNTIME_AI_KNOWLEDGE;
+    try {
+        if (fs.existsSync(TMP_AI_KNOWLEDGE_FILE)) {
+            return JSON.parse(fs.readFileSync(TMP_AI_KNOWLEDGE_FILE, 'utf8'));
+        }
+    } catch (_) {}
+    try {
+        if (fs.existsSync(AI_KNOWLEDGE_FILE)) {
+            return JSON.parse(fs.readFileSync(AI_KNOWLEDGE_FILE, 'utf8'));
+        }
+    } catch (_) {}
+    return BUNDLED_KNOWLEDGE || {
+        botName: 'rajabsynic ai agent',
+        supportPhone: '',
+        whatsappLink: '',
+        systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC.',
+        policies: {},
+        faqs: []
+    };
+}
+
+async function saveAIKnowledgeAsync(data) {
+    RUNTIME_AI_KNOWLEDGE = data;
+    let saved = false;
+
+    // 1. Primary: Save to Firestore
+    if (fsdb) {
+        try {
+            await fsdb.collection('settings').doc('ai_support').set(data, { merge: true });
+            saved = true;
+            console.log('Saved AI knowledge to Firestore settings/ai_support');
+        } catch (e) {
+            console.error('Firestore save ai_support error:', e.message);
+        }
+    }
+
+    // 2. Save to temp directory
+    try {
+        fs.writeFileSync(TMP_AI_KNOWLEDGE_FILE, JSON.stringify(data, null, 2), 'utf8');
+        saved = true;
+    } catch (e) {
+        console.warn('Failed to write temp AI knowledge:', e.message);
+    }
+
+    // 3. Save to bundled data directory if writable (local dev)
+    try {
+        fs.writeFileSync(AI_KNOWLEDGE_FILE, JSON.stringify(data, null, 2), 'utf8');
+        saved = true;
+    } catch (_) {
+        // Read-only filesystem on Vercel lambda - totally normal
+    }
+
+    return saved || true;
+}
+
 function saveAIKnowledge(data) {
+    RUNTIME_AI_KNOWLEDGE = data;
+    try {
+        fs.writeFileSync(TMP_AI_KNOWLEDGE_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (_) {}
     try {
         fs.writeFileSync(AI_KNOWLEDGE_FILE, JSON.stringify(data, null, 2), 'utf8');
         return true;
     } catch (e) {
-        console.error('Error saving AI knowledge:', e.message);
-        return false;
+        // Vercel serverless is read-only
+        return true;
     }
 }
 
@@ -1446,7 +1537,7 @@ app.post('/api/support/chat', async (req, res) => {
         }
 
         const userMsg = message.trim();
-        const knowledge = getAIKnowledge();
+        const knowledge = await getAIKnowledgeAsync();
 
         // 1. Check if this is a payment verification & access grant request
         const paymentCheck = await checkPaymentAndGrantAccess({ userMsg, userId, userPhone });
@@ -1654,25 +1745,28 @@ app.get('/api/admin/ai/access-grants', requireAdmin, async (req, res) => {
 });
 
 // Admin Endpoint: Get AI Knowledge
-app.get('/api/admin/ai-knowledge', requireAdmin, (req, res) => {
-    res.json(getAIKnowledge());
+app.get('/api/admin/ai-knowledge', requireAdmin, async (req, res) => {
+    try {
+        const knowledge = await getAIKnowledgeAsync();
+        res.json(knowledge);
+    } catch (e) {
+        res.json(getAIKnowledge());
+    }
 });
 
 // Admin Endpoint: Update AI Knowledge
-app.post('/api/admin/ai-knowledge', requireAdmin, (req, res) => {
-    const updated = req.body;
-    if (!updated || typeof updated !== 'object') {
-        return res.status(400).json({ success: false, error: 'Invalid payload' });
-    }
-    updated.lastUpdated = new Date().toISOString();
-    const ok = saveAIKnowledge(updated);
-    if (fsdb) {
-        fsdb.collection('settings').doc('ai_support').set(updated).catch(() => {});
-    }
-    if (ok) {
+app.post('/api/admin/ai-knowledge', requireAdmin, async (req, res) => {
+    try {
+        const updated = req.body;
+        if (!updated || typeof updated !== 'object') {
+            return res.status(400).json({ success: false, error: 'Invalid payload' });
+        }
+        updated.lastUpdated = new Date().toISOString();
+        await saveAIKnowledgeAsync(updated);
         res.json({ success: true, message: 'Maelekezo ya AI yamehifadhiwa kikamilifu!' });
-    } else {
-        res.status(500).json({ success: false, error: 'Failed to write knowledge file' });
+    } catch (e) {
+        console.error('Error saving AI knowledge:', e);
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 

@@ -2252,6 +2252,13 @@ if (viewId === 'ai-support') this.loadAISupport();
 
             loadAISupport: async function() {
                 try {
+                    if (auth && auth.currentUser) {
+                        try {
+                            const fresh = await auth.currentUser.getIdToken();
+                            sessionStorage.setItem('rajab_admin_token', fresh);
+                            this.token = fresh;
+                        } catch (_) {}
+                    }
                     const data = await api.getAIKnowledge();
                     if (!data) return;
                     this._cachedAIKnowledge = data;
@@ -2274,6 +2281,24 @@ if (viewId === 'ai-support') this.loadAISupport();
                     return;
                 }
 
+                const saveBtn = document.getElementById('ai-save-btn') || document.querySelector('#view-ai-support button.btn');
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<ion-icon name="sync-outline" style="animation:spin 1s linear infinite; font-size:1.15rem;"></ion-icon> <span>Inahifadhi...</span>';
+                    saveBtn.style.opacity = '0.8';
+                }
+
+                // Ensure token is fresh
+                if (auth && auth.currentUser) {
+                    try {
+                        const fresh = await auth.currentUser.getIdToken(true);
+                        sessionStorage.setItem('rajab_admin_token', fresh);
+                        this.token = fresh;
+                    } catch (tokenErr) {
+                        console.warn('Could not refresh auth token:', tokenErr);
+                    }
+                }
+
                 const payload = {
                     botName: 'rajabsynic ai agent',
                     systemInstructions: text,
@@ -2282,22 +2307,53 @@ if (viewId === 'ai-support') this.loadAISupport();
                     whatsappLink: ''
                 };
 
-                const res = await api.saveAIKnowledge(payload);
-                if (res && res.success) {
-                    if (window.Swal) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Mafunzo Yamehifadhiwa!',
-                            text: 'rajabsynic ai agent sasa atatumia muongozo huu katika utekelezaji kule front kwa wateja!',
-                            background: '#111827',
-                            color: '#fff',
-                            confirmButtonColor: '#00ff80'
-                        });
+                try {
+                    const res = await api.saveAIKnowledge(payload);
+                    if (res && res.success) {
+                        this._cachedAIKnowledge = payload;
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<ion-icon name="checkmark-done" style="font-size:1.25rem;"></ion-icon> <span>Imesave!</span>';
+                            saveBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                            saveBtn.style.color = '#fff';
+                            saveBtn.style.opacity = '1';
+                            setTimeout(() => {
+                                saveBtn.innerHTML = '<ion-icon name="save" style="font-size:1.15rem;"></ion-icon> <span>Hifadhi</span>';
+                                saveBtn.style.background = 'linear-gradient(135deg,#00ff80,#00cc66)';
+                                saveBtn.style.color = '#000';
+                            }, 3500);
+                        }
+                        if (window.Swal) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Imesave Kikamilifu! 🚀',
+                                text: 'Mafunzo ya rajabsynic ai agent yamehifadhiwa na sasa yanafanya kazi moja kwa moja kule front!',
+                                background: '#111827',
+                                color: '#fff',
+                                confirmButtonColor: '#00ff80',
+                                timer: 2800,
+                                showConfirmButton: false
+                            });
+                        }
                     } else {
-                        alert('Mafunzo ya AI yamehifadhiwa kikamilifu na sasa yanafanya kazi live!');
+                        if (saveBtn) {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<ion-icon name="save" style="font-size:1.15rem;"></ion-icon> <span>Hifadhi</span>';
+                            saveBtn.style.background = 'linear-gradient(135deg,#00ff80,#00cc66)';
+                            saveBtn.style.color = '#000';
+                            saveBtn.style.opacity = '1';
+                        }
+                        alert('Hitilafu: ' + ((res && res.error) || 'Imeshindikana kuhifadhi mafunzo ya AI.'));
                     }
-                } else {
-                    alert('Hitilafu: Imeshindikana kuhifadhi mafunzo ya AI.');
+                } catch (saveErr) {
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<ion-icon name="save" style="font-size:1.15rem;"></ion-icon> <span>Hifadhi</span>';
+                        saveBtn.style.background = 'linear-gradient(135deg,#00ff80,#00cc66)';
+                        saveBtn.style.color = '#000';
+                        saveBtn.style.opacity = '1';
+                    }
+                    alert('Hitilafu: ' + saveErr.message);
                 }
             },
         });
