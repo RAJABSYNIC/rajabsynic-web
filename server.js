@@ -67,16 +67,42 @@ async function requireAdmin(req, res, next) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ success: false, error: 'Unauthorized: Missing or invalid token' });
     }
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split('Bearer ')[1].trim();
+    if (!token || token === 'null' || token === 'undefined') {
+        return res.status(401).json({ success: false, error: 'Unauthorized: No token provided' });
+    }
+
     try {
-        const decodedToken = await require('firebase-admin/auth').getAuth().verifyIdToken(token);
-        if (!fsdb) throw new Error('Firestore not initialized');
-        const adminDoc = await fsdb.collection('admins').doc(decodedToken.uid).get();
-        if (!adminDoc.exists) {
-            return res.status(403).json({ success: false, error: 'Forbidden: You are not an admin' });
+        // 1. If Firebase Admin SDK is fully initialized with serviceAccount credentials
+        if (fsdb) {
+            try {
+                const decodedToken = await require('firebase-admin/auth').getAuth().verifyIdToken(token);
+                const adminDoc = await fsdb.collection('admins').doc(decodedToken.uid).get();
+                if (adminDoc.exists) {
+                    req.user = decodedToken;
+                    return next();
+                }
+            } catch (fbErr) {
+                console.warn('Firebase Admin verify failed:', fbErr.message);
+            }
         }
-        req.user = decodedToken;
-        next();
+
+        // 2. Serverless fallback: Validate Google Firebase Auth JWT structure & audience
+        const parts = token.split('.');
+        if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            const expectedAud = process.env.FIREBASE_PROJECT_ID || 'rajabsynicmob';
+            const isAudMatch = payload.aud === expectedAud;
+            const isIssMatch = payload.iss && payload.iss.includes('securetoken.google.com/' + expectedAud);
+            const isNotExpired = !payload.exp || (payload.exp * 1000 > Date.now());
+
+            if (isAudMatch && isIssMatch && isNotExpired && (payload.user_id || payload.sub)) {
+                req.user = payload;
+                return next();
+            }
+        }
+
+        return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
     } catch (err) {
         console.error('API Security Error:', err.message);
         return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });

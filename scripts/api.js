@@ -851,34 +851,80 @@ class ApiService {
     }
 
     async getAIKnowledge() {
+        // 1. Try directly from Firestore client SDK first
         try {
+            if (db) {
+                const snap = await getDoc(doc(db, 'settings', 'ai_support'));
+                if (snap.exists() && snap.data()) {
+                    return snap.data();
+                }
+            }
+        } catch (fsErr) {
+            console.warn('Client Firestore getDoc ai_support warning:', fsErr);
+        }
+
+        // 2. Fallback to server endpoint
+        try {
+            const tok = sessionStorage.getItem('rajab_admin_token');
             const res = await fetch(`${this.baseUrl}/api/admin/ai-knowledge`, {
-                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+                headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
+            if (res.ok) return await res.json();
         } catch (err) {
             console.error('Error getting AI knowledge:', err);
-            return null;
         }
+        return null;
     }
 
     async saveAIKnowledge(knowledge) {
+        let savedDirectly = false;
+
+        // 1. Save directly to Firestore via client SDK (guaranteed persistent)
         try {
+            if (db) {
+                await setDoc(doc(db, 'settings', 'ai_support'), {
+                    ...knowledge,
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true });
+                savedDirectly = true;
+                console.log('AI Knowledge saved directly to Firestore settings/ai_support');
+            }
+        } catch (fsErr) {
+            console.warn('Client Firestore setDoc ai_support error:', fsErr);
+        }
+
+        // 2. Also notify backend server
+        let serverOk = false;
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+
             const res = await fetch(`${this.baseUrl}/api/admin/ai-knowledge`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                    'Authorization': tok ? ('Bearer ' + tok) : ''
                 },
                 body: JSON.stringify(knowledge)
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
-        } catch (err) {
-            console.error('Error saving AI knowledge:', err);
-            return { success: false, error: err.message };
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success) serverOk = true;
+            }
+        } catch (srvErr) {
+            console.warn('Server AI knowledge sync warning:', srvErr);
         }
+
+        if (savedDirectly || serverOk) {
+            return { success: true, message: 'Mafunzo ya AI yamehifadhiwa kikamilifu!' };
+        }
+
+        return { success: false, error: 'Imeshindikana kuhifadhi. Tafadhali jaribu tena.' };
     }
 
     async getAIChatLogs() {

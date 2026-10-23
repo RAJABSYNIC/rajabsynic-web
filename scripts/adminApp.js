@@ -1,4 +1,4 @@
-        import api from '/scripts/api.js';
+        import api from '/scripts/api.js?v=3';
         import { auth, onAuthStateChanged } from '/scripts/firebase-config.js';
 
         const adminApp = {
