@@ -1159,6 +1159,16 @@ app.post('/api/send-notification', requireAdmin, async (req, res) => {
 const AI_KNOWLEDGE_FILE = path.join(__dirname, 'data', 'ai-knowledge.json');
 const AI_LOGS_FILE = path.join(__dirname, 'data', 'ai-chat-logs.json');
 
+let BUNDLED_KNOWLEDGE = null;
+try {
+    BUNDLED_KNOWLEDGE = require('./data/ai-knowledge.json');
+} catch (_) {}
+
+let BUNDLED_CATALOG = [];
+try {
+    BUNDLED_CATALOG = require('./data/catalog-cache.json');
+} catch (_) {}
+
 // Helper: Read Knowledge Base
 function getAIKnowledge() {
     try {
@@ -1167,6 +1177,9 @@ function getAIKnowledge() {
         }
     } catch (e) {
         console.error('Error reading AI knowledge:', e.message);
+    }
+    if (BUNDLED_KNOWLEDGE && BUNDLED_KNOWLEDGE.botName) {
+        return BUNDLED_KNOWLEDGE;
     }
     return {
         botName: 'rajabsynic ai agent',
@@ -1224,10 +1237,14 @@ async function getCatalogItems() {
             snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
         } catch (_) {}
     }
-    if (items.length === 0 && fs.existsSync(CATALOG_CACHE_FILE)) {
-        try {
-            items = JSON.parse(fs.readFileSync(CATALOG_CACHE_FILE, 'utf8'));
-        } catch (_) {}
+    if (items.length === 0) {
+        if (Array.isArray(BUNDLED_CATALOG) && BUNDLED_CATALOG.length > 0) {
+            items = BUNDLED_CATALOG;
+        } else if (fs.existsSync(CATALOG_CACHE_FILE)) {
+            try {
+                items = JSON.parse(fs.readFileSync(CATALOG_CACHE_FILE, 'utf8'));
+            } catch (_) {}
+        }
     }
     if (items.length === 0) {
         try {
