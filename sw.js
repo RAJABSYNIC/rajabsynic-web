@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v18-sidebar-fix';
+const CACHE_NAME = 'rajabsynic-v19-single-ai-studio';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

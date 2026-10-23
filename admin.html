@@ -606,301 +606,58 @@
         </div>
 
 
-        <!-- AI SUPPORT MANAGEMENT & TRAINING STUDIO -->
+        <!-- AI TRAINING STUDIO (SEHEMU MOJA YA KUMFUNZA AI) -->
         <div id="view-ai-support" class="view-section">
             <!-- Header -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
                 <div>
                     <h2 style="margin:0 0 6px; display:flex; align-items:center; gap:10px; color:#fff; font-size:1.5rem; font-weight:800;">
                         <ion-icon name="sparkles" style="color:#00ff80; font-size:1.6rem;"></ion-icon>
-                        AI Support & Training Studio
+                        AI Training Studio
                     </h2>
-                    <p style="color:#9ca3af; margin:0; font-size:0.9rem;">
-                        Mfumo maalum wa kumfunza na kumsimamia <strong>rajabsynic ai agent</strong> kuelewa biashara nzima, kujibu bidhaa na bei kwa usahihi 100%, na kukagua malipo ya wateja ili kuwapa access kiotomatiki.
+                    <p style="color:#9ca3af; margin:0; font-size:0.92rem;">
+                        Hapa ndipo unapo mfundisha <strong>rajabsynic ai agent</strong> jinsi ya kufanya kazi. Kila kitu unachokiandika hapa ndicho kitakachokuwa muongozo mkuu katika utekelezaji kule mbele kwa wateja (Live).
                     </p>
                 </div>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <button class="btn" onclick="adminApp.saveAIKnowledge()" style="display:flex; align-items:center; gap:8px; padding:12px 22px; font-size:0.92rem; background:linear-gradient(135deg,#00ff80,#00cc66); color:#000; font-weight:800; border-radius:10px; border:none; cursor:pointer; box-shadow:0 4px 18px rgba(0,255,128,0.35); transition:transform 0.2s;">
-                        <ion-icon name="save" style="font-size:1.2rem;"></ion-icon> Hifadhi Mafunzo Yote
+                <button class="btn" onclick="adminApp.saveAIKnowledge()" style="display:flex; align-items:center; gap:8px; padding:12px 24px; font-size:0.95rem; background:linear-gradient(135deg,#00ff80,#00cc66); color:#000; font-weight:800; border-radius:10px; border:none; cursor:pointer; box-shadow:0 4px 18px rgba(0,255,128,0.35); transition:transform 0.2s;">
+                    <ion-icon name="save" style="font-size:1.25rem;"></ion-icon> Hifadhi Mafunzo ya AI
+                </button>
+            </div>
+
+            <!-- Single Dedicated Training Console -->
+            <div style="background:#111827; border:1px solid #1f2937; border-radius:18px; padding:28px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <div style="color:#00ff80; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <ion-icon name="school" style="font-size:1.3rem;"></ion-icon> Sehemu ya Kum-train AI (Master Training Instructions)
+                        </div>
+                        <div style="color:#9ca3af; font-size:0.86rem;">
+                            Andika hapa maelekezo, kanuni, na kila kitu unachotaka AI akifahamu na kukitekeleza anapojibu au kuwasaidia wateja kwenye tovuti.
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; background:rgba(0,255,128,0.08); border:1px solid rgba(0,255,128,0.25); padding:6px 14px; border-radius:20px;">
+                        <span style="width:8px; height:8px; background:#00ff80; border-radius:50%; box-shadow:0 0 8px #00ff80;"></span>
+                        <span style="color:#00ff80; font-size:0.8rem; font-weight:700;">Inatekelezwa Kule Front (Active)</span>
+                    </div>
+                </div>
+
+                <!-- Big Training Prompt Box -->
+                <textarea id="ai-cfg-instructions" rows="20" placeholder="Andika hapa kila kitu unachotaka rajabsynic ai agent akijue na kukifanya... Kila unachomwambia hapa ndicho kitakachokuwa muongozo wake katika utekelezaji kule front!"
+                    style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:12px; padding:20px; color:#fff; font-size:0.95rem; line-height:1.6; font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; resize:vertical; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
+                    onfocus="this.style.borderColor='#00ff80'" onblur="this.style.borderColor='#374151'"></textarea>
+
+                <!-- Bottom action & note -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:14px; border-top:1px solid #1f2937; padding-top:18px;">
+                    <div style="color:#6b7280; font-size:0.84rem; display:flex; align-items:center; gap:8px;">
+                        <ion-icon name="checkmark-circle" style="font-size:1.2rem; color:#00ff80;"></ion-icon>
+                        Ukishabonyeza <strong>"Hifadhi Mafunzo"</strong>, mabadiliko yanaingia kwenye akili ya AI papo hapo na kuanza kufanya kazi live kwa wateja wote!
+                    </div>
+                    <button class="btn" onclick="adminApp.saveAIKnowledge()" style="display:flex; align-items:center; gap:8px; padding:12px 26px; font-size:0.95rem; background:linear-gradient(135deg,#00ff80,#00cc66); color:#000; font-weight:800; border-radius:10px; border:none; cursor:pointer; box-shadow:0 4px 18px rgba(0,255,128,0.35);">
+                        <ion-icon name="save" style="font-size:1.25rem;"></ion-icon> Hifadhi Mafunzo ya AI
                     </button>
                 </div>
             </div>
-
-            <!-- Stats Bar -->
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:24px;">
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px;">
-                    <div style="color:#9ca3af; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:6px;">Uhakiki wa Malipo (Auto-Access)</div>
-                    <div style="color:#00ff80; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:6px;">
-                        <span style="width:8px; height:8px; background:#00ff80; border-radius:50%; display:inline-block; box-shadow:0 0 8px #00ff80;"></span>
-                        Inafanya Kazi (Active)
-                    </div>
-                </div>
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px;">
-                    <div style="color:#9ca3af; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:6px;">Bidhaa Katika Akili ya AI</div>
-                    <div id="ai-stat-catalog-count" style="color:#fff; font-size:1.15rem; font-weight:800;">Inapakia...</div>
-                </div>
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px;">
-                    <div style="color:#9ca3af; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:6px;">Masomo / FAQs Yaliyofunzwa</div>
-                    <div id="ai-stat-faqs-count" style="color:#fff; font-size:1.15rem; font-weight:800;">Inapakia...</div>
-                </div>
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px;">
-                    <div style="color:#9ca3af; font-size:0.75rem; text-transform:uppercase; font-weight:700; margin-bottom:6px;">AI Engine & Grounding</div>
-                    <div style="color:#38bdf8; font-size:1.15rem; font-weight:800;">Google Gemini Flash</div>
-                </div>
-            </div>
-
-            <!-- Studio Sub-Navigation Tabs -->
-            <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid #1f2937; padding-bottom:12px; overflow-x:auto;">
-                <button id="ai-tab-kb" onclick="adminApp.switchAITab('kb')"
-                    style="background:#00ff80; color:#000; border:none; padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                    <ion-icon name="school-outline"></ion-icon> 1. Kumfunza AI (Training & Instructions)
-                </button>
-                <button id="ai-tab-qa" onclick="adminApp.switchAITab('qa')"
-                    style="background:transparent; color:#9ca3af; border:1px solid #374151; padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                    <ion-icon name="help-circle-outline"></ion-icon> 2. Maswali na Majibu (Q&A Datasets)
-                </button>
-                <button id="ai-tab-catalog" onclick="adminApp.switchAITab('catalog')"
-                    style="background:transparent; color:#9ca3af; border:1px solid #374151; padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                    <ion-icon name="pricetags-outline"></ion-icon> 3. Bidhaa & Bei Zilizopo (Catalog)
-                </button>
-                <button id="ai-tab-logs" onclick="adminApp.switchAITab('logs')"
-                    style="background:transparent; color:#9ca3af; border:1px solid #374151; padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                    <ion-icon name="chatbubbles-outline"></ion-icon> 4. Chati & Uhakiki wa Malipo (Logs)
-                </button>
-                <button id="ai-tab-test" onclick="adminApp.switchAITab('test')"
-                    style="background:transparent; color:#9ca3af; border:1px solid #374151; padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                    <ion-icon name="flask-outline"></ion-icon> 5. Jaribu AI Hapa (Live Tester)
-                </button>
-            </div>
-
-            <!-- TAB 1: KUMFUNZA AI (TRAINING & INSTRUCTIONS) -->
-            <div id="ai-panel-kb">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start;">
-                    <!-- Left: Business Knowledge -->
-                    <div style="display:flex; flex-direction:column; gap:20px;">
-                        <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:22px;">
-                            <h3 style="color:#00ff80; margin:0 0 10px; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="bulb-outline"></ion-icon> Ujuzi wa Biashara (Custom Business Knowledge)
-                            </h3>
-                            <p style="color:#9ca3af; font-size:0.82rem; margin-bottom:12px; line-height:1.4;">
-                                Andika maelezo yoyote mapya ya biashara yako (mfano: huduma mpya, njia za kuweka mods, matoleo mapya ya michezo, na masharti yoyote). AI atayasoma na kuyaelewa mara moja!
-                            </p>
-                            <textarea id="ai-cfg-custom-knowledge" rows="8" placeholder="Andika maelekezo ya ziada ya biashara hapa..."
-                                style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:10px; padding:14px; color:#fff; font-size:0.88rem; line-height:1.5; resize:vertical; box-sizing:border-box;"></textarea>
-                        </div>
-
-                        <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:22px;">
-                            <h3 style="color:#00ff80; margin:0 0 10px; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="card-outline"></ion-icon> Uhakiki wa Malipo & Kutoa Access Kiotomatiki
-                            </h3>
-                            <p style="color:#9ca3af; font-size:0.82rem; margin-bottom:12px;">
-                                Mteja akilalamika hajalipata access baada ya kulipia, AI atamwomba namba ya simu au Order ID, atakagua mfumo wa malipo, na iwapo muamala umekamilika atamfungulia ACCESS papo hapo bila kuhitaji usumbufu wa mikono!
-                            </p>
-                            <div style="background:#0b0f19; border:1px solid #22c55e; border-radius:10px; padding:14px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
-                                <ion-icon name="checkmark-circle" style="color:#22c55e; font-size:1.6rem;"></ion-icon>
-                                <div>
-                                    <div style="color:#fff; font-weight:700; font-size:0.9rem;">Mfumo wa Auto-Access Upo Wazi</div>
-                                    <div style="color:#9ca3af; font-size:0.8rem;">AI inakagua namba za simu (M-Pesa, Tigo Pesa, Airtel, Halopesa) na namba za Order ID.</div>
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label style="color:#9ca3af; font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">JINA LA AI AGENT</label>
-                                <input type="text" id="ai-cfg-botname" value="rajabsynic ai agent"
-                                    style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px 12px; color:#fff; box-sizing:border-box;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Behavior & Grounding Rules -->
-                    <div style="display:flex; flex-direction:column; gap:20px;">
-                        <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:22px;">
-                            <h3 style="color:#00ff80; margin:0 0 10px; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="code-slash-outline"></ion-icon> Maelekezo Makuu ya AI (System Instructions)
-                            </h3>
-                            <p style="color:#9ca3af; font-size:0.82rem; margin-bottom:12px;">
-                                Hizi ndizo kanuni kuu anazozifuata AI kila anapoongea na wateja (Kizuizi cha namba za simu/WhatsApp, lugha ya staha, na strict grounding):
-                            </p>
-                            <textarea id="ai-cfg-instructions" rows="8"
-                                style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:10px; padding:14px; color:#fff; font-size:0.88rem; line-height:1.5; resize:vertical; box-sizing:border-box;"></textarea>
-                        </div>
-
-                        <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:22px;">
-                            <h3 style="color:#00ff80; margin:0 0 10px; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="shield-checkmark-outline"></ion-icon> Sera za Huduma (Policies)
-                            </h3>
-                            <div class="input-group" style="margin-bottom:12px;">
-                                <label style="color:#9ca3af; font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">SERA YA MALIPO</label>
-                                <textarea id="ai-cfg-pol-pay" rows="2" style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px; color:#fff; box-sizing:border-box;"></textarea>
-                            </div>
-                            <div class="input-group" style="margin-bottom:12px;">
-                                <label style="color:#9ca3af; font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">SERA YA KUPAKUA (DOWNLOAD)</label>
-                                <textarea id="ai-cfg-pol-dl" rows="2" style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px; color:#fff; box-sizing:border-box;"></textarea>
-                            </div>
-                            <div class="input-group">
-                                <label style="color:#9ca3af; font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">SERA YA MSAADA (HELP)</label>
-                                <textarea id="ai-cfg-pol-supp" rows="2" style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px; color:#fff; box-sizing:border-box;"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: MASWALI NA MAJIBU YA KUFUNZIA (Q&A) -->
-            <div id="ai-panel-qa" style="display:none;">
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:24px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
-                        <div>
-                            <h3 style="color:#00ff80; margin:0 0 6px; font-size:1.15rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="help-circle-outline"></ion-icon> Maswali na Majibu ya Kufunzia (Training Datasets)
-                            </h3>
-                            <p style="color:#9ca3af; font-size:0.84rem; margin:0;">
-                                Ongeza maswali ambayo wateja wamekuwa wakiuliza pamoja na jibu rasmi ambalo unataka AI ayajibu kwa usahihi 100%.
-                            </p>
-                        </div>
-                        <button onclick="adminApp.addFAQItem()" class="btn" style="background:#00ff80; color:#000; font-weight:800; font-size:0.88rem; padding:10px 16px; border-radius:8px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                            <ion-icon name="add-circle-outline" style="font-size:1.2rem;"></ion-icon> Ongeza Somo Jipya
-                        </button>
-                    </div>
-
-                    <div id="ai-faqs-container" style="display:flex; flex-direction:column; gap:14px; max-height:650px; overflow-y:auto; padding-right:6px;">
-                        <!-- Injected dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: BIDHAA & BEI (LIVE CATALOG SYNC) -->
-            <div id="ai-panel-catalog" style="display:none;">
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:24px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
-                        <div>
-                            <h3 style="color:#00ff80; margin:0 0 6px; font-size:1.15rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="pricetags-outline"></ion-icon> Bidhaa Zinazotambuliwa na AI (Catalog Index)
-                            </h3>
-                            <p style="color:#9ca3af; font-size:0.84rem; margin:0;">
-                                Hii ndiyo orodha kamili ya michezo, mods, na apps ambazo AI inazifahamu na inazotumia kujibu bei zake kwa wateja.
-                            </p>
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="ai-catalog-search" placeholder="Tafuta mchezo..." oninput="adminApp.filterAICatalog(this.value)"
-                                style="background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:8px 14px; color:#fff; font-size:0.88rem; width:220px;">
-                            <button onclick="adminApp.loadAICatalog()" class="btn btn-secondary" style="background:#1f2937; border:1px solid #374151; color:#00ff80; padding:8px 14px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <ion-icon name="sync-outline"></ion-icon> Sasisha Sasa (Sync)
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="overflow-x:auto;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Picha & Jina la Mchezo / Mod</th>
-                                    <th>Kundi (Category)</th>
-                                    <th>Bei (Tsh)</th>
-                                    <th>Aina</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ai-catalog-tbody">
-                                <tr><td colspan="4" style="text-align:center; color:#9ca3af; padding:20px;">Inapakia katalogi ya AI...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: CHATI NA UHAKIKI WA MALIPO (LOGS) -->
-            <div id="ai-panel-logs" style="display:none;">
-                <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:24px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <input type="text" id="ai-logs-filter" placeholder="Tafuta namba ya simu au swali..." oninput="adminApp.filterAIChatLogs(this.value)"
-                                style="background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:8px 14px; color:#fff; font-size:0.88rem; width:280px;">
-                            <span id="ai-logs-count" style="color:#9ca3af; font-size:0.84rem;">0 mazungumzo</span>
-                        </div>
-                        <div style="display:flex; gap:8px;">
-                            <button onclick="adminApp.loadAIChatLogs()" class="btn btn-secondary" style="padding:8px 14px; font-size:0.85rem; display:flex; align-items:center; gap:6px; background:#1f2937; color:#fff; border:1px solid #374151; border-radius:8px; cursor:pointer;">
-                                <ion-icon name="refresh-outline"></ion-icon> Refresh
-                            </button>
-                            <button onclick="adminApp.clearAIChatLogs()" class="btn" style="background:#ef4444; color:#fff; padding:8px 14px; font-size:0.85rem; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <ion-icon name="trash-outline"></ion-icon> Futa Zote
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="overflow-x:auto;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th style="width:140px;">Muda</th>
-                                    <th style="width:130px;">Mteja / Session</th>
-                                    <th>Swali / Malalamiko ya Mteja</th>
-                                    <th>Jibu na Uhakiki wa AI (Action)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ai-logs-tbody">
-                                <tr><td colspan="4" style="text-align:center; color:#6b7280; padding:20px;">Hakuna kumbukumbu za chati kwa sasa.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 5: JARIBU AI HAPA (INTERACTIVE TESTER) -->
-            <div id="ai-panel-test" style="display:none;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start;">
-                    <!-- Chat Simulator -->
-                    <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:20px; display:flex; flex-direction:column; height:550px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1f2937; padding-bottom:12px; margin-bottom:12px;">
-                            <div style="color:#00ff80; font-weight:700; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
-                                <ion-icon name="chatbubble-ellipses"></ion-icon> Jaribu Kuchati na AI Kama Mteja
-                            </div>
-                            <button onclick="adminApp.clearTesterChat()" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:0.8rem;">Anza Upya</button>
-                        </div>
-
-                        <!-- Test Messages Box -->
-                        <div id="ai-test-messages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:6px; margin-bottom:12px;">
-                            <div style="background:#0b0f19; border-left:3px solid #00ff80; padding:10px 14px; border-radius:8px; color:#d1fae5; font-size:0.85rem;">
-                                Habari Admin! Mimi ni rajabsynic ai agent. Niulize swali lolote la bidhaa, bei, au jaribu kusema "Namelipia lakini sijapata access" ili uone ninavyokagua malipo!
-                            </div>
-                        </div>
-
-                        <!-- Test Input -->
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="ai-test-input" placeholder="Andika swali la majaribio hapa..." onkeydown="if(event.key==='Enter')adminApp.sendTestChat()"
-                                style="flex:1; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px 14px; color:#fff; font-size:0.88rem; outline:none;">
-                            <button onclick="adminApp.sendTestChat()" style="background:#00ff80; color:#000; font-weight:800; border:none; border-radius:8px; padding:0 18px; cursor:pointer;">
-                                Tuma
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Instant Correction Trainer -->
-                    <div style="background:#111827; border:1px solid #1f2937; border-radius:16px; padding:22px;">
-                        <h3 style="color:#00ff80; margin:0 0 10px; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
-                            <ion-icon name="create-outline"></ion-icon> Mfunze AI Jibu Sahihi Papo Hapo
-                        </h3>
-                        <p style="color:#9ca3af; font-size:0.82rem; margin-bottom:14px; line-height:1.4;">
-                            Ukiona jibu la AI halijakutosheleza kwenye majaribio, andika hapa swali na jibu sahihi unalotaka alitumie, kisha bonyeza <strong>"Hifadhi Funzo"</strong>. AI atajifunza papo hapo bila kubadilisha code!
-                        </p>
-                        <div class="input-group" style="margin-bottom:12px;">
-                            <label style="color:#9ca3af; font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">SWALI LA MTEJA</label>
-                            <input type="text" id="ai-train-q" placeholder="mfano: Mbona Maleo multiplayer inakataa kuunganisha?"
-                                style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px; color:#fff; font-size:0.88rem; box-sizing:border-box;">
-                        </div>
-                        <div class="input-group" style="margin-bottom:16px;">
-                            <label style="color:#9ca3af; font-size:0.82rem; font-weight:700; display:block; margin-bottom:6px;">JIBU SAHIHI LA KUMPATIA AI</label>
-                            <textarea id="ai-train-a" rows="4" placeholder="Andika maelekezo au jibu sahihi 100% ambalo AI inatakiwa kutoa..."
-                                style="width:100%; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:10px; color:#fff; font-size:0.88rem; line-height:1.4; resize:vertical; box-sizing:border-box;"></textarea>
-                        </div>
-                        <button onclick="adminApp.saveSingleCorrection()" style="width:100%; background:#00ff80; color:#000; font-weight:800; border:none; border-radius:8px; padding:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                            <ion-icon name="school" style="font-size:1.2rem;"></ion-icon> Hifadhi Funzo Hili Kwenye Akili ya AI
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
-
-
-
 
     </div>
 
@@ -1266,7 +1023,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=7"></script>
+<script type="module" src="/scripts/adminApp.js?v=8"></script>
 </body>
 
 </html>

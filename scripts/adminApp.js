@@ -2220,33 +2220,6 @@ if (viewId === 'ai-support') this.loadAISupport();
                     // ─── AI CUSTOMER SUPPORT MANAGEMENT ───────────────────────────
         Object.assign(adminApp, {
             _cachedAIKnowledge: null,
-            _cachedAIChatLogs: [],
-            _cachedAICatalog: [],
-
-            switchAITab: function(tabName) {
-                const tabs = ['kb', 'qa', 'catalog', 'logs', 'test'];
-                tabs.forEach(t => {
-                    const btn = document.getElementById('ai-tab-' + t);
-                    const panel = document.getElementById('ai-panel-' + t);
-                    if (btn) {
-                        if (t === tabName) {
-                            btn.style.background = '#00ff80';
-                            btn.style.color = '#000';
-                            btn.style.borderColor = 'transparent';
-                        } else {
-                            btn.style.background = 'transparent';
-                            btn.style.color = '#9ca3af';
-                            btn.style.borderColor = '#374151';
-                        }
-                    }
-                    if (panel) {
-                        panel.style.display = (t === tabName) ? 'block' : 'none';
-                    }
-                });
-
-                if (tabName === 'catalog') this.loadAICatalog();
-                if (tabName === 'logs') this.loadAIChatLogs();
-            },
 
             loadAISupport: async function() {
                 try {
@@ -2254,335 +2227,48 @@ if (viewId === 'ai-support') this.loadAISupport();
                     if (!data) return;
                     this._cachedAIKnowledge = data;
 
-                    if (document.getElementById('ai-cfg-botname')) document.getElementById('ai-cfg-botname').value = data.botName || 'rajabsynic ai agent';
-                    if (document.getElementById('ai-cfg-custom-knowledge')) document.getElementById('ai-cfg-custom-knowledge').value = data.customKnowledge || '';
-                    if (document.getElementById('ai-cfg-instructions')) document.getElementById('ai-cfg-instructions').value = data.systemInstructions || '';
-                    
-                    if (document.getElementById('ai-cfg-pol-pay')) document.getElementById('ai-cfg-pol-pay').value = data.policies?.payment || '';
-                    if (document.getElementById('ai-cfg-pol-dl')) document.getElementById('ai-cfg-pol-dl').value = data.policies?.download || '';
-                    if (document.getElementById('ai-cfg-pol-supp')) document.getElementById('ai-cfg-pol-supp').value = data.policies?.support || '';
-
-                    const faqs = data.faqs || [];
-                    this.renderFAQs(faqs);
-
-                    const faqsBadge = document.getElementById('ai-stat-faqs-count');
-                    if (faqsBadge) faqsBadge.textContent = `${faqs.length} Masomo`;
-
-                    // Load catalog count
-                    const catalogData = await api.getAICatalog();
-                    const catBadge = document.getElementById('ai-stat-catalog-count');
-                    if (catBadge && catalogData) {
-                        catBadge.textContent = `${catalogData.count || (catalogData.items || []).length} Bidhaa`;
+                    const textarea = document.getElementById('ai-cfg-instructions');
+                    if (textarea) {
+                        textarea.value = data.systemInstructions || data.customKnowledge || '';
                     }
                 } catch (e) {
                     console.error('Error loading AI support data:', e);
                 }
             },
 
-            renderFAQs: function(faqs) {
-                const container = document.getElementById('ai-faqs-container');
-                if (!container) return;
-                container.innerHTML = '';
-                faqs.forEach((item) => {
-                    this.addFAQItem(item.question, item.answer);
-                });
-            },
-
-            addFAQItem: function(question = '', answer = '') {
-                const container = document.getElementById('ai-faqs-container');
-                if (!container) return;
-                const id = 'faq_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'ai-faq-row';
-                itemDiv.id = id;
-                itemDiv.style.cssText = 'background:#0b0f19; border:1px solid #1f2937; border-radius:10px; padding:14px; position:relative;';
-                itemDiv.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="color:#00ff80; font-size:0.75rem; font-weight:700; text-transform:uppercase;">Swali & Jibu la Kufunzia AI</span>
-                        <button type="button" onclick="document.getElementById('${id}').remove()" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer;" title="Futa Funzo">✕</button>
-                    </div>
-                    <input type="text" class="ai-faq-q" placeholder="Andika Swali (mfano: Jinsi ya kupakua mchezo?)" value="${(question || '').replace(/"/g, '&quot;')}"
-                        style="width:100%; background:#111827; border:1px solid #374151; border-radius:6px; padding:10px 12px; color:#fff; font-size:0.88rem; margin-bottom:8px; box-sizing:border-box;">
-                    <textarea class="ai-faq-a" rows="3" placeholder="Andika Jibu sahihi 100% ambalo AI inatakiwa kujibu..."
-                        style="width:100%; background:#111827; border:1px solid #374151; border-radius:6px; padding:10px 12px; color:#fff; font-size:0.88rem; line-height:1.4; resize:vertical; box-sizing:border-box;">${(answer || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-                `;
-                container.appendChild(itemDiv);
-            },
-
             saveAIKnowledge: async function() {
-                const faqs = [];
-                document.querySelectorAll('.ai-faq-row').forEach(row => {
-                    const q = row.querySelector('.ai-faq-q')?.value.trim();
-                    const a = row.querySelector('.ai-faq-a')?.value.trim();
-                    if (q && a) {
-                        faqs.push({ question: q, answer: a });
-                    }
-                });
+                const textarea = document.getElementById('ai-cfg-instructions');
+                const text = textarea ? textarea.value.trim() : '';
+
+                if (!text) {
+                    alert('Tafadhali andika maelekezo ya kumfunza AI kabla ya kuhifadhi.');
+                    return;
+                }
 
                 const payload = {
-                    botName: document.getElementById('ai-cfg-botname')?.value.trim() || 'rajabsynic ai agent',
-                    customKnowledge: document.getElementById('ai-cfg-custom-knowledge')?.value.trim() || '',
-                    systemInstructions: document.getElementById('ai-cfg-instructions')?.value.trim() || '',
-                    policies: {
-                        payment: document.getElementById('ai-cfg-pol-pay')?.value.trim() || '',
-                        download: document.getElementById('ai-cfg-pol-dl')?.value.trim() || '',
-                        support: document.getElementById('ai-cfg-pol-supp')?.value.trim() || ''
-                    },
-                    faqs: faqs
+                    botName: 'rajabsynic ai agent',
+                    systemInstructions: text,
+                    customKnowledge: text,
+                    supportPhone: '',
+                    whatsappLink: ''
                 };
 
                 const res = await api.saveAIKnowledge(payload);
                 if (res && res.success) {
-                    const faqsBadge = document.getElementById('ai-stat-faqs-count');
-                    if (faqsBadge) faqsBadge.textContent = `${faqs.length} Masomo`;
-
                     if (window.Swal) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Mafunzo Yamehifadhiwa!',
-                            text: 'rajabsynic ai agent sasa amesasishwa na kuelewa maelekezo haya mapya kikamilifu.',
+                            text: 'rajabsynic ai agent sasa atatumia muongozo huu katika utekelezaji kule front kwa wateja!',
                             background: '#111827',
                             color: '#fff',
                             confirmButtonColor: '#00ff80'
                         });
                     } else {
-                        alert('Mafunzo ya AI yamehifadhiwa kikamilifu!');
+                        alert('Mafunzo ya AI yamehifadhiwa kikamilifu na sasa yanafanya kazi live!');
                     }
                 } else {
                     alert('Hitilafu: Imeshindikana kuhifadhi mafunzo ya AI.');
-                }
-            },
-
-            loadAICatalog: async function() {
-                const tbody = document.getElementById('ai-catalog-tbody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#9ca3af; padding:20px;">Inapakia katalogi ya AI...</td></tr>';
-
-                // Sync live content from client Firebase if available
-                if (Array.isArray(this.content) && this.content.length > 0) {
-                    try {
-                        const itemsToSync = this.content.map(c => ({
-                            id: c.id,
-                            title: c.title,
-                            category: c.category || c.contentType || 'game',
-                            price: c.price || 0,
-                            isFree: c.isFree || !c.price,
-                            description: c.description || ''
-                        }));
-                        await api.syncAICatalog(itemsToSync);
-                    } catch (_) {}
-                }
-
-                const res = await api.getAICatalog();
-                this._cachedAICatalog = (res && res.items) ? res.items : [];
-                this.renderAICatalog(this._cachedAICatalog);
-
-                const catBadge = document.getElementById('ai-stat-catalog-count');
-                if (catBadge) catBadge.textContent = `${this._cachedAICatalog.length} Bidhaa`;
-            },
-
-            renderAICatalog: function(items) {
-                const tbody = document.getElementById('ai-catalog-tbody');
-                if (!tbody) return;
-
-                if (!items || items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#6b7280; padding:20px;">Hakuna bidhaa zilizopatikana kwenye katalogi.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = items.map(item => {
-                    const priceStr = (item.isFree || !item.price || item.price == 0) ? '<span style="color:#22c55e; font-weight:700;">BURE</span>' : `Tsh ${Number(item.price).toLocaleString('en-US')}`;
-                    const catStr = item.category || 'Mchezo';
-                    const imgTag = item.image ? `<img src="${item.image}" style="width:36px; height:36px; border-radius:6px; object-fit:cover;">` : '<div style="width:36px; height:36px; background:#1f2937; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#00ff80;"><ion-icon name="game-controller"></ion-icon></div>';
-
-                    return `
-                        <tr>
-                            <td>
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    ${imgTag}
-                                    <div style="font-weight:700; color:#fff; font-size:0.9rem;">${(item.title || 'Mchezo').replace(/</g, '&lt;')}</div>
-                                </div>
-                            </td>
-                            <td><span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px; font-size:0.8rem; color:#9ca3af;">${catStr}</span></td>
-                            <td style="font-weight:700; color:#00ff80; font-size:0.92rem;">${priceStr}</td>
-                            <td><span style="color:#38bdf8; font-size:0.8rem;">● Inatambuliwa na AI</span></td>
-                        </tr>
-                    `;
-                }).join('');
-            },
-
-            filterAICatalog: function(query) {
-                if (!query || !query.trim()) {
-                    this.renderAICatalog(this._cachedAICatalog);
-                    return;
-                }
-                const q = query.toLowerCase().trim();
-                const filtered = (this._cachedAICatalog || []).filter(item => 
-                    (item.title && item.title.toLowerCase().includes(q)) ||
-                    (item.category && item.category.toLowerCase().includes(q)) ||
-                    (item.price && String(item.price).includes(q))
-                );
-                this.renderAICatalog(filtered);
-            },
-
-            loadAIChatLogs: async function() {
-                const tbody = document.getElementById('ai-logs-tbody');
-                const countBadge = document.getElementById('ai-logs-count');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#9ca3af;">Inapakia kumbukumbu na uhakiki wa malipo...</td></tr>';
-
-                const logs = await api.getAIChatLogs();
-                this._cachedAIChatLogs = logs || [];
-
-                if (countBadge) countBadge.textContent = `${this._cachedAIChatLogs.length} mazungumzo`;
-                this.renderAIChatLogs(this._cachedAIChatLogs);
-            },
-
-            renderAIChatLogs: function(logs) {
-                const tbody = document.getElementById('ai-logs-tbody');
-                if (!tbody) return;
-
-                if (!logs || logs.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#6b7280; padding:20px;">Hakuna kumbukumbu za chati zilizopatikana.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = logs.map(l => {
-                    const dateStr = l.timestamp ? new Date(l.timestamp).toLocaleString('sw-TZ', { dateStyle:'short', timeStyle:'short' }) : 'Hivi Karibuni';
-                    const isPayment = l.isPaymentAction || (l.botResponse && l.botResponse.includes('UHAKIKI UMEKAMILIKA'));
-                    const statusBadge = isPayment ? '<span style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid #22c55e; border-radius:4px; padding:2px 6px; font-size:0.7rem; font-weight:700;">💳 AUTO-ACCESS GRANTED</span>' : '';
-
-                    return `
-                        <tr>
-                            <td style="color:#9ca3af; font-size:0.8rem; white-space:nowrap;">${dateStr}</td>
-                            <td style="font-family:monospace; font-size:0.75rem; color:#6b7280;">
-                                ${(l.sessionId || 'guest').slice(0, 14)}...<br>
-                                ${statusBadge}
-                            </td>
-                            <td style="color:#fff; font-size:0.85rem; font-weight:600;">
-                                <div style="background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; border-left:3px solid #3b82f6;">
-                                    ${(l.userMessage || '').replace(/</g, '&lt;')}
-                                </div>
-                            </td>
-                            <td style="color:#d1fae5; font-size:0.85rem;">
-                                <div style="background:rgba(0,255,128,0.05); padding:8px 12px; border-radius:8px; border-left:3px solid #00ff80;">
-                                    ${(l.botResponse || '').replace(/</g, '&lt;')}
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            },
-
-            filterAIChatLogs: function(query) {
-                if (!query || !query.trim()) {
-                    this.renderAIChatLogs(this._cachedAIChatLogs);
-                    return;
-                }
-                const q = query.toLowerCase().trim();
-                const filtered = (this._cachedAIChatLogs || []).filter(l => 
-                    (l.userMessage && l.userMessage.toLowerCase().includes(q)) ||
-                    (l.botResponse && l.botResponse.toLowerCase().includes(q)) ||
-                    (l.sessionId && l.sessionId.toLowerCase().includes(q))
-                );
-                this.renderAIChatLogs(filtered);
-            },
-
-            clearAIChatLogs: async function() {
-                if (!confirm('Una uhakika unataka kufuta kumbukumbu zote za chati za wateja?')) return;
-                const res = await api.clearAIChatLogs();
-                if (res && res.success) {
-                    this._cachedAIChatLogs = [];
-                    this.renderAIChatLogs([]);
-                    const countBadge = document.getElementById('ai-logs-count');
-                    if (countBadge) countBadge.textContent = '0 mazungumzo';
-                    alert('Kumbukumbu zote za chati zimefutwa.');
-                }
-            },
-
-            // --- TAB 5: AI LIVE TESTER & CORRECTION TRAINER ---
-            sendTestChat: async function() {
-                const input = document.getElementById('ai-test-input');
-                const text = input ? input.value.trim() : '';
-                if (!text) return;
-
-                input.value = '';
-                const container = document.getElementById('ai-test-messages');
-                if (container) {
-                    const userDiv = document.createElement('div');
-                    userDiv.style.cssText = 'background:#1f2937; color:#fff; padding:10px 14px; border-radius:8px; align-self:flex-end; font-size:0.85rem; max-width:85%;';
-                    userDiv.textContent = text;
-                    container.appendChild(userDiv);
-                    container.scrollTop = container.scrollHeight;
-                }
-
-                // Show thinking
-                const thinkingDiv = document.createElement('div');
-                thinkingDiv.id = 'ai-test-thinking';
-                thinkingDiv.style.cssText = 'background:#0b0f19; border-left:3px solid #00ff80; color:#9ca3af; padding:8px 12px; border-radius:8px; font-size:0.82rem;';
-                thinkingDiv.textContent = 'rajabsynic ai agent anafikiri...';
-                if (container) container.appendChild(thinkingDiv);
-
-                try {
-                    const res = await api.sendSupportChat(text, [], 'admin_test_session');
-                    if (thinkingDiv) thinkingDiv.remove();
-
-                    const botDiv = document.createElement('div');
-                    botDiv.style.cssText = 'background:#0b0f19; border-left:3px solid #00ff80; color:#d1fae5; padding:10px 14px; border-radius:8px; font-size:0.85rem; line-height:1.4;';
-                    botDiv.innerHTML = (res && res.reply) ? res.reply.replace(/\n/g, '<br>') : 'Hitilafu ya jibu.';
-                    if (container) {
-                        container.appendChild(botDiv);
-                        container.scrollTop = container.scrollHeight;
-                    }
-                } catch (e) {
-                    if (thinkingDiv) thinkingDiv.remove();
-                    alert('Hitilafu ya majaribio: ' + e.message);
-                }
-            },
-
-            clearTesterChat: function() {
-                const container = document.getElementById('ai-test-messages');
-                if (!container) return;
-                container.innerHTML = `
-                    <div style="background:#0b0f19; border-left:3px solid #00ff80; padding:10px 14px; border-radius:8px; color:#d1fae5; font-size:0.85rem;">
-                        Habari Admin! Mimi ni rajabsynic ai agent. Niulize swali lolote la bidhaa, bei, au jaribu kusema "Namelipia lakini sijapata access" ili uone ninavyokagua malipo!
-                    </div>
-                `;
-            },
-
-            saveSingleCorrection: async function() {
-                const qInput = document.getElementById('ai-train-q');
-                const aInput = document.getElementById('ai-train-a');
-                const q = qInput ? qInput.value.trim() : '';
-                const a = aInput ? aInput.value.trim() : '';
-
-                if (!q || !a) {
-                    alert('Tafadhali jaza Swali la Mteja na Jibu Sahihi unalotaka kumfunza AI.');
-                    return;
-                }
-
-                const res = await api.trainAICorrection(q, a);
-                if (res && res.success) {
-                    this.addFAQItem(q, a);
-                    if (qInput) qInput.value = '';
-                    if (aInput) aInput.value = '';
-
-                    const faqsBadge = document.getElementById('ai-stat-faqs-count');
-                    const rows = document.querySelectorAll('.ai-faq-row');
-                    if (faqsBadge) faqsBadge.textContent = `${rows.length} Masomo`;
-
-                    if (window.Swal) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'AI Amejifunza!',
-                            text: 'Somo hili limehifadhiwa kwenye akili ya AI papo hapo. Sasa atajibu kwa usahihi!',
-                            background: '#111827',
-                            color: '#fff',
-                            confirmButtonColor: '#00ff80'
-                        });
-                    } else {
-                        alert('AI Amejifunza funzo hili papo hapo!');
-                    }
-                } else {
-                    alert('Hitilafu: Imeshindikana kuhifadhi funzo.');
                 }
             },
         });
