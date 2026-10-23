@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v19-single-ai-studio';
+const CACHE_NAME = 'rajabsynic-v20-compact-training';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

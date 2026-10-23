@@ -2220,6 +2220,35 @@ if (viewId === 'ai-support') this.loadAISupport();
                     // ─── AI CUSTOMER SUPPORT MANAGEMENT ───────────────────────────
         Object.assign(adminApp, {
             _cachedAIKnowledge: null,
+            _aiExpanded: false,
+
+            toggleAITrainingExpand: function() {
+                const textarea = document.getElementById('ai-cfg-instructions');
+                const btnText = document.getElementById('ai-expand-text');
+                const btnIcon = document.getElementById('ai-expand-icon');
+                const modeLabel = document.getElementById('ai-box-mode-label');
+                if (!textarea) return;
+
+                this._aiExpanded = !this._aiExpanded;
+
+                if (this._aiExpanded) {
+                    textarea.style.maxHeight = '80vh';
+                    textarea.style.height = '500px';
+                    if (btnText) btnText.textContent = 'Punguza Ukubwa (Tazama Kidogo)';
+                    if (btnIcon) btnIcon.setAttribute('name', 'contract-outline');
+                    if (modeLabel) {
+                        modeLabel.innerHTML = '<ion-icon name="information-circle-outline" style="font-size:1rem; color:#00ff80;"></ion-icon> <span>Muonekano: <strong style="color:#00ff80;">Kamili (Full View)</strong> — unaona maelezo yote</span>';
+                    }
+                } else {
+                    textarea.style.maxHeight = '140px';
+                    textarea.style.height = '120px';
+                    if (btnText) btnText.textContent = 'Tazama Zaidi (Full View)';
+                    if (btnIcon) btnIcon.setAttribute('name', 'expand-outline');
+                    if (modeLabel) {
+                        modeLabel.innerHTML = '<ion-icon name="information-circle-outline" style="font-size:1rem; color:#9ca3af;"></ion-icon> <span>Muonekano: <strong style="color:#d1d5db;">Kawaida (Kidogo)</strong> — bonyeza kitufe kutazama maelezo yote</span>';
+                    }
+                }
+            },
 
             loadAISupport: async function() {
                 try {
