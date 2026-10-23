@@ -606,70 +606,28 @@
         </div>
 
 
-        <!-- AI TRAINING STUDIO (SEHEMU MOJA YA KUMFUNZA AI) -->
+        <!-- AI TRAINING STUDIO (MINIMAL & CLEAN) -->
         <div id="view-ai-support" class="view-section">
-            <!-- Header -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
-                <div>
-                    <h2 style="margin:0 0 6px; display:flex; align-items:center; gap:10px; color:#fff; font-size:1.5rem; font-weight:800;">
-                        <ion-icon name="sparkles" style="color:#00ff80; font-size:1.6rem;"></ion-icon>
-                        AI Training Studio
+            <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px;">
+                    <h2 style="margin:0; display:flex; align-items:center; gap:8px; color:#fff; font-size:1.25rem; font-weight:800;">
+                        <ion-icon name="sparkles" style="color:#00ff80; font-size:1.4rem;"></ion-icon>
+                        AI Training
                     </h2>
-                    <p style="color:#9ca3af; margin:0; font-size:0.92rem;">
-                        Hapa ndipo unapo mfundisha <strong>rajabsynic ai agent</strong> jinsi ya kufanya kazi. Kila kitu unachokiandika hapa ndicho kitakachokuwa muongozo mkuu katika utekelezaji kule mbele kwa wateja (Live).
-                    </p>
-                </div>
-                <button class="btn" onclick="adminApp.saveAIKnowledge()" style="display:flex; align-items:center; gap:8px; padding:12px 24px; font-size:0.95rem; background:linear-gradient(135deg,#00ff80,#00cc66); color:#000; font-weight:800; border-radius:10px; border:none; cursor:pointer; box-shadow:0 4px 18px rgba(0,255,128,0.35); transition:transform 0.2s;">
-                    <ion-icon name="save" style="font-size:1.25rem;"></ion-icon> Hifadhi Mafunzo ya AI
-                </button>
-            </div>
-
-            <!-- Single Dedicated Training Console -->
-            <div style="background:#111827; border:1px solid #1f2937; border-radius:18px; padding:28px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-                    <div>
-                        <div style="color:#00ff80; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <ion-icon name="school" style="font-size:1.3rem;"></ion-icon> Sehemu ya Kum-train AI (Master Training Instructions)
-                        </div>
-                        <div style="color:#9ca3af; font-size:0.86rem;">
-                            Andika hapa maelekezo, kanuni, na kila kitu unachotaka AI akifahamu na kukitekeleza anapojibu au kuwasaidia wateja kwenye tovuti.
-                        </div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px; background:rgba(0,255,128,0.08); border:1px solid rgba(0,255,128,0.25); padding:6px 14px; border-radius:20px;">
-                        <span style="width:8px; height:8px; background:#00ff80; border-radius:50%; box-shadow:0 0 8px #00ff80;"></span>
-                        <span style="color:#00ff80; font-size:0.8rem; font-weight:700;">Inatekelezwa Kule Front (Active)</span>
-                    </div>
-                </div>
-
-                <!-- Compact Training Prompt Box with Expand Option -->
-                <div style="position:relative;">
-                    <textarea id="ai-cfg-instructions" placeholder="Andika hapa kila kitu unachotaka rajabsynic ai agent akijue na kukifanya... Kila unachomwambia hapa ndicho kitakachokuwa muongozo wake katika utekelezaji kule front!"
-                        style="width:100%; height:120px; min-height:100px; max-height:140px; background:#0b0f19; border:1px solid #374151; border-radius:12px; padding:16px 20px; color:#fff; font-size:0.95rem; line-height:1.6; font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; resize:vertical; box-sizing:border-box; outline:none; transition:border-color 0.2s, height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y:auto;"
-                        onfocus="this.style.borderColor='#00ff80'" onblur="this.style.borderColor='#374151'"></textarea>
-                </div>
-
-                <!-- Toggle Expand / Collapse Bar -->
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-                    <div id="ai-box-mode-label" style="color:#6b7280; font-size:0.82rem; display:flex; align-items:center; gap:6px;">
-                        <ion-icon name="information-circle-outline" style="font-size:1rem; color:#9ca3af;"></ion-icon>
-                        <span>Muonekano: <strong style="color:#d1d5db;">Kawaida (Kidogo)</strong> — bonyeza kitufe kutazama maelezo yote</span>
-                    </div>
-                    <button type="button" id="ai-toggle-expand-btn" onclick="adminApp.toggleAITrainingExpand()"
-                        style="background:rgba(0,255,128,0.08); border:1px solid rgba(0,255,128,0.35); color:#00ff80; padding:8px 18px; border-radius:8px; font-size:0.85rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,255,128,0.1);"
-                        onmouseover="this.style.background='rgba(0,255,128,0.18)'" onmouseout="this.style.background='rgba(0,255,128,0.08)'">
-                        <ion-icon id="ai-expand-icon" name="expand-outline" style="font-size:1.15rem;"></ion-icon>
-                        <span id="ai-expand-text">Tazama Zaidi (Full View)</span>
+                    <button class="btn" onclick="adminApp.saveAIKnowledge()" style="display:flex; align-items:center; gap:6px; padding:8px 18px; font-size:0.88rem; background:linear-gradient(135deg,#00ff80,#00cc66); color:#000; font-weight:800; border-radius:8px; border:none; cursor:pointer; box-shadow:0 3px 12px rgba(0,255,128,0.3); transition:transform 0.15s;">
+                        <ion-icon name="save" style="font-size:1.15rem;"></ion-icon> Hifadhi
                     </button>
                 </div>
 
-                <!-- Bottom action & note -->
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; flex-wrap:wrap; gap:14px; border-top:1px solid #1f2937; padding-top:18px;">
-                    <div style="color:#6b7280; font-size:0.84rem; display:flex; align-items:center; gap:8px;">
-                        <ion-icon name="checkmark-circle" style="font-size:1.2rem; color:#00ff80;"></ion-icon>
-                        Ukishabonyeza <strong>"Hifadhi Mafunzo"</strong>, mabadiliko yanaingia kwenye akili ya AI papo hapo na kuanza kufanya kazi live kwa wateja wote!
-                    </div>
-                    <button class="btn" onclick="adminApp.saveAIKnowledge()" style="display:flex; align-items:center; gap:8px; padding:12px 26px; font-size:0.95rem; background:linear-gradient(135deg,#00ff80,#00cc66); color:#000; font-weight:800; border-radius:10px; border:none; cursor:pointer; box-shadow:0 4px 18px rgba(0,255,128,0.35);">
-                        <ion-icon name="save" style="font-size:1.25rem;"></ion-icon> Hifadhi Mafunzo ya AI
+                <textarea id="ai-cfg-instructions" placeholder="Andika maelekezo ya kumfundisha AI hapa..."
+                    style="width:100%; height:120px; min-height:100px; max-height:140px; background:#0b0f19; border:1px solid #374151; border-radius:10px; padding:14px 16px; color:#fff; font-size:0.95rem; line-height:1.6; font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; resize:vertical; box-sizing:border-box; outline:none; transition:border-color 0.2s, height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y:auto;"
+                    onfocus="this.style.borderColor='#00ff80'" onblur="this.style.borderColor='#374151'"></textarea>
+
+                <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:10px;">
+                    <button type="button" id="ai-toggle-expand-btn" onclick="adminApp.toggleAITrainingExpand()"
+                        style="background:rgba(0,255,128,0.08); border:1px solid rgba(0,255,128,0.3); color:#00ff80; padding:7px 15px; border-radius:8px; font-size:0.83rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                        <ion-icon id="ai-expand-icon" name="expand-outline" style="font-size:1.1rem;"></ion-icon>
+                        <span id="ai-expand-text">Tazama Zaidi (Full View)</span>
                     </button>
                 </div>
             </div>
@@ -1039,7 +997,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=9"></script>
+<script type="module" src="/scripts/adminApp.js?v=10"></script>
 </body>
 
 </html>
