@@ -20,7 +20,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <!-- Styles -->
     <link rel="stylesheet" href="/styles/main.css">
-<link rel="stylesheet" href="/styles/admin.css">
+    <link rel="stylesheet" href="/styles/admin.css?v=5">
 </head>
 
 <body>
@@ -158,14 +158,14 @@
                     <span class="menu-desc">Video za kuelekeza watumiaji</span>
                 </div>
             </div>
-                </div>
-            </div>
+        </div>
 
-
-            <div class="menu-item" onclick="location.reload()" style="margin-top: auto;">
-                <ion-icon name="log-out-outline" style="color: crimson;"></ion-icon>
+        <!-- Sidebar Footer: Pinned at the bottom-left -->
+        <div class="sidebar-footer">
+            <div class="menu-item logout-item" onclick="adminApp.logout()">
+                <ion-icon name="log-out-outline" style="color: #ef4444; font-size: 1.4rem;"></ion-icon>
                 <div class="menu-text">
-                    <span class="menu-title" style="color: crimson;">Logout</span>
+                    <span class="menu-title" style="color: #ef4444; font-weight: 700;">Logout</span>
                     <span class="menu-desc">End session</span>
                 </div>
             </div>
