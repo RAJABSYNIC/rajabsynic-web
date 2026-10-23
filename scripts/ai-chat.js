@@ -10,8 +10,8 @@ class AIChatWidget {
         this.isOpen = false;
         this.sessionId = this.getOrCreateSessionId();
         this.history = [];
-        this.supportPhone = '+255614094367';
-        this.whatsappLink = 'https://wa.me/255614094367';
+        this.supportPhone = '';
+        this.whatsappLink = '';
         this.isTyping = false;
         this.attachedImage = null;
 
@@ -592,7 +592,7 @@ class AIChatWidget {
                     <div class="ai-chip" data-q="Nieleze kuhusu Maleo Bus Mods na Skins">🚌 Maleo Bus Mods</div>
                     <div class="ai-chip" data-q="Jinsi ya kufanya malipo kwa simu (M-Pesa/Tigo Pesa)?">💳 Jinsi ya Kulipia</div>
                     <div class="ai-chip" data-q="Nimefanya malipo, ninawezaje kupakua (Download)?">📥 Msaada wa Kupakua</div>
-                    <div class="ai-chip" data-q="Naomba namba ya simu ya WhatsApp ya msaada">📞 WhatsApp Support</div>
+                    <div class="ai-chip" data-q="Ninawezaje kupata msaada zaidi?">🆘 Msaada wa Tovuti</div>
                 </div>
 
                 <!-- Messages Stream -->
@@ -874,7 +874,7 @@ class AIChatWidget {
             } else {
                 this.appendMessage(
                     'bot',
-                    `Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali wasiliana moja kwa moja na Huduma kwa Wateja kupitia WhatsApp kwa namba ${this.supportPhone} kwa usaidizi wa haraka.`,
+                    `Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au wasiliana na Admin kwa msaada zaidi.`,
                     true
                 );
             }
@@ -884,7 +884,7 @@ class AIChatWidget {
             this.isTyping = false;
             this.appendMessage(
                 'bot',
-                `Samahani, kumetokea hitilafu ya muda. Tafadhali wasiliana na huduma yetu kwa wateja kupitia WhatsApp: ${this.supportPhone} (${this.whatsappLink}).`,
+                `Samahani, kumetokea hitilafu ya muda. Tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu kwa maelekezo zaidi.`,
                 true
             );
         }

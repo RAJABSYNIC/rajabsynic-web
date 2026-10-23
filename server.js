@@ -1170,8 +1170,8 @@ function getAIKnowledge() {
     }
     return {
         botName: 'rajabsynic ai agent',
-        supportPhone: '+255614094367',
-        whatsappLink: 'https://wa.me/255614094367',
+        supportPhone: '',
+        whatsappLink: '',
         systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC.',
         policies: {},
         faqs: []
@@ -1282,7 +1282,7 @@ Sera za Malipo na Kupakua:
 - Malipo: ${knowledge.policies?.payment || 'Malipo kupitia mitandao ya simu Tanzania.'}
 - Kupakua: ${knowledge.policies?.download || 'Link inafunguka papo hapo baada ya malipo.'}
 - Usaidizi: ${knowledge.policies?.support || 'Msaada wa WhatsApp unapatikana saa 24.'}
-- WhatsApp / Simu: ${supportPhone}
+- Msaada: Sehemu ya 'Msaada' kwenye menyu ya chini ya tovuti.
 
 FAQs:
 ${faqText}
@@ -1347,11 +1347,11 @@ ${catalogSummary}
             } else if (lower.includes('lipa') || lower.includes('malipo') || lower.includes('pesa') || lower.includes('bei')) {
                 aiReply = 'Malipo yote yanafanyika kwa njia salama ya simu (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, chagua "Kamilisha Malipo", weka namba yako ya simu na uthibitishe kwa PIN. Link ya kupakua itafunguka papo hapo.';
             } else if (lower.includes('download') || lower.includes('pakua') || lower.includes('link')) {
-                aiReply = 'Baada ya kukamilisha malipo, link ya kupakua inafunguka moja kwa moja kwenye ukurasa wa mchezo. Kama unakumbana na changamoto yoyote, tafadhali wasiliana nasi kupitia WhatsApp: ' + supportPhone + '.';
+                aiReply = 'Baada ya kukamilisha malipo, link ya kupakua inafunguka moja kwa moja kwenye ukurasa wa mchezo. Kama unakumbana na changamoto yoyote, tafadhali angalia sehemu ya "Msaada" kwenye menyu ya chini ya tovuti yetu au wasiliana na Admin.';
             } else if (lower.includes('wasiliana') || lower.includes('namba') || lower.includes('admin') || lower.includes('msaada') || lower.includes('contact')) {
-                aiReply = 'Unaweza kuwasiliana moja kwa moja na timu yetu ya usaidizi kupitia WhatsApp namba: ' + supportPhone + ' au bofya hapa: ' + whatsappLink;
+                aiReply = 'Unaweza kupata msaada moja kwa moja kupitia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au kupitia ukurasa wako wa Akaunti.';
             } else {
-                aiReply = 'Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali wasiliana moja kwa moja na Huduma kwa Wateja kupitia WhatsApp kwa namba ' + supportPhone + ' (' + whatsappLink + ') kwa msaada wa haraka zaidi.';
+                aiReply = 'Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu kwa usaidizi zaidi.';
             }
         }
 
@@ -1382,7 +1382,7 @@ ${catalogSummary}
         res.status(500).json({
             success: false,
             error: 'Server error processing chat',
-            reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au wasiliana na huduma yetu kwa wateja kupitia WhatsApp.'
+            reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au tembelea sehemu ya "Msaada" kwenye menyu ya tovuti yetu.'
         });
     }
 });

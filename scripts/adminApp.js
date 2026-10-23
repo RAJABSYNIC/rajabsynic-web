@@ -2217,8 +2217,9 @@ if (viewId === 'ai-support') this.loadAISupport();
         };
 
         
-            // ─── AI CUSTOMER SUPPORT MANAGEMENT ───────────────────────────
-            _cachedAIKnowledge: null,
+                    // ─── AI CUSTOMER SUPPORT MANAGEMENT ───────────────────────────
+        Object.assign(adminApp, {
+_cachedAIKnowledge: null,
             _cachedAIChatLogs: [],
 
             switchAITab: function(tab) {
@@ -2411,8 +2412,9 @@ if (viewId === 'ai-support') this.loadAISupport();
                     alert('Kumbukumbu zote za chati zimefutwa.');
                 }
             },
+        });
 
-        window.adminApp = adminApp;
+window.adminApp = adminApp;
         window.editContent = (id, type) => adminApp.openContentModal(type || 'games', id);
         window.deleteContent = (id, type) => adminApp.deleteContent(id, type);
         window.deleteUser = (id) => adminApp.deleteUser(id);

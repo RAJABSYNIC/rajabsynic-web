@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v15-ai-chat';
+const CACHE_NAME = 'rajabsynic-v16-fix-admin';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
