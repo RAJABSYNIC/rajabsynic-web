@@ -1155,6 +1155,284 @@ app.post('/api/send-notification', requireAdmin, async (req, res) => {
     }
 });
 
+// ─── AI CUSTOMER SUPPORT CHATBOT (Google AI Studio / Gemini Integration) ───────
+const AI_KNOWLEDGE_FILE = path.join(__dirname, 'data', 'ai-knowledge.json');
+const AI_LOGS_FILE = path.join(__dirname, 'data', 'ai-chat-logs.json');
+
+// Helper: Read Knowledge Base
+function getAIKnowledge() {
+    try {
+        if (fs.existsSync(AI_KNOWLEDGE_FILE)) {
+            return JSON.parse(fs.readFileSync(AI_KNOWLEDGE_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error('Error reading AI knowledge:', e.message);
+    }
+    return {
+        botName: 'rajabsynic ai agent',
+        supportPhone: '+255614094367',
+        whatsappLink: 'https://wa.me/255614094367',
+        systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC.',
+        policies: {},
+        faqs: []
+    };
+}
+
+// Helper: Save Knowledge Base
+function saveAIKnowledge(data) {
+    try {
+        fs.writeFileSync(AI_KNOWLEDGE_FILE, JSON.stringify(data, null, 2), 'utf8');
+        return true;
+    } catch (e) {
+        console.error('Error saving AI knowledge:', e.message);
+        return false;
+    }
+}
+
+// Helper: Read Chat Logs
+function getAIChatLogs() {
+    try {
+        if (fs.existsSync(AI_LOGS_FILE)) {
+            return JSON.parse(fs.readFileSync(AI_LOGS_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error('Error reading AI chat logs:', e.message);
+    }
+    return [];
+}
+
+// Helper: Save Chat Logs
+function appendAIChatLog(logEntry) {
+    try {
+        const logs = getAIChatLogs();
+        logs.unshift(logEntry); // Newest first
+        if (logs.length > 500) logs.pop(); // Keep max 500 logs
+        fs.writeFileSync(AI_LOGS_FILE, JSON.stringify(logs, null, 2), 'utf8');
+    } catch (e) {
+        console.error('Error saving chat log:', e.message);
+    }
+}
+
+// Helper: Build Catalog Summary for AI
+async function getCatalogSummary() {
+    let items = [];
+    if (fsdb) {
+        try {
+            const snap = await fsdb.collection('content').limit(150).get();
+            snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+        } catch (_) {}
+    }
+    if (items.length === 0) {
+        try {
+            const dbData = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'db.json'), 'utf8'));
+            items = dbData.content || [];
+        } catch (_) {}
+    }
+
+    if (items.length === 0) {
+        return 'Maudhui makuu: Maleo Bus Mods, Maleo Bus Skins, Maleo Map Mods, ETS 2 Mods, Tanzania Games, Free Games, na Program/Apps.';
+    }
+
+    return items.slice(0, 100).map(i => {
+        const price = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + i.price);
+        const cat = i.category || i.contentType || 'mchezo';
+        return '- Jina: "' + i.title + '" | Aina: ' + cat + ' | Bei: ' + price;
+    }).join('\n');
+}
+
+// Public Endpoint: AI Support Chat
+app.post('/api/support/chat', async (req, res) => {
+    try {
+        const { message, history = [], sessionId } = req.body;
+        if (!message || typeof message !== 'string' || !message.trim()) {
+            return res.status(400).json({ success: false, error: 'Message is required' });
+        }
+
+        const userMsg = message.trim();
+        const knowledge = getAIKnowledge();
+        const catalogSummary = await getCatalogSummary();
+
+        const supportPhone = knowledge.supportPhone || '+255614094367';
+        const whatsappLink = knowledge.whatsappLink || 'https://wa.me/255614094367';
+
+        // Format FAQs for strict grounding
+        const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
+
+        const systemPrompt = `
+Wewe ni "${knowledge.botName || 'rajabsynic ai agent'}", msaidizi rasmi wa huduma kwa wateja katika tovuti ya RAJABSYNIC (Movies & Games).
+Lugha yako kuu ya mawasiliano ni Kiswahili fasaha, chenye staha, heshima, na ukarimu (unaweza pia kujibu kwa Kiingereza kama mteja ameuliza kwa Kiingereza).
+
+MAELEKEZO MUHIMU NA KANUNI ZA KUZINGATIA (STRICT GROUNDING RULES):
+1. UJUZI WAKO UNA UKOMO WA DATA HIZI PEKEE:
+   - Unaruhusiwa kujibu maswali kwa kutumia taarifa zilizopo kwenye orodha ya bidhaa, sera za tovuti, na Maswali na Majibu (FAQs) hapa chini PEKEE.
+2. KATAZO KALI LA KUJIONGEZA (STRICT NO-HALLUCINATION POLICY):
+   - Usibuni taarifa yoyote, bei ya kufikirika, au majibu ya jumla yasiyohusiana na RAJABSYNIC (k.m. usijibu maswali ya siasa, sayansi ya nje, hesabu, au mambo ya jumla).
+3. JINSI YA KUJIBU KAMA TAARIFA HAIPO:
+   - Kama mteja atauliza swali lolote ambalo halimo kwenye orodha ya bidhaa zetu au kwenye maelekezo haya, JIBU KWA ADABU KABISA:
+     "Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali wasiliana moja kwa moja na Huduma yetu kwa Wateja kupitia WhatsApp kwa namba ${supportPhone} (${whatsappLink}) kwa usaidizi wa haraka."
+4. KUTOA BEI NA TAARIFA ZA MICHEZO:
+   - Tumia orodha iliyoambatanishwa ya michezo (Maleo Bus Mods, Skins, Maps, ETS 2, na Games). Bei zipo katika Shilingi ya Tanzania (Tsh).
+5. MSAADA WA MALIPO:
+   - Elekeza kuwa malipo yote yanafanyika kwa simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Mteja anachagua mchezo, anabonyeza lipa, anaweka namba ya simu, na anathibitisha kwa kuweka PIN. Baada ya hapo link ya kudownload inafunguka mara moja.
+
+--- KNOWLEDGE BASE & FAQS ---
+${knowledge.systemInstructions || ''}
+
+Sera za Malipo na Kupakua:
+- Malipo: ${knowledge.policies?.payment || 'Malipo kupitia mitandao ya simu Tanzania.'}
+- Kupakua: ${knowledge.policies?.download || 'Link inafunguka papo hapo baada ya malipo.'}
+- Usaidizi: ${knowledge.policies?.support || 'Msaada wa WhatsApp unapatikana saa 24.'}
+- WhatsApp / Simu: ${supportPhone}
+
+FAQs:
+${faqText}
+
+--- ORODHA YA BIDHAA NA MICHEZO KATIKA TOVUTI (CATALOG) ---
+${catalogSummary}
+`.trim();
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        let aiReply = '';
+
+        // Prepare contents for Gemini API
+        const formattedHistory = (history || []).slice(-8).map(h => ({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: h.text || h.message || '' }]
+        }));
+
+        formattedHistory.push({
+            role: 'user',
+            parts: [{ text: userMsg }]
+        });
+
+        // Attempt Gemini API call
+        try {
+            const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+            const geminiPayload = {
+                contents: formattedHistory,
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    temperature: 0.2,
+                    maxOutputTokens: 600
+                }
+            };
+
+            const geminiRes = await axios.post(geminiUrl, geminiPayload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                timeout: 12000
+            });
+
+            if (geminiRes.data && geminiRes.data.candidates && geminiRes.data.candidates[0]?.content?.parts?.[0]?.text) {
+                aiReply = geminiRes.data.candidates[0].content.parts[0].text.trim();
+            }
+        } catch (apiErr) {
+            console.warn('Gemini API call notice:', apiErr.message);
+        }
+
+        // Graceful intelligent grounding fallback if API call returned empty or had network issues
+        if (!aiReply) {
+            const lower = userMsg.toLowerCase();
+            const matchedFaq = (knowledge.faqs || []).find(f => {
+                const qWords = f.question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+                return qWords.some(w => lower.includes(w));
+            });
+
+            if (matchedFaq) {
+                aiReply = matchedFaq.answer;
+            } else if (lower.includes('lipa') || lower.includes('malipo') || lower.includes('pesa') || lower.includes('bei')) {
+                aiReply = 'Malipo yote yanafanyika kwa njia salama ya simu (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, chagua "Kamilisha Malipo", weka namba yako ya simu na uthibitishe kwa PIN. Link ya kupakua itafunguka papo hapo.';
+            } else if (lower.includes('download') || lower.includes('pakua') || lower.includes('link')) {
+                aiReply = 'Baada ya kukamilisha malipo, link ya kupakua inafunguka moja kwa moja kwenye ukurasa wa mchezo. Kama unakumbana na changamoto yoyote, tafadhali wasiliana nasi kupitia WhatsApp: ' + supportPhone + '.';
+            } else if (lower.includes('wasiliana') || lower.includes('namba') || lower.includes('admin') || lower.includes('msaada') || lower.includes('contact')) {
+                aiReply = 'Unaweza kuwasiliana moja kwa moja na timu yetu ya usaidizi kupitia WhatsApp namba: ' + supportPhone + ' au bofya hapa: ' + whatsappLink;
+            } else {
+                aiReply = 'Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali wasiliana moja kwa moja na Huduma kwa Wateja kupitia WhatsApp kwa namba ' + supportPhone + ' (' + whatsappLink + ') kwa msaada wa haraka zaidi.';
+            }
+        }
+
+        // Log conversation
+        const logEntry = {
+            id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            sessionId: sessionId || ('guest_' + Date.now()),
+            userMessage: userMsg,
+            botResponse: aiReply,
+            timestamp: new Date().toISOString(),
+            ip: req.ip || req.headers['x-forwarded-for'] || 'local'
+        };
+        appendAIChatLog(logEntry);
+
+        // Also save to Firestore if available
+        if (fsdb) {
+            fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
+        }
+
+        res.json({
+            success: true,
+            reply: aiReply,
+            botName: knowledge.botName || 'rajabsynic ai agent'
+        });
+
+    } catch (err) {
+        console.error('Chat endpoint error:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Server error processing chat',
+            reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au wasiliana na huduma yetu kwa wateja kupitia WhatsApp.'
+        });
+    }
+});
+
+// Admin Endpoint: Get AI Knowledge
+app.get('/api/admin/ai-knowledge', requireAdmin, (req, res) => {
+    res.json(getAIKnowledge());
+});
+
+// Admin Endpoint: Update AI Knowledge
+app.post('/api/admin/ai-knowledge', requireAdmin, (req, res) => {
+    const updated = req.body;
+    if (!updated || typeof updated !== 'object') {
+        return res.status(400).json({ success: false, error: 'Invalid payload' });
+    }
+    updated.lastUpdated = new Date().toISOString();
+    const ok = saveAIKnowledge(updated);
+    if (fsdb) {
+        fsdb.collection('settings').doc('ai_support').set(updated).catch(() => {});
+    }
+    if (ok) {
+        res.json({ success: true, message: 'Maelekezo ya AI yamehifadhiwa kikamilifu!' });
+    } else {
+        res.status(500).json({ success: false, error: 'Failed to write knowledge file' });
+    }
+});
+
+// Admin Endpoint: Get AI Chat Logs
+app.get('/api/admin/ai-chat-logs', requireAdmin, async (req, res) => {
+    if (fsdb) {
+        try {
+            const snap = await fsdb.collection('ai_chat_logs').orderBy('timestamp', 'desc').limit(100).get();
+            const logs = [];
+            snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+            if (logs.length > 0) return res.json(logs);
+        } catch (_) {}
+    }
+    res.json(getAIChatLogs());
+});
+
+// Admin Endpoint: Clear AI Chat Logs
+app.delete('/api/admin/ai-chat-logs', requireAdmin, (req, res) => {
+    try {
+        fs.writeFileSync(AI_LOGS_FILE, JSON.stringify([], null, 2), 'utf8');
+        res.json({ success: true, message: 'Kumbukumbu za maongezi zimefutwa' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`\n🚀 Rajabsynic Server imeanza!`);

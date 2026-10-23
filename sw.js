@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v14';
+const CACHE_NAME = 'rajabsynic-v15-ai-chat';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const STATIC_ASSETS = [
   '/scripts/payment.js',
   '/scripts/firebase-config.js',
   '/scripts/api.js',
+  '/scripts/ai-chat.js',
   '/threads-icon.png',
   '/manifest.json'
 ];

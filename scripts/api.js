@@ -831,6 +831,83 @@ class ApiService {
         }
     }
 
+    // --- AI CUSTOMER SUPPORT ---
+    async sendSupportChat(message, history = [], sessionId = null) {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/support/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message, history, sessionId })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error in sendSupportChat:', err);
+            return {
+                success: false,
+                reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au wasiliana na huduma yetu kwa wateja kupitia WhatsApp: +255 614 094 367'
+            };
+        }
+    }
+
+    async getAIKnowledge() {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai-knowledge`, {
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error getting AI knowledge:', err);
+            return null;
+        }
+    }
+
+    async saveAIKnowledge(knowledge) {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai-knowledge`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                },
+                body: JSON.stringify(knowledge)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error saving AI knowledge:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    async getAIChatLogs() {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai-chat-logs`, {
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error getting AI chat logs:', err);
+            return [];
+        }
+    }
+
+    async clearAIChatLogs() {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai-chat-logs`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error clearing AI chat logs:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
     async getRecentNotifications(limitCount = 10) {
         try {
             const q = query(

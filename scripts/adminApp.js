@@ -186,7 +186,7 @@
                 // are managed only in Firebase). Order: Dashboard, Users, Games,
                 // LiveTV, Adult, Payments, Settings, Withdrawals.
                 const menuMap = {
-                    'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'msaada': 4
+'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'ai-support': 4, 'msaada': 5
                 };
 
                 const menuItems = document.querySelectorAll('.menu-item');
@@ -210,6 +210,7 @@
                 if (viewId === 'adult') this.loadContent('adult');
                 if (viewId === 'livetv') this.loadContent('live');
                 if (viewId === 'payments') this.loadPayments();
+if (viewId === 'ai-support') this.loadAISupport();
                 if (viewId === 'msaada') this.loadHelp();
 
                 if (viewId === 'withdrawals') {
@@ -2214,6 +2215,202 @@
                 document.getElementById('login-overlay').style.display = 'flex';
             }
         };
+
+        
+            // ─── AI CUSTOMER SUPPORT MANAGEMENT ───────────────────────────
+            _cachedAIKnowledge: null,
+            _cachedAIChatLogs: [],
+
+            switchAITab: function(tab) {
+                const kbBtn = document.getElementById('ai-tab-kb');
+                const logsBtn = document.getElementById('ai-tab-logs');
+                const kbPanel = document.getElementById('ai-panel-kb');
+                const logsPanel = document.getElementById('ai-panel-logs');
+
+                if (!kbBtn || !logsBtn || !kbPanel || !logsPanel) return;
+
+                if (tab === 'kb') {
+                    kbBtn.style.background = '#00ff80';
+                    kbBtn.style.color = '#000';
+                    kbBtn.style.border = 'none';
+                    logsBtn.style.background = 'transparent';
+                    logsBtn.style.color = '#9ca3af';
+                    logsBtn.style.border = '1px solid #374151';
+                    kbPanel.style.display = 'block';
+                    logsPanel.style.display = 'none';
+                } else {
+                    logsBtn.style.background = '#00ff80';
+                    logsBtn.style.color = '#000';
+                    logsBtn.style.border = 'none';
+                    kbBtn.style.background = 'transparent';
+                    kbBtn.style.color = '#9ca3af';
+                    kbBtn.style.border = '1px solid #374151';
+                    kbPanel.style.display = 'none';
+                    logsPanel.style.display = 'block';
+                    this.loadAIChatLogs();
+                }
+            },
+
+            loadAISupport: async function() {
+                try {
+                    const data = await api.getAIKnowledge();
+                    if (!data) return;
+                    this._cachedAIKnowledge = data;
+
+                    if (document.getElementById('ai-cfg-botname')) document.getElementById('ai-cfg-botname').value = data.botName || 'rajabsynic ai agent';
+                    if (document.getElementById('ai-cfg-phone')) document.getElementById('ai-cfg-phone').value = data.supportPhone || '+255614094367';
+                    if (document.getElementById('ai-cfg-walink')) document.getElementById('ai-cfg-walink').value = data.whatsappLink || 'https://wa.me/255614094367';
+                    if (document.getElementById('ai-cfg-instructions')) document.getElementById('ai-cfg-instructions').value = data.systemInstructions || '';
+                    
+                    if (document.getElementById('ai-cfg-pol-pay')) document.getElementById('ai-cfg-pol-pay').value = data.policies?.payment || '';
+                    if (document.getElementById('ai-cfg-pol-dl')) document.getElementById('ai-cfg-pol-dl').value = data.policies?.download || '';
+                    if (document.getElementById('ai-cfg-pol-supp')) document.getElementById('ai-cfg-pol-supp').value = data.policies?.support || '';
+
+                    this.renderFAQs(data.faqs || []);
+                } catch (e) {
+                    console.error('Error loading AI support data:', e);
+                }
+            },
+
+            renderFAQs: function(faqs) {
+                const container = document.getElementById('ai-faqs-container');
+                if (!container) return;
+                container.innerHTML = '';
+                faqs.forEach((item) => {
+                    this.addFAQItem(item.question, item.answer);
+                });
+            },
+
+            addFAQItem: function(question = '', answer = '') {
+                const container = document.getElementById('ai-faqs-container');
+                if (!container) return;
+                const id = 'faq_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'ai-faq-row';
+                itemDiv.id = id;
+                itemDiv.style.cssText = 'background:#0b0f19; border:1px solid #1f2937; border-radius:10px; padding:12px; position:relative;';
+                itemDiv.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="color:#00ff80; font-size:0.75rem; font-weight:700; text-transform:uppercase;">Swali & Jibu</span>
+                        <button type="button" onclick="document.getElementById('${id}').remove()" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer;">✕</button>
+                    </div>
+                    <input type="text" class="ai-faq-q" placeholder="Andika Swali (mfano: Jinsi ya kupakua mchezo?)" value="${(question || '').replace(/"/g, '&quot;')}"
+                        style="width:100%; background:#111827; border:1px solid #374151; border-radius:6px; padding:8px 10px; color:#fff; font-size:0.85rem; margin-bottom:8px; box-sizing:border-box;">
+                    <textarea class="ai-faq-a" rows="3" placeholder="Andika Jibu sahihi hapa..."
+                        style="width:100%; background:#111827; border:1px solid #374151; border-radius:6px; padding:8px 10px; color:#fff; font-size:0.85rem; line-height:1.4; resize:vertical; box-sizing:border-box;">${(answer || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                `;
+                container.appendChild(itemDiv);
+            },
+
+            saveAIKnowledge: async function() {
+                const faqs = [];
+                document.querySelectorAll('.ai-faq-row').forEach(row => {
+                    const q = row.querySelector('.ai-faq-q')?.value.trim();
+                    const a = row.querySelector('.ai-faq-a')?.value.trim();
+                    if (q && a) {
+                        faqs.push({ question: q, answer: a });
+                    }
+                });
+
+                const payload = {
+                    botName: document.getElementById('ai-cfg-botname').value.trim() || 'rajabsynic ai agent',
+                    supportPhone: document.getElementById('ai-cfg-phone').value.trim() || '+255614094367',
+                    whatsappLink: document.getElementById('ai-cfg-walink').value.trim() || 'https://wa.me/255614094367',
+                    systemInstructions: document.getElementById('ai-cfg-instructions').value.trim(),
+                    policies: {
+                        payment: document.getElementById('ai-cfg-pol-pay').value.trim(),
+                        download: document.getElementById('ai-cfg-pol-dl').value.trim(),
+                        support: document.getElementById('ai-cfg-pol-supp').value.trim()
+                    },
+                    faqs: faqs
+                };
+
+                const res = await api.saveAIKnowledge(payload);
+                if (res && res.success) {
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Imefanikiwa!',
+                            text: 'Maelekezo na Knowledge Base ya AI vimehifadhiwa kikamilifu.',
+                            background: '#111827',
+                            color: '#fff',
+                            confirmButtonColor: '#00ff80'
+                        });
+                    } else {
+                        alert('Maelekezo ya AI yamehifadhiwa kikamilifu!');
+                    }
+                } else {
+                    alert('Hitilafu: Imeshindikana kuhifadhi maelekezo ya AI.');
+                }
+            },
+
+            loadAIChatLogs: async function() {
+                const tbody = document.getElementById('ai-logs-tbody');
+                const countBadge = document.getElementById('ai-logs-count');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#9ca3af;">Inapakia kumbukumbu...</td></tr>';
+
+                const logs = await api.getAIChatLogs();
+                this._cachedAIChatLogs = logs || [];
+
+                if (countBadge) countBadge.textContent = `${this._cachedAIChatLogs.length} mazungumzo`;
+                this.renderAIChatLogs(this._cachedAIChatLogs);
+            },
+
+            renderAIChatLogs: function(logs) {
+                const tbody = document.getElementById('ai-logs-tbody');
+                if (!tbody) return;
+
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#6b7280; padding:20px;">Hakuna kumbukumbu za chati zilizopatikana.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => {
+                    const dateStr = l.timestamp ? new Date(l.timestamp).toLocaleString('sw-TZ', { dateStyle:'short', timeStyle:'short' }) : 'Hivi Karibuni';
+                    return `
+                        <tr>
+                            <td style="color:#9ca3af; font-size:0.8rem; white-space:nowrap;">${dateStr}</td>
+                            <td style="font-family:monospace; font-size:0.75rem; color:#6b7280;">${(l.sessionId || 'guest').slice(0, 14)}...</td>
+                            <td style="color:#fff; font-size:0.85rem; font-weight:600;">
+                                <div style="background:rgba(255,255,255,0.05); padding:6px 10px; border-radius:6px; border-left:2px solid #3b82f6;">
+                                    ${(l.userMessage || '').replace(/</g, '&lt;')}
+                                </div>
+                            </td>
+                            <td style="color:#d1fae5; font-size:0.85rem;">
+                                <div style="background:rgba(0,255,128,0.05); padding:6px 10px; border-radius:6px; border-left:2px solid #00ff80;">
+                                    ${(l.botResponse || '').replace(/</g, '&lt;')}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            filterAIChatLogs: function(query) {
+                if (!query || !query.trim()) {
+                    this.renderAIChatLogs(this._cachedAIChatLogs);
+                    return;
+                }
+                const q = query.toLowerCase().trim();
+                const filtered = (this._cachedAIChatLogs || []).filter(l => 
+                    (l.userMessage && l.userMessage.toLowerCase().includes(q)) ||
+                    (l.botResponse && l.botResponse.toLowerCase().includes(q)) ||
+                    (l.sessionId && l.sessionId.toLowerCase().includes(q))
+                );
+                this.renderAIChatLogs(filtered);
+            },
+
+            clearAIChatLogs: async function() {
+                if (!confirm('Una uhakika unataka kufuta kumbukumbu zote za chati za wateja?')) return;
+                const res = await api.clearAIChatLogs();
+                if (res && res.success) {
+                    this._cachedAIChatLogs = [];
+                    this.renderAIChatLogs([]);
+                    const countBadge = document.getElementById('ai-logs-count');
+                    if (countBadge) countBadge.textContent = '0 mazungumzo';
+                    alert('Kumbukumbu zote za chati zimefutwa.');
+                }
+            },
 
         window.adminApp = adminApp;
         window.editContent = (id, type) => adminApp.openContentModal(type || 'games', id);
