@@ -1509,7 +1509,7 @@ ${catalogSummary}
 
         // Attempt Gemini API call
         try {
-            const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+            const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + apiKey;
             const geminiPayload = {
                 contents: formattedHistory,
                 systemInstruction: {
