@@ -591,6 +591,7 @@ class AIChatWidget {
                     <div class="ai-chip" data-q="Ni michezo gani inayovuma na bei zake?">🎮 Michezo & Bei</div>
                     <div class="ai-chip" data-q="Nieleze kuhusu Maleo Bus Mods na Skins">🚌 Maleo Bus Mods</div>
                     <div class="ai-chip" data-q="Jinsi ya kufanya malipo kwa simu (M-Pesa/Tigo Pesa)?">💳 Jinsi ya Kulipia</div>
+                    <div class="ai-chip" data-q="Nimelipa lakini sijapata access ya mchezo">⚡ Sijapata Access</div>
                     <div class="ai-chip" data-q="Nimefanya malipo, ninawezaje kupakua (Download)?">📥 Msaada wa Kupakua</div>
                     <div class="ai-chip" data-q="Ninawezaje kupata msaada zaidi?">🆘 Msaada wa Tovuti</div>
                 </div>
@@ -865,7 +866,17 @@ class AIChatWidget {
 
         try {
             // Call API backend proxy
-            const res = await api.sendSupportChat(text, this.history, this.sessionId);
+            let userId = '';
+            let userPhone = '';
+            try {
+                const uStr = localStorage.getItem('rajabsynic_user') || sessionStorage.getItem('rajabsynic_user');
+                if (uStr) {
+                    const u = JSON.parse(uStr);
+                    userId = u.id || u.uid || '';
+                    userPhone = u.phone || '';
+                }
+            } catch (_) {}
+            const res = await api.sendSupportChat(text, this.history, this.sessionId, userId, userPhone);
             this.hideTypingIndicator();
             this.isTyping = false;
 

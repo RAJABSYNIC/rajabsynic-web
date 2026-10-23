@@ -1,0 +1,67 @@
+[
+  {
+    "id": "maleo_sim_mod",
+    "title": "Maleo simulator mod",
+    "category": "tanzania-games",
+    "price": 6000,
+    "isFree": false,
+    "description": "Mod maarufu ya basi ya Maleo Simulator Tanzania yenye ramani na mabasi ya Kitanzania."
+  },
+  {
+    "id": "world_bus_mod_tz",
+    "title": "World bus mod tz",
+    "category": "tanzania-games",
+    "price": 9000,
+    "isFree": false,
+    "description": "World Bus Driving Simulator yenye mabasi na ruti za Tanzania."
+  },
+  {
+    "id": "maleo_ets_mod_map",
+    "title": "Maleo ets mod map",
+    "category": "tanzania-games",
+    "price": 10000,
+    "isFree": false,
+    "description": "Maleo ETS 2 Map Mod ya Tanzania yenye barabara za mikoani, milima na miji."
+  },
+  {
+    "id": "njombe_exp_skin",
+    "title": "Njombe express maleo skin",
+    "category": "maleo-bus-skin",
+    "price": 3000,
+    "isFree": false,
+    "description": "Skin rasmi ya basi la Njombe Express kwa ajili ya Maleo Bus Simulator."
+  },
+  {
+    "id": "new_ratco_skin",
+    "title": "NEW RATCO MALEO SKIN",
+    "category": "maleo-bus-skin",
+    "price": 3000,
+    "isFree": false,
+    "description": "Skin ya kisasa ya Ratco Express kwa Maleo Bus Simulator."
+  },
+  {
+    "id": "japanese_skin",
+    "title": "Japanese Maleo Skin",
+    "category": "maleo-bus-skin",
+    "price": 3000,
+    "isFree": false,
+    "description": "Skin ya kipekee ya mtindo wa Japanese kwa ajili ya Maleo."
+  },
+  {
+    "id": "katarama_skin",
+    "title": "KATARAMA MALEO SKIN",
+    "category": "maleo-bus-skin",
+    "price": 3000,
+    "isFree": false,
+    "description": "Skin ya basi la Katarama kwa Maleo Simulator."
+  },
+  {
+    "id": "geita_exp_skin",
+    "title": "Geita express maleo skin",
+    "category": "maleo-bus-skin",
+    "price": 3000,
+    "isFree": false,
+    "description": "Skin ya Geita Express yenye muonekano halisi wa mabasi ya kanda ya ziwa."
+  }
+]
+

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v16-fix-admin';
+const CACHE_NAME = 'rajabsynic-v17-ai-autoaccess';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

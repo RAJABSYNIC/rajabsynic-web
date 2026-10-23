@@ -1213,13 +1213,20 @@ function appendAIChatLog(logEntry) {
     }
 }
 
-// Helper: Build Catalog Summary for AI
-async function getCatalogSummary() {
+// Helper: Get all catalog items known to AI
+const CATALOG_CACHE_FILE = path.join(__dirname, 'data', 'catalog-cache.json');
+
+async function getCatalogItems() {
     let items = [];
     if (fsdb) {
         try {
-            const snap = await fsdb.collection('content').limit(150).get();
+            const snap = await fsdb.collection('content').limit(200).get();
             snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+        } catch (_) {}
+    }
+    if (items.length === 0 && fs.existsSync(CATALOG_CACHE_FILE)) {
+        try {
+            items = JSON.parse(fs.readFileSync(CATALOG_CACHE_FILE, 'utf8'));
         } catch (_) {}
     }
     if (items.length === 0) {
@@ -1228,61 +1235,256 @@ async function getCatalogSummary() {
             items = dbData.content || [];
         } catch (_) {}
     }
+    return items;
+}
 
-    if (items.length === 0) {
+// Helper: Build Catalog Summary for AI System Prompt
+async function getCatalogSummary() {
+    const items = await getCatalogItems();
+    if (!items || items.length === 0) {
         return 'Maudhui makuu: Maleo Bus Mods, Maleo Bus Skins, Maleo Map Mods, ETS 2 Mods, Tanzania Games, Free Games, na Program/Apps.';
     }
 
-    return items.slice(0, 100).map(i => {
-        const price = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + i.price);
+    return items.slice(0, 150).map(i => {
+        const price = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
         const cat = i.category || i.contentType || 'mchezo';
-        return '- Jina: "' + i.title + '" | Aina: ' + cat + ' | Bei: ' + price;
+        return '- Jina: "' + i.title + '" | Kundi: ' + cat + ' | Bei: ' + price;
     }).join('\n');
+}
+
+// Helper: Verify Payment and Grant Access Automatically
+async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = '' }) {
+    if (!userMsg) return null;
+    const msg = userMsg.trim();
+    const lower = msg.toLowerCase();
+
+    // 1. Check for payment intent keywords
+    const paymentKeywords = [
+        'lipa', 'lipia', 'nalipia', 'nimelipa', 'nmelipa', 'pesa', 'mpesa', 'm-pesa',
+        'tigo', 'airtel', 'halo', 'halopesa', 'tigopesa', 'order', 'cpm', 'ord-', 'pay-',
+        'sijapata', 'sijaona', 'bado', 'access', 'download', 'link', 'kufunguka', 'haifunguki',
+        'hakiki', 'thibitisha', 'namba yangu', 'namba niliyolipia'
+    ];
+    const hasPaymentIntent = paymentKeywords.some(kw => lower.includes(kw));
+
+    // 2. Extract phone numbers (Tanzania mobile: 06..., 07..., 2556..., 2557...)
+    const phoneRegex = /(?:(?:\+?255)|0)([67]\d{8})/;
+    const phoneMatch = msg.replace(/[\s\-]/g, '').match(phoneRegex);
+    let extractedPhone = '';
+    let phoneVariations = [];
+    if (phoneMatch) {
+        const digits = phoneMatch[1]; // 8 digits after 0 or 255
+        extractedPhone = '0' + digits;
+        phoneVariations = [
+            '0' + digits,
+            '255' + digits,
+            '+255' + digits,
+            digits
+        ];
+    } else if (userPhone) {
+        const upClean = userPhone.replace(/[^0-9]/g, '');
+        if (upClean.length >= 9) {
+            extractedPhone = upClean.startsWith('0') ? upClean : ('0' + upClean.slice(-9));
+            phoneVariations = [extractedPhone, '255' + extractedPhone.slice(1), '+' + '255' + extractedPhone.slice(1)];
+        }
+    }
+
+    // 3. Extract Order IDs / Transaction IDs
+    const orderRegex = /\b(ORD-[A-Za-z0-9_\-]+|CPM[A-Za-z0-9_\-]+|PAY-[A-Za-z0-9_\-]+)\b/i;
+    const orderMatch = msg.match(orderRegex);
+    const extractedOrderId = orderMatch ? orderMatch[1].trim() : '';
+
+    // If no payment intent and no payment identifiers, this is not an access request
+    if (!hasPaymentIntent && !extractedPhone && !extractedOrderId) {
+        return null;
+    }
+
+    // If user says they paid/didn't get access but gave NO phone and NO Order ID, prompt them
+    if (!extractedPhone && !extractedOrderId) {
+        return {
+            handled: true,
+            reply: 'Habari! Kama umekamilisha malipo na bado hujaona kitufe cha kupakua (Download), tafadhali niandikie hapa **Namba ya Simu** uliyofanyia malipo (mfano: 07XXXXXXXX au 06XXXXXXXX) au **Order ID** yako, nami nitakagua mfumo mara moja na kukupa access papo hapo!'
+        };
+    }
+
+    // Search payments in Firestore / local DB
+    let payments = [];
+    if (fsdb) {
+        try {
+            if (extractedOrderId) {
+                const snap1 = await fsdb.collection('payments').where('id', '==', extractedOrderId).limit(5).get();
+                snap1.forEach(d => payments.push({ id: d.id, ...d.data() }));
+                if (payments.length === 0) {
+                    const snap2 = await fsdb.collection('payments').where('merchantReference', '==', extractedOrderId).limit(5).get();
+                    snap2.forEach(d => payments.push({ id: d.id, ...d.data() }));
+                }
+            }
+            if (payments.length === 0 && phoneVariations.length > 0) {
+                for (const pv of phoneVariations) {
+                    const snap3 = await fsdb.collection('payments').where('phone', '==', pv).limit(5).get();
+                    snap3.forEach(d => payments.push({ id: d.id, ...d.data() }));
+                    if (payments.length > 0) break;
+                }
+            }
+        } catch (dbErr) {
+            console.warn('Payment search notice:', dbErr.message);
+        }
+    }
+
+    // Fallback search in local db.json
+    if (payments.length === 0) {
+        try {
+            const dbData = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'db.json'), 'utf8'));
+            const localList = dbData.payments || [];
+            payments = localList.filter(p => {
+                if (extractedOrderId && (p.id === extractedOrderId || p.order_id === extractedOrderId || p.merchantReference === extractedOrderId)) return true;
+                if (phoneVariations.length > 0 && phoneVariations.includes(p.phone)) return true;
+                return false;
+            });
+        } catch (_) {}
+    }
+
+    // Sort by createdAt descending
+    payments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    if (payments.length > 0) {
+        const p = payments[0];
+        const status = String(p.status || '').toLowerCase();
+        const contentName = p.contentTitle || 'mchezo wako';
+        const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+
+        if (status === 'completed' || status === 'success' || status === 'complete') {
+            // GRANT ACCESS INSTANTLY!
+            try {
+                if (userId && !p.userId) p.userId = userId;
+                await grantAccessForPayment(p);
+
+                // If a logged-in userId exists and is different, ensure they also get an active subscription
+                if (userId && fsdb) {
+                    const now = new Date();
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + 30);
+                    const subId = 'SUB-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+                    await fsdb.collection('subscriptions').doc(subId).set({
+                        id: subId,
+                        userId,
+                        contentId: p.contentId || '',
+                        orderId: p.order_id || p.id || '',
+                        contentTitle: contentName,
+                        durationDays: 30,
+                        createdAt: now.toISOString(),
+                        expiresAt: expiresAt.toISOString(),
+                        grantedByAI: true
+                    }).catch(() => {});
+                }
+
+                // Log this automated grant event
+                const grantRecord = {
+                    id: 'grant_' + Date.now(),
+                    phone: p.phone || extractedPhone,
+                    orderId: p.order_id || p.id || '',
+                    contentTitle: contentName,
+                    amount: p.amount || 0,
+                    userId: userId || p.userId || '',
+                    timestamp: new Date().toISOString()
+                };
+                if (fsdb) {
+                    fsdb.collection('ai_access_grants').add(grantRecord).catch(() => {});
+                }
+            } catch (grantErr) {
+                console.error('Error granting access by AI:', grantErr.message);
+            }
+
+            return {
+                handled: true,
+                reply: `✅ UHAKIKI UMEKAMILIKA!\n\nMalipo yako ya Tsh ${amountStr} kwa ajili ya "${contentName}" yamehakikiwa kikamilifu kwenye mfumo wetu.\n\n🔓 NIMEKUPA ACCESS (RUHUSA) PAPO HAPO!\n\nTafadhali fungua upya (Refresh) ukurasa wa "${contentName}" au nenda kwenye ukurasa wa Akaunti/Downloads. Kitufe cha kupakua (Download) sasa kipo wazi na tayari kutumika. Furahia mchezo wako!`
+            };
+        } else if (status === 'pending') {
+            return {
+                handled: true,
+                reply: `⏳ Muamala wako wa Tsh ${amountStr} kwa ajili ya "${contentName}" bado unaonekana unachakatwa (Status: Pending / Inasubiri PIN).\n\nTafadhali hakikisha umeweka PIN kwenye simu yako ili kukamilisha malipo. Mara baada ya sekunde chache ukiweka PIN, fanya refresh kwenye ukurasa au uniandikie tena namba yako hapa nami nitakupa access mara moja!`
+            };
+        } else if (status === 'failed' || status === 'cancelled') {
+            return {
+                handled: true,
+                reply: `⚠️ Uhakiki wa malipo ya namba ${p.phone || extractedPhone}: Mfumo unaonyesha kuwa muamala huu haukukamilika (Status: Failed / Cancelled).\n\nKama fedha zimekatwa kwenye simu yako kimakosa, tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu ili Admin aweze kukuhakikia mara moja.`
+            };
+        }
+    }
+
+    // Payment not found
+    const identifier = extractedPhone || extractedOrderId;
+    return {
+        handled: true,
+        reply: `🔍 Samahani, sijafanikiwa kuona kumbukumbu ya malipo yaliyokamilika kwa namba au Order ID hiyo (${identifier}).\n\nTafadhali hakikisha umeandika namba sahihi uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) au tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu ili Admin aweze kukusaidia moja kwa moja.`
+    };
 }
 
 // Public Endpoint: AI Support Chat
 app.post('/api/support/chat', async (req, res) => {
     try {
-        const { message, history = [], sessionId } = req.body;
+        const { message, history = [], sessionId, userId, userPhone } = req.body;
         if (!message || typeof message !== 'string' || !message.trim()) {
             return res.status(400).json({ success: false, error: 'Message is required' });
         }
 
         const userMsg = message.trim();
         const knowledge = getAIKnowledge();
+
+        // 1. Check if this is a payment verification & access grant request
+        const paymentCheck = await checkPaymentAndGrantAccess({ userMsg, userId, userPhone });
+        if (paymentCheck && paymentCheck.handled) {
+            // Log conversation
+            const logEntry = {
+                id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                sessionId: sessionId || ('guest_' + Date.now()),
+                userMessage: userMsg,
+                botResponse: paymentCheck.reply,
+                timestamp: new Date().toISOString(),
+                isPaymentAction: true,
+                ip: req.ip || req.headers['x-forwarded-for'] || 'local'
+            };
+            appendAIChatLog(logEntry);
+            if (fsdb) fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
+
+            return res.json({
+                success: true,
+                reply: paymentCheck.reply,
+                botName: knowledge.botName || 'rajabsynic ai agent'
+            });
+        }
+
+        // 2. Prepare Knowledge & System Prompt
         const catalogSummary = await getCatalogSummary();
-
-        const supportPhone = knowledge.supportPhone || '+255614094367';
-        const whatsappLink = knowledge.whatsappLink || 'https://wa.me/255614094367';
-
-        // Format FAQs for strict grounding
         const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
 
         const systemPrompt = `
-Wewe ni "${knowledge.botName || 'rajabsynic ai agent'}", msaidizi rasmi wa huduma kwa wateja katika tovuti ya RAJABSYNIC (Movies & Games).
+Wewe ni "${knowledge.botName || 'rajabsynic ai agent'}", msaidizi rasmi na mtaalamu wa huduma kwa wateja katika tovuti ya RAJABSYNIC (Movies & Games).
 Lugha yako kuu ya mawasiliano ni Kiswahili fasaha, chenye staha, heshima, na ukarimu (unaweza pia kujibu kwa Kiingereza kama mteja ameuliza kwa Kiingereza).
 
-MAELEKEZO MUHIMU NA KANUNI ZA KUZINGATIA (STRICT GROUNDING RULES):
-1. UJUZI WAKO UNA UKOMO WA DATA HIZI PEKEE:
-   - Unaruhusiwa kujibu maswali kwa kutumia taarifa zilizopo kwenye orodha ya bidhaa, sera za tovuti, na Maswali na Majibu (FAQs) hapa chini PEKEE.
-2. KATAZO KALI LA KUJIONGEZA (STRICT NO-HALLUCINATION POLICY):
-   - Usibuni taarifa yoyote, bei ya kufikirika, au majibu ya jumla yasiyohusiana na RAJABSYNIC (k.m. usijibu maswali ya siasa, sayansi ya nje, hesabu, au mambo ya jumla).
-3. JINSI YA KUJIBU KAMA TAARIFA HAIPO:
-   - Kama mteja atauliza swali lolote ambalo halimo kwenye orodha ya bidhaa zetu au kwenye maelekezo haya, JIBU KWA ADABU KABISA:
-     "Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali wasiliana moja kwa moja na Huduma yetu kwa Wateja kupitia WhatsApp kwa namba ${supportPhone} (${whatsappLink}) kwa usaidizi wa haraka."
-4. KUTOA BEI NA TAARIFA ZA MICHEZO:
-   - Tumia orodha iliyoambatanishwa ya michezo (Maleo Bus Mods, Skins, Maps, ETS 2, na Games). Bei zipo katika Shilingi ya Tanzania (Tsh).
-5. MSAADA WA MALIPO:
-   - Elekeza kuwa malipo yote yanafanyika kwa simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Mteja anachagua mchezo, anabonyeza lipa, anaweka namba ya simu, na anathibitisha kwa kuweka PIN. Baada ya hapo link ya kudownload inafunguka mara moja.
+KANUNI KUU ZA KUZINGATIA (STRICT GROUNDING RULES):
+1. UJUZI WAKO UNA UKOMO WA DATA ZILIZOPO KWENYE TOVUTI PEKEE:
+   - Unaruhusiwa kujibu maswali kwa kutumia taarifa zilizopo kwenye orodha ya bidhaa (Catalog), sera za tovuti, na Maswali na Majibu (FAQs) hapa chini PEKEE.
+2. KATAZO KALI LA KUTOA NAMBA YA SIMU AU WHATSAPP:
+   - CHINI YA HALI YOYOTE ILE, USITOE WALA KUTAJA NAMBA YA SIMU AU LINK YA WHATSAPP KWA MTEJA.
+   - Kama mteja anauliza mawasiliano au anahitaji msaada ambao haupo kwenye data zetu, jibu hivi kwa adabu:
+     "Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali tembelea sehemu ya 'Msaada' (Help) iliyopo kwenye menyu ya chini ya tovuti yetu kwa usaidizi zaidi kutoka kwa Admin."
+3. KATAZO LA KUJIONGEZA (STRICT NO-HALLUCINATION POLICY):
+   - Usibuni mchezo wowote ambao haupo kwenye orodha, wala usitaje bei ya kubahatisha. Bei zote zipo katika Shilingi ya Tanzania (Tsh).
+4. MSAADA WA MALIPO NA KUPAKUA:
+   - Malipo yanafanyika kupitia mitandao ya simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa).
+   - Mteja akilalamika amelipa lakini hajapata link, mwambie akupe namba yake ya simu au Order ID ili umkague na kumpa access papo hapo.
 
---- KNOWLEDGE BASE & FAQS ---
+--- MAELEKEZO YA ZIADA YA BIASHARA (CUSTOM KNOWLEDGE) ---
+${knowledge.customKnowledge || ''}
+
+--- KNOWLEDGE BASE & SYSTEM INSTRUCTIONS ---
 ${knowledge.systemInstructions || ''}
 
-Sera za Malipo na Kupakua:
+Sera za Tovuti:
 - Malipo: ${knowledge.policies?.payment || 'Malipo kupitia mitandao ya simu Tanzania.'}
 - Kupakua: ${knowledge.policies?.download || 'Link inafunguka papo hapo baada ya malipo.'}
-- Usaidizi: ${knowledge.policies?.support || 'Msaada wa WhatsApp unapatikana saa 24.'}
-- Msaada: Sehemu ya 'Msaada' kwenye menyu ya chini ya tovuti.
+- Msaada: ${knowledge.policies?.support || 'Msaada unapatikana kupitia sehemu ya Msaada kwenye menyu ya chini ya tovuti.'}
 
 FAQs:
 ${faqText}
@@ -1334,6 +1536,13 @@ ${catalogSummary}
             console.warn('Gemini API call notice:', apiErr.message);
         }
 
+        // Scrub any phone numbers or WhatsApp links that might have leaked from LLM
+        if (aiReply) {
+            aiReply = aiReply
+                .replace(/(?:\+?255|0)[67]\d{8}/g, '[sehemu ya Msaada]')
+                .replace(/https?:\/\/wa\.me\S*/gi, '[Msaada]');
+        }
+
         // Graceful intelligent grounding fallback if API call returned empty or had network issues
         if (!aiReply) {
             const lower = userMsg.toLowerCase();
@@ -1345,13 +1554,13 @@ ${catalogSummary}
             if (matchedFaq) {
                 aiReply = matchedFaq.answer;
             } else if (lower.includes('lipa') || lower.includes('malipo') || lower.includes('pesa') || lower.includes('bei')) {
-                aiReply = 'Malipo yote yanafanyika kwa njia salama ya simu (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, chagua "Kamilisha Malipo", weka namba yako ya simu na uthibitishe kwa PIN. Link ya kupakua itafunguka papo hapo.';
+                aiReply = 'Malipo yote yanafanyika kwa njia salama ya simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, chagua "Kamilisha Malipo", weka namba yako ya simu na uthibitishe kwa PIN. Link ya kupakua itafunguka papo hapo.';
             } else if (lower.includes('download') || lower.includes('pakua') || lower.includes('link')) {
                 aiReply = 'Baada ya kukamilisha malipo, link ya kupakua inafunguka moja kwa moja kwenye ukurasa wa mchezo. Kama unakumbana na changamoto yoyote, tafadhali angalia sehemu ya "Msaada" kwenye menyu ya chini ya tovuti yetu au wasiliana na Admin.';
             } else if (lower.includes('wasiliana') || lower.includes('namba') || lower.includes('admin') || lower.includes('msaada') || lower.includes('contact')) {
                 aiReply = 'Unaweza kupata msaada moja kwa moja kupitia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au kupitia ukurasa wako wa Akaunti.';
             } else {
-                aiReply = 'Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu kwa usaidizi zaidi.';
+                aiReply = 'Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu kwa usaidizi zaidi kutoka kwa Admin.';
             }
         }
 
@@ -1384,6 +1593,65 @@ ${catalogSummary}
             error: 'Server error processing chat',
             reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au tembelea sehemu ya "Msaada" kwenye menyu ya tovuti yetu.'
         });
+    }
+});
+
+// Admin Endpoint: Get AI Catalog items
+app.get('/api/admin/ai/catalog', requireAdmin, async (req, res) => {
+    try {
+        const items = await getCatalogItems();
+        res.json({ success: true, count: items.length, items });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Sync AI Catalog from frontend Firebase
+app.post('/api/admin/ai/sync-catalog', requireAdmin, (req, res) => {
+    try {
+        const { items } = req.body;
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ success: false, error: 'Items array is required' });
+        }
+        fs.writeFileSync(CATALOG_CACHE_FILE, JSON.stringify(items, null, 2), 'utf8');
+        res.json({ success: true, count: items.length, message: 'Katalogi ya AI imesasishwa kikamilifu!' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Train single Q&A correction
+app.post('/api/admin/ai/train-correction', requireAdmin, (req, res) => {
+    try {
+        const { question, answer } = req.body;
+        if (!question || !answer) {
+            return res.status(400).json({ success: false, error: 'Question and answer are required' });
+        }
+        const knowledge = getAIKnowledge();
+        knowledge.faqs = knowledge.faqs || [];
+        knowledge.faqs.unshift({ question: question.trim(), answer: answer.trim() });
+        knowledge.lastUpdated = new Date().toISOString();
+        saveAIKnowledge(knowledge);
+        if (fsdb) {
+            fsdb.collection('settings').doc('ai_support').set(knowledge).catch(() => {});
+        }
+        res.json({ success: true, message: 'Funzo jipya limehifadhiwa kwenye akili ya AI!' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Get AI Access Grants
+app.get('/api/admin/ai/access-grants', requireAdmin, async (req, res) => {
+    try {
+        const grants = [];
+        if (fsdb) {
+            const snap = await fsdb.collection('ai_access_grants').orderBy('timestamp', 'desc').limit(50).get();
+            snap.forEach(d => grants.push({ id: d.id, ...d.data() }));
+        }
+        res.json(grants);
+    } catch (e) {
+        res.json([]);
     }
 });
 

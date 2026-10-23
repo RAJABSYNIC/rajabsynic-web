@@ -832,12 +832,12 @@ class ApiService {
     }
 
     // --- AI CUSTOMER SUPPORT ---
-    async sendSupportChat(message, history = [], sessionId = null) {
+    async sendSupportChat(message, history = [], sessionId = null, userId = null, userPhone = null) {
         try {
             const res = await fetch(`${this.baseUrl}/api/support/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, history, sessionId })
+                body: JSON.stringify({ message, history, sessionId, userId, userPhone })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
@@ -845,7 +845,7 @@ class ApiService {
             console.error('Error in sendSupportChat:', err);
             return {
                 success: false,
-                reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au wasiliana na huduma yetu kwa wateja kupitia WhatsApp: +255 614 094 367'
+                reply: 'Samahani, kumetokea hitilafu ya mtandao. Tafadhali jaribu tena au tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu.'
             };
         }
     }
@@ -894,7 +894,7 @@ class ApiService {
         }
     }
 
-    async clearAIChatLogs() {
+        async clearAIChatLogs() {
         try {
             const res = await fetch(`${this.baseUrl}/api/admin/ai-chat-logs`, {
                 method: 'DELETE',
@@ -905,6 +905,68 @@ class ApiService {
         } catch (err) {
             console.error('Error clearing AI chat logs:', err);
             return { success: false, error: err.message };
+        }
+    }
+
+    async getAICatalog() {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/catalog`, {
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error getting AI catalog:', err);
+            return { success: false, count: 0, items: [] };
+        }
+    }
+
+    async syncAICatalog(items) {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/sync-catalog`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                },
+                body: JSON.stringify({ items })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error syncing AI catalog:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    async trainAICorrection(question, answer) {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/train-correction`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                },
+                body: JSON.stringify({ question, answer })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error training AI correction:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    async getAIAccessGrants() {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/access-grants`, {
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error getting AI access grants:', err);
+            return [];
         }
     }
 
