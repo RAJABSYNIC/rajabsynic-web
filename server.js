@@ -1392,14 +1392,16 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     const msg = userMsg.trim();
     const lower = msg.toLowerCase();
 
-    // 1. Check for payment intent keywords
-    const paymentKeywords = [
-        'lipa', 'lipia', 'nalipia', 'nimelipa', 'nmelipa', 'pesa', 'mpesa', 'm-pesa',
-        'tigo', 'airtel', 'halo', 'halopesa', 'tigopesa', 'order', 'cpm', 'ord-', 'pay-',
-        'sijapata', 'sijaona', 'bado', 'access', 'download', 'link', 'kufunguka', 'haifunguki',
-        'hakiki', 'thibitisha', 'namba yangu', 'namba niliyolipia'
+    // 1. Only trigger automatic payment verification intercept if:
+    // - User provided an explicit Order ID (ORD-..., CPM..., PAY-...) OR a phone number
+    // - OR user explicitly claimed they paid / had payment verification issues
+    const paymentClaimKeywords = [
+        'nimelipa', 'nmelipa', 'nimeshalipa', 'tayari nimelipa', 'nmelipia', 'nimelipia',
+        'namba niliyolipia', 'sijapata link', 'sijaona link', 'sijapata access', 'bado imefungwa',
+        'haifunguki baada ya kulipa', 'hakiki malipo', 'thibitisha malipo', 'kagua malipo',
+        'nimeshakatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela', 'nimeshatuma pesa'
     ];
-    const hasPaymentIntent = paymentKeywords.some(kw => lower.includes(kw));
+    const hasClaimedPaid = paymentClaimKeywords.some(kw => lower.includes(kw));
 
     // 2. Extract phone numbers (Tanzania mobile: 06..., 07..., 2556..., 2557...)
     const phoneRegex = /(?:(?:\+?255)|0)([67]\d{8})/;
@@ -1428,12 +1430,12 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     const orderMatch = msg.match(orderRegex);
     const extractedOrderId = orderMatch ? orderMatch[1].trim() : '';
 
-    // If no payment intent and no payment identifiers, this is not an access request
-    if (!hasPaymentIntent && !extractedPhone && !extractedOrderId) {
+    // If no payment claim and no payment identifiers, let Gemini handle the conversation normally!
+    if (!hasClaimedPaid && !extractedPhone && !extractedOrderId) {
         return null;
     }
 
-    // If user says they paid/didn't get access but gave NO phone and NO Order ID, prompt them
+    // If user specifically claimed they paid but provided NO phone and NO Order ID, prompt them for it
     if (!extractedPhone && !extractedOrderId) {
         return {
             handled: true,
