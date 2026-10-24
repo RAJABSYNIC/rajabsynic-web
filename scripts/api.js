@@ -167,55 +167,92 @@ class ApiService {
         }
     }
 
-    async grantUserAccess(userId, itemId = 'adult-section-access') {
+    async grantUserAccess(userId, itemId = 'movies-package-ngorongoro', durationDays = null) {
         try {
+            let days = durationDays;
+            if (!days || isNaN(days) || Number(days) <= 0) {
+                if (itemId === 'movies-package-mikumi') days = 1;
+                else if (itemId === 'movies-package-ngorongoro') days = 7;
+                else if (itemId === 'movies-package-serengeti') days = 30;
+                else if (itemId === 'movies-access') days = 365;
+                else if (itemId === 'adult-section-access') days = 3650;
+                else if (itemId === 'live-tv-access' || itemId === 'livetv-all') days = 30;
+                else days = 3650;
+            } else {
+                days = parseInt(days, 10);
+            }
+
             const paymentData = {
                 userId: userId,
                 uid: userId,
                 itemId: itemId,
+                contentId: itemId,
                 amount: 0,
                 status: 'COMPLETED',
                 method: 'manual_admin_grant',
-                description: 'Admin Granted Access',
+                description: 'Admin Granted Access: ' + itemId,
                 timestamp: new Date().toISOString()
             };
             const docRef = await addDoc(collection(db, "payments"), paymentData);
             
-            // Actually create the subscription so the user gets access (grant for 10 years / lifetime)
-            await this.createSubscription(userId, itemId, docRef.id, 3650);
+            // Create the subscription record so user gets access immediately
+            await this.createSubscription(userId, itemId, docRef.id, days);
             
-            return { success: true, id: docRef.id };
+            // If any movie package was granted, also grant 'movies-access' so all movie pages allow viewing/download
+            if (itemId.startsWith('movies-package-') || itemId === 'movies-access') {
+                if (itemId !== 'movies-access') {
+                    await this.createSubscription(userId, 'movies-access', docRef.id, days);
+                }
+            }
+
+            return { success: true, id: docRef.id, days };
         } catch (err) {
             console.error("Error granting access:", err);
             return { success: false, message: err.message };
         }
     }
 
-    async revokeUserAccess(userId, itemId = 'adult-section-access') {
+    async revokeUserAccess(userId, itemId = null) {
         try {
-            // Find payments where userId matches and itemId matches
+            // Find payments where userId matches
             const payments = await this.getAllPayments();
             const toDeletePayments = payments.filter(p => 
                 (p.userId === userId || p.uid === userId) && 
-                p.itemId === itemId && 
-                p.status === 'COMPLETED'
+                (!itemId || p.itemId === itemId || p.contentId === itemId) && 
+                (p.status === 'COMPLETED' || p.method === 'manual_admin_grant')
             );
             
             const deletePromises = toDeletePayments.map(p => deleteDoc(doc(db, "payments", p.id)));
             
-            // Also delete from subscriptions collection
-            const q = query(
+            // Delete from subscriptions collection
+            let q = query(
                 collection(db, "subscriptions"),
-                where("userId", "==", userId),
-                where("contentId", "==", itemId)
+                where("userId", "==", userId)
             );
-            const subSnapshot = await getDocs(q);
-            subSnapshot.forEach(docSnap => {
-                deletePromises.push(deleteDoc(doc(db, "subscriptions", docSnap.id)));
-            });
+            if (itemId) {
+                q = query(
+                    collection(db, "subscriptions"),
+                    where("userId", "==", userId),
+                    where("contentId", "==", itemId)
+                );
+            }
+            const subDocs = await getDocs(q);
+            const subDeletePromises = subDocs.docs.map(d => deleteDoc(doc(db, "subscriptions", d.id)));
+            
+            // If revoking movie package or general revoke, also remove all movie packages from subscriptions
+            let movieDeletePromises = [];
+            if (!itemId || itemId.startsWith('movies-package-') || itemId === 'movies-access') {
+                const movieKeys = ['movies-access', 'movies-package-mikumi', 'movies-package-ngorongoro', 'movies-package-serengeti'];
+                const mq = query(
+                    collection(db, "subscriptions"),
+                    where("userId", "==", userId),
+                    where("contentId", "in", movieKeys)
+                );
+                const mSnap = await getDocs(mq);
+                movieDeletePromises = mSnap.docs.map(d => deleteDoc(doc(db, "subscriptions", d.id)));
+            }
 
-            await Promise.all(deletePromises);
-
+            await Promise.all([...deletePromises, ...subDeletePromises, ...movieDeletePromises]);
             return { success: true };
         } catch (err) {
             console.error("Error revoking access:", err);

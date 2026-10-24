@@ -958,7 +958,7 @@
 
     <!-- Grant Access Modal -->
     <div id="grant-access-modal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 520px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #374151; padding-bottom:15px;">
                 <h2 style="margin:0; font-size:1.25rem; font-weight:700;">Grant Premium Access</h2>
                 <ion-icon name="close" style="font-size:1.5rem; cursor:pointer; color:#9ca3af;" onclick="document.getElementById('grant-access-modal').classList.remove('show')"></ion-icon>
@@ -967,15 +967,37 @@
             <input type="hidden" id="grant-user-id">
             
             <div class="input-group">
-                <label>Access Type</label>
+                <label>Access Type / Chagua Kifurushi au Maudhui</label>
                 <select id="grant-type" onchange="window.adminApp.onGrantTypeChange()" style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px;">
-                    <option value="livetv-all">All Live TV Channels</option>
-                    <option value="livetv">Specific Live TV Channel</option>
-                    <option value="games">Games</option>
+                    <optgroup label="🎬 Vifurushi vya Movies (Movie Passes)">
+                        <option value="movies-package-mikumi">Kifurushi cha Mikumi — Siku 1 (Masaa 24)</option>
+                        <option value="movies-package-ngorongoro" selected>Kifurushi cha Ngorongoro — Siku 7 (Wiki 1)</option>
+                        <option value="movies-package-serengeti">Kifurushi cha Serengeti — Siku 30 (Mwezi 1)</option>
+                        <option value="movies-access">VIP Movies Pass — Zote Bila Kikomo (Muda Mrefu)</option>
+                        <option value="movies-single">Filamu Moja Maalum (Specific Movie)</option>
+                    </optgroup>
+                    <optgroup label="📺 Live TV">
+                        <option value="livetv-all">All Live TV Channels</option>
+                        <option value="livetv">Specific Live TV Channel</option>
+                    </optgroup>
+                    <optgroup label="🎮 Michezo na Mods (Games)">
+                        <option value="games">Specific Game / Mod</option>
+                    </optgroup>
+                    <optgroup label="🔞 18+ Adult Section">
+                        <option value="adult-section-access">18+ Full Section Access</option>
+                        <option value="adult">Specific 18+ Content</option>
+                    </optgroup>
                 </select>
             </div>
 
-            <div id="grant-item-selection" style="display:none;">
+            <!-- Duration (Days) -->
+            <div class="input-group" id="grant-duration-group" style="margin-top:14px;">
+                <label>Muda wa Access (Siku / Days)</label>
+                <input type="number" id="grant-duration-days" min="1" max="3650" value="7" style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px;">
+                <small style="color:#9ca3af; font-size:0.75rem; display:block; margin-top:4px;">Mfumo utahesabu siku kuanzia leo. Unaweza kubadilisha idadi ya siku unayotaka.</small>
+            </div>
+
+            <div id="grant-item-selection" style="display:none; margin-top:14px;">
                 <div class="input-group">
                     <label id="grant-item-label">Select Item</label>
                     <input type="text" id="grant-item-search" placeholder="Search..." oninput="window.adminApp.filterGrantItems()" style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px; margin-bottom:10px;">
@@ -1030,7 +1052,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=13"></script>
+<script type="module" src="/scripts/adminApp.js?v=14"></script>
 </body>
 
 </html>

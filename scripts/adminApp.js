@@ -909,8 +909,12 @@ if (viewId === 'ai-support') this.loadAISupport();
                         if (p.status !== 'manual') {
                             spentMap[uid] = (spentMap[uid] || 0) + (parseFloat(p.amount) || 0);
                         }
-                        if (p.itemId === 'adult-section-access' && p.status === 'COMPLETED') {
-                            accessMap[uid] = true;
+                        const st = (p.status || '').toLowerCase();
+                        if (st === 'completed' || st === 'success') {
+                            const cId = p.itemId || p.contentId || '';
+                            if (cId === 'adult-section-access' || cId.startsWith('movies-package-') || cId === 'movies-access' || cId === 'livetv-all') {
+                                accessMap[uid] = true;
+                            }
                         }
                     });
                     this._userSpentMap = spentMap;
@@ -966,7 +970,9 @@ if (viewId === 'ai-support') this.loadAISupport();
 
             openGrantAccessModal: async function (userId) {
                 document.getElementById('grant-user-id').value = userId;
-                document.getElementById('grant-type').value = 'adult-section-access';
+                document.getElementById('grant-type').value = 'movies-package-ngorongoro';
+                const daysInput = document.getElementById('grant-duration-days');
+                if (daysInput) daysInput.value = '7';
                 document.getElementById('grant-item-selection').style.display = 'none';
                 document.getElementById('grant-access-modal').classList.add('show');
                 
@@ -980,9 +986,37 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const type = document.getElementById('grant-type').value;
                 const selectionDiv = document.getElementById('grant-item-selection');
                 const labelEl = document.getElementById('grant-item-label');
+                const daysInput = document.getElementById('grant-duration-days');
                 document.getElementById('grant-item-search').value = '';
                 
-                if (type === 'adult-section-access' || type === 'livetv-all') {
+                // Auto-set duration based on selected package
+                if (type === 'movies-package-mikumi') {
+                    if (daysInput) daysInput.value = '1';
+                    selectionDiv.style.display = 'none';
+                    return;
+                }
+                if (type === 'movies-package-ngorongoro') {
+                    if (daysInput) daysInput.value = '7';
+                    selectionDiv.style.display = 'none';
+                    return;
+                }
+                if (type === 'movies-package-serengeti') {
+                    if (daysInput) daysInput.value = '30';
+                    selectionDiv.style.display = 'none';
+                    return;
+                }
+                if (type === 'movies-access') {
+                    if (daysInput) daysInput.value = '365';
+                    selectionDiv.style.display = 'none';
+                    return;
+                }
+                if (type === 'adult-section-access') {
+                    if (daysInput) daysInput.value = '3650';
+                    selectionDiv.style.display = 'none';
+                    return;
+                }
+                if (type === 'livetv-all') {
+                    if (daysInput) daysInput.value = '30';
                     selectionDiv.style.display = 'none';
                     return;
                 }
@@ -991,15 +1025,25 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const data = window.allContent || [];
                 let items = [];
                 
-                if (type === 'livetv') {
+                if (type === 'movies-single') {
+                    labelEl.innerText = "Chagua Filamu Maalum (Select Movie)";
+                    if (daysInput) daysInput.value = '30';
+                    const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
+                    const isLive = (i) => i.contentType === 'live';
+                    const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
+                    items = data.filter(i => i.contentType === 'movies' || (!isGame(i) && !isAdult(i) && !isLive(i)));
+                } else if (type === 'livetv') {
                     labelEl.innerText = "Select Live TV Channel";
+                    if (daysInput) daysInput.value = '30';
                     items = data.filter(i => i.contentType === 'live');
                 } else if (type === 'games') {
-                    labelEl.innerText = "Select Game";
+                    labelEl.innerText = "Select Game / Mod";
+                    if (daysInput) daysInput.value = '3650';
                     const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
                     items = data.filter(i => isGame(i) && i.contentType !== 'live');
                 } else if (type === 'adult') {
                     labelEl.innerText = "Select Adult Content";
+                    if (daysInput) daysInput.value = '3650';
                     const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
                     items = data.filter(i => isAdult(i) && i.contentType !== 'live');
                 }
@@ -1028,11 +1072,28 @@ if (viewId === 'ai-support') this.loadAISupport();
             confirmGrantAccess: async function () {
                 const userId = document.getElementById('grant-user-id').value;
                 const type = document.getElementById('grant-type').value;
-                let itemId = 'adult-section-access';
-                let itemTitle = '18+ Premium Access';
+                const daysInput = document.getElementById('grant-duration-days');
+                const customDays = daysInput ? parseInt(daysInput.value, 10) : null;
+                
+                let itemId = type;
+                let itemTitle = '';
+                
+                const packageLabels = {
+                    'movies-package-mikumi': 'Kifurushi cha Movies — Mikumi (Siku 1 / Saa 24)',
+                    'movies-package-ngorongoro': 'Kifurushi cha Movies — Ngorongoro (Siku 7 / Wiki 1)',
+                    'movies-package-serengeti': 'Kifurushi cha Movies — Serengeti (Siku 30 / Mwezi 1)',
+                    'movies-access': 'VIP Movies Pass (Filamu Zote — Mwaka 1)',
+                    'adult-section-access': '18+ Full Section Access',
+                    'livetv-all': 'All Live TV Channels'
+                };
+                
+                if (packageLabels[type]) {
+                    itemTitle = packageLabels[type];
+                }
                 
                 if (type === 'livetv-all') {
-                    if (confirm(`Una uhakika unataka kumpatia huyu mtumiaji access ya ALL Live TV Channels?`)) {
+                    const daysStr = (customDays && customDays > 0) ? ` kwa siku ${customDays}` : '';
+                    if (confirm(`Una uhakika unataka kumpatia huyu mtumiaji access ya ALL Live TV Channels${daysStr}?`)) {
                         const liveItems = (window.allContent || []).filter(i => i.contentType === 'live');
                         if (liveItems.length === 0) {
                             alert('No Live TV channels found.');
@@ -1044,7 +1105,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                         
                         let successCount = 0;
                         await Promise.all(liveItems.map(async (item) => {
-                            const res = await api.grantUserAccess(userId, item.id);
+                            const res = await api.grantUserAccess(userId, item.id, customDays || 30);
                             if (res.success) successCount++;
                         }));
                         
@@ -1054,7 +1115,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                     return;
                 }
                 
-                if (type !== 'adult-section-access') {
+                if (['movies-single', 'livetv', 'games', 'adult'].includes(type)) {
                     const selectEl = document.getElementById('grant-item-select');
                     if (!selectEl.value || selectEl.value === 'Loading...' || selectEl.value === 'No items found') {
                         alert('Tafadhali chagua item kwanza.');
@@ -1064,23 +1125,24 @@ if (viewId === 'ai-support') this.loadAISupport();
                     itemTitle = selectEl.options[selectEl.selectedIndex].text;
                 }
                 
-                if (confirm(`Una uhakika unataka kumpatia huyu mtumiaji access ya: ${itemTitle}?`)) {
-                    const res = await api.grantUserAccess(userId, itemId);
+                const daysStr = (customDays && customDays > 0) ? ` kwa siku ${customDays}` : '';
+                if (confirm(`Una uhakika unataka kumpatia huyu mtumiaji access ya:\n"${itemTitle}"${daysStr}?`)) {
+                    const res = await api.grantUserAccess(userId, itemId, customDays);
                     if (res.success) {
-                        alert('Mtumiaji amepewa access kikamilifu!');
+                        alert(`Mtumiaji amepewa access kikamilifu ya "${itemTitle}"${daysStr}!`);
                         document.getElementById('grant-access-modal').classList.remove('show');
                         this.loadUsers();
                     } else {
-                        alert('Imeshindwa kumpatia access: ' + res.message);
+                        alert('Imeshindwa kumpatia access: ' + (res.message || 'Error'));
                     }
                 }
             },
 
             revokeAccess: async function (userId) {
-                if (confirm('Una uhakika unataka kumuondolea huyu mtumiaji access ya 18+ Premium?')) {
+                if (confirm('Una uhakika unataka kumuondolea huyu mtumiaji access yote ya Premium (Vifurushi vya Movies, Adult, n.k.)?')) {
                     const res = await api.revokeUserAccess(userId);
                     if (res.success) {
-                        alert('Access imeondolewa!');
+                        alert('Access imeondolewa kikamilifu!');
                         this.loadUsers();
                     } else {
                         alert('Imeshindwa kumuondolea access: ' + res.message);
