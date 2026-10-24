@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v33-movies-packages';
+const CACHE_NAME = 'rajabsynic-v34-minimal-packages';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

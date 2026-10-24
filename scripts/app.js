@@ -527,6 +527,7 @@ class Router {
 
         // Pay-to-Access gate: any item not marked isFree AND has a price requires payment
         const isPaid = (item.isFree !== true && item.price > 0);
+        let hasAccess = !isPaid; // Free items always have access
 
         // Movie Package Gate: Movies use packages (Mikumi, Ngorongoro, Serengeti) instead of individual payments
         if (this.isMovieItem(item)) {
@@ -536,11 +537,8 @@ class Router {
                 this.showMoviePackagesModal(item);
                 return;
             }
-        }
-
-        // Check subscription status - CHECK LOCAL FIRST for instant access!
-        let hasAccess = !isPaid; // Free items always have access
-        if (isPaid) {
+            hasAccess = true;
+        } else if (isPaid) {
             // STEP 1: Check localStorage first (instant)
             const paidItems = JSON.parse(localStorage.getItem('paid_items') || '[]');
             const subscriptions = JSON.parse(localStorage.getItem('subscriptions') || '{}');
@@ -1474,30 +1472,17 @@ class Router {
     showMoviePackagesModal(targetItem = null) {
         this.selectedMoviePackage = 'movies-package-ngorongoro';
 
-        const previewHTML = targetItem ? `
-            <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:10px 14px; margin-bottom:18px;">
-                <img src="${targetItem.image || targetItem.poster || '/assets/hero-avengers.jpg'}" style="width:48px; height:64px; border-radius:8px; object-fit:cover; flex-shrink:0;" onerror="this.src='/assets/hero-avengers.jpg';">
-                <div style="flex:1; min-width:0;">
-                    <span style="font-size:0.7rem; color:#00ff80; font-weight:700; text-transform:uppercase;">Filamu Uliyochagua</span>
-                    <div style="font-weight:700; font-size:0.95rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${targetItem.title}</div>
-                    <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Chagua kifurushi kupata ufikiaji wa filamu hii na nyingine zote:</div>
-                </div>
-            </div>
-        ` : '';
-
         const packagesHTML = this.moviePackages.map(pkg => `
             <div class="movie-pkg-card ${pkg.id === this.selectedMoviePackage ? 'selected' : ''}" id="pkg-card-${pkg.id}" onclick="window.app.router.selectMoviePackage('${pkg.id}')">
-                <div class="movie-pkg-radio-circle"></div>
-                <div style="flex:1; margin-right:10px;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-weight:800; font-size:1.05rem; color:#fff;">${pkg.name}</span>
-                        ${pkg.tag ? `<span style="font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:6px; background:${pkg.popular ? 'rgba(0,255,128,0.2)' : (pkg.bestValue ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)')}; color:${pkg.tagColor};">${pkg.tag}</span>` : ''}
+                <div style="display:flex; align-items:center;">
+                    <div class="movie-pkg-radio-circle"></div>
+                    <div>
+                        <div style="font-weight:800; font-size:1.15rem; color:#fff;">${pkg.name}</div>
+                        <div style="font-size:0.85rem; color:#94a3b8; margin-top:2px; font-weight:600;">${pkg.durationText}</div>
                     </div>
-                    <div style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">${pkg.desc}</div>
                 </div>
-                <div style="text-align:right; flex-shrink:0;">
-                    <div style="font-weight:900; font-size:1.15rem; color:#00ff80;">Tsh ${pkg.price.toLocaleString()}</div>
-                    <div style="font-size:0.75rem; color:#cbd5e1; font-weight:500;">/ ${pkg.durationText}</div>
+                <div style="font-weight:900; font-size:1.25rem; color:#00ff80;">
+                    Tsh ${pkg.price.toLocaleString()}
                 </div>
             </div>
         `).join('');
@@ -1505,21 +1490,13 @@ class Router {
         const selected = this.moviePackages.find(p => p.id === this.selectedMoviePackage) || this.moviePackages[1];
 
         const modalHTML = `
-            <div id="movie-pkg-overlay" class="movie-pkg-overlay">
-                <div class="movie-pkg-modal">
-                    <button class="movie-pkg-close-btn" onclick="window.app.router.closeMoviePackagesModal()">
+            <div id="movie-pkg-overlay" class="movie-pkg-overlay" onclick="if(event.target===this) window.app.router.closeMoviePackagesModal()">
+                <div class="movie-pkg-modal" style="max-width:390px; padding:22px;">
+                    <button class="movie-pkg-close-btn" onclick="window.app.router.closeMoviePackagesModal()" title="Funga">
                         <ion-icon name="close"></ion-icon>
                     </button>
                     
-                    <div style="text-align:center; margin-bottom:18px;">
-                        <div style="display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:50%; background:rgba(0,255,128,0.12); border:1px solid #00ff80; margin-bottom:10px; color:#00ff80; font-size:1.7rem;">
-                            <ion-icon name="film-outline"></ion-icon>
-                        </div>
-                        <h2 style="margin:0 0 4px; font-size:1.35rem; font-weight:800; color:#fff;">Vifurushi vya Movies</h2>
-                        <p style="margin:0; font-size:0.85rem; color:#94a3b8;">Chagua kifurushi uweze kutazama na kupakua movies zote:</p>
-                    </div>
-
-                    ${previewHTML}
+                    <h2 style="margin:0 0 16px; font-size:1.2rem; font-weight:800; color:#fff; text-align:center;">Vifurushi vya Movies</h2>
 
                     <div id="movie-packages-container">
                         ${packagesHTML}
@@ -1527,12 +1504,8 @@ class Router {
 
                     <button id="movie-pkg-submit-btn" class="movie-pkg-submit-btn" onclick="window.app.router.submitMoviePackagePayment()">
                         <ion-icon name="card-outline" style="font-size:1.3rem;"></ion-icon>
-                        <span>LIPA SASA TSH ${selected.price.toLocaleString()} — ANZA KUTAZAMA</span>
+                        <span>LIPA SASA — TSH ${selected.price.toLocaleString()}</span>
                     </button>
-
-                    <div style="text-align:center; margin-top:14px; font-size:0.75rem; color:#64748b;">
-                        🔒 Malipo salama kwa M-Pesa, Tigo Pesa, Airtel Money & Halopesa
-                    </div>
                 </div>
             </div>
         `;
@@ -1560,7 +1533,7 @@ class Router {
         const selected = this.moviePackages.find(p => p.id === pkgId);
         const btn = document.getElementById('movie-pkg-submit-btn');
         if (btn && selected) {
-            btn.innerHTML = `<ion-icon name="card-outline" style="font-size:1.3rem;"></ion-icon> <span>LIPA SASA TSH ${selected.price.toLocaleString()} — ANZA KUTAZAMA</span>`;
+            btn.innerHTML = `<ion-icon name="card-outline" style="font-size:1.3rem;"></ion-icon> <span>LIPA SASA — TSH ${selected.price.toLocaleString()}</span>`;
         }
     }
 
@@ -1622,49 +1595,6 @@ class Router {
         this.activeMovieCategory = 'all';
         this.movieSearchQuery = '';
 
-        const movieAccess = await this.hasMoviesAccess();
-        let movieSubBannerHTML = '';
-        if (movieAccess.hasAccess) {
-            let pkgName = 'Movies VIP Pass';
-            if (movieAccess.package === 'movies-package-mikumi') pkgName = 'Kifurushi cha Mikumi';
-            if (movieAccess.package === 'movies-package-ngorongoro') pkgName = 'Kifurushi cha Ngorongoro';
-            if (movieAccess.package === 'movies-package-serengeti') pkgName = 'Kifurushi cha Serengeti';
-
-            let daysRemainingText = '';
-            if (movieAccess.expiresAt) {
-                const diffDays = Math.ceil((new Date(movieAccess.expiresAt) - new Date()) / (1000 * 60 * 60 * 24));
-                daysRemainingText = diffDays > 0 ? ` (Bado siku ${diffDays})` : '';
-            }
-
-            movieSubBannerHTML = `
-                <div class="movies-sub-active-badge">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <ion-icon name="shield-checkmark" style="font-size:1.4rem; color:#00ff80; flex-shrink:0;"></ion-icon>
-                        <div>
-                            <span style="font-size:0.7rem; text-transform:uppercase; color:#00ff80; font-weight:800; letter-spacing:0.5px;">VIP PASS HAI</span>
-                            <div style="font-size:0.88rem; color:#fff; font-weight:700;">${pkgName}${daysRemainingText}</div>
-                        </div>
-                    </div>
-                    <button onclick="window.app.router.showMoviePackagesModal()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#fff; padding:6px 14px; border-radius:10px; font-size:0.75rem; cursor:pointer; font-weight:600; transition:all 0.15s;">
-                        Ongeza Muda
-                    </button>
-                </div>
-            `;
-        } else {
-            movieSubBannerHTML = `
-                <div class="movies-sub-banner" onclick="window.app.router.showMoviePackagesModal()">
-                    <div>
-                        <span class="movies-sub-tag">VIP MOVIES PASS</span>
-                        <h4 style="margin:2px 0 3px; font-size:0.98rem; font-weight:800; color:#fff;">Fungua Movies Zote Bila Kikomo</h4>
-                        <p style="margin:0; font-size:0.78rem; color:#cbd5e1;">Mikumi (Tsh 1,000) • Ngorongoro (Tsh 3,000) • Serengeti (Tsh 5,000)</p>
-                    </div>
-                    <button class="movies-sub-btn">
-                        <ion-icon name="sparkles"></ion-icon> Chagua Kifurushi
-                    </button>
-                </div>
-            `;
-        }
-
         const hero = this.movieFeaturedSlides[0];
 
         const modal = `
@@ -1706,9 +1636,6 @@ class Router {
                             <span class="movies-hero-dot ${idx === 0 ? 'active' : ''}" onclick="window.app.router.setMovieHeroSlide(${idx})"></span>
                         `).join('')}
                     </div>
-
-                    <!-- Movies Subscription Package Banner / Status -->
-                    ${movieSubBannerHTML}
 
                     <!-- Horizontal Category Filter Pills (System Neon Green active pill) -->
                     <div class="movies-pills-row" id="movies-pills-row">
@@ -1889,8 +1816,8 @@ class Router {
         const badgeHTML = isFree
             ? `<div class="card-free-badge" style="background:#00ff80; color:#000; font-weight:700;">FREE</div>`
             : (isSubscribed
-                ? `<div class="card-price-badge" style="background:rgba(0,255,128,0.2); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="checkmark-circle"></ion-icon> VIP PASS</div>`
-                : `<div class="card-price-badge" style="background:rgba(0,0,0,0.85); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="lock-closed"></ion-icon> KIFURUSHI</div>`);
+                ? `<div class="card-price-badge" style="background:rgba(0,255,128,0.2); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="checkmark-circle"></ion-icon></div>`
+                : `<div class="card-price-badge" style="background:rgba(0,0,0,0.8); border:1px solid rgba(0,255,128,0.4); color:#00ff80;"><ion-icon name="lock-closed"></ion-icon></div>`);
 
         const posterImg = item.image || item.poster || '/assets/hero-avengers.jpg';
         const displayCat = (item.category || 'Movie').replace(/-/g, ' ');

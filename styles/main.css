@@ -1028,7 +1028,8 @@ a {
     position: relative;
     display: flex;
     align-items: center;
-    padding: 16px;
+    justify-content: space-between;
+    padding: 16px 18px;
     border-radius: 16px;
     background: #171b26;
     border: 2px solid rgba(255, 255, 255, 0.08);

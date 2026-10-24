@@ -1,2 +1,18 @@
-[]
-
+[
+  {
+    "id": "log_1792800599577_orabe",
+    "sessionId": "guest_1792800599577",
+    "userMessage": "Habari",
+    "botResponse": "Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi. Je, nikusaidie nini leo? (Unaweza kuniuliza kuhusu mchezo au mod yoyote unayoitafuta kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ramani za ETS2, bei zake, au jinsi ya kulipa kwa kitufe cha 'Lipa Sasa' na kupakua).",
+    "timestamp": "2026-10-24T00:09:59.577Z",
+    "ip": "::ffff:127.0.0.1"
+  },
+  {
+    "id": "log_1792800557035_0qmz9",
+    "sessionId": "guest_1792800557035",
+    "userMessage": "mod ya abood ipo",
+    "botResponse": "Hujambo! Ndio, **zipo mods na skins za mabasi ya Abood** kwenye mfumo wa RAJABSYNIC! \n\nHapa kuna orodha ya zilizopo na bei zake:\n\n1. **Abood d14 mod for maleo** — Tsh 5,000\n2. **Abood yutong mod for maleo** — Tsh 5,000\n3. **Abood d14 for maleo by musa** — Tsh 5,000\n4. **Abood maleo skin** — Tsh 1,000\n\nPia kuna chaneli ya **ABOOD TV PLUS** ambayo inapatikana **BURE (Free)**.\n\n### Jinsi ya Kuipata:\n1. Fungua mod au skin ya Abood unayotaka hapa kwenye tovuti.\n2. Bonyeza kitufe cha **\"Lipa Sasa\"**.\n3. Chagua mtandao wako wa simu (M-Pesa, Tigo Pesa, Airtel Money, au Halopesa) na uweke namba yako ya simu.\n4. Weka PIN yako kwenye ujumbe wa USSD utakaotokea kwenye simu yako kuthibitisha malipo.\n5. Mara baada ya malipo kukamilika, kufuli litaondoka papo hapo na kitufe cha **\"Pakua\" (Download)** kitafunguka kiotomatiki ili upakue faili lako moja kwa moja.\n\nJe, ungependa nikuelekeze zaidi kuhusu mod ipi kati ya hizo?",
+    "timestamp": "2026-10-24T00:09:17.035Z",
+    "ip": "::ffff:127.0.0.1"
+  }
+]
