@@ -1809,12 +1809,32 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
 // Public Endpoint: AI Support Chat
 app.post('/api/support/chat', async (req, res) => {
     try {
-        const { message, history = [], sessionId, userId, userPhone } = req.body;
-        if (!message || typeof message !== 'string' || !message.trim()) {
-            return res.status(400).json({ success: false, error: 'Message is required' });
+        const { message, history = [], sessionId, userId, userPhone, image } = req.body;
+        const userMsg = (message && typeof message === 'string') ? message.trim() : '';
+        if (!userMsg && !image) {
+            return res.status(400).json({ success: false, error: 'Message or image is required' });
         }
 
-        const userMsg = message.trim();
+        // Parse inline image for Gemini multimodal understanding
+        let inlineImagePart = null;
+        if (image && typeof image === 'string') {
+            const match = image.match(/^data:(image\/[a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
+            if (match) {
+                inlineImagePart = {
+                    inlineData: {
+                        mimeType: match[1],
+                        data: match[2]
+                    }
+                };
+            } else if (image.length > 50) {
+                inlineImagePart = {
+                    inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: image.replace(/^data:.*?;base64,/, '')
+                    }
+                };
+            }
+        }
         const knowledge = await getAIKnowledgeAsync();
 
         // 1. Check if this is a payment verification & access grant request
