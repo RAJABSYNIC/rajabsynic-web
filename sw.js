@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v37-clean-flow';
+const CACHE_NAME = 'rajabsynic-v38-widescreen-banner';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

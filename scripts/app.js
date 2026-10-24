@@ -1632,9 +1632,7 @@ class Router {
                     <div id="movies-hero-banner" class="movies-hero-banner" onclick="window.app.router.onMovieHeroClick()">
                         <img id="movies-hero-img" src="${hero.image}" class="movies-hero-bg" alt="${hero.title}">
                         <div class="movies-hero-overlay">
-                            <div id="movies-hero-tags" class="movies-hero-tags">
-                                ${(hero.tags || []).map(t => `<span class="movies-hero-tag">${t}</span>`).join('')}
-                            </div>
+                            <div id="movies-hero-tags" class="movies-hero-tags" style="display:none;"></div>
                             <h1 id="movies-hero-title" class="movies-hero-title">${hero.title}</h1>
                             <div id="movies-hero-meta" class="movies-hero-meta">
                                 <span id="movies-hero-year">${hero.year}</span>
@@ -1708,7 +1706,7 @@ class Router {
             }, 120);
         }
         if (tagsEl) {
-            tagsEl.innerHTML = (slide.tags || []).map(t => `<span class="movies-hero-tag">${t}</span>`).join('');
+            tagsEl.innerHTML = '';
         }
         if (titleEl) titleEl.textContent = slide.title;
         if (yearEl) yearEl.textContent = slide.year;

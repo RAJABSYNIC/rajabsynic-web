@@ -731,9 +731,9 @@ a {
 .movies-hero-banner {
     position: relative;
     width: 100%;
-    aspect-ratio: 16 / 9;
-    min-height: 185px;
-    max-height: 380px;
+    aspect-ratio: 2.35 / 1;
+    min-height: 130px;
+    max-height: 420px;
     border-radius: 18px;
     overflow: hidden;
     background: #161922;
@@ -769,10 +769,7 @@ a {
 }
 
 .movies-hero-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 8px;
+    display: none !important;
 }
 
 .movies-hero-tag {
@@ -789,7 +786,7 @@ a {
 }
 
 .movies-hero-title {
-    font-size: 1.55rem;
+    font-size: 1.3rem;
     font-weight: 800;
     color: #ffffff;
     line-height: 1.2;
