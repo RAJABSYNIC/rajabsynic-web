@@ -1815,38 +1815,33 @@ app.post('/api/support/chat', async (req, res) => {
 
         // 2. Prepare Knowledge, Fuzzy Catalog Match & System Prompt
         const allCatalogItems = await getCatalogItems();
-        const relevantMatches = findMatchingCatalogItems(userMsg, allCatalogItems, 20);
+        const relevantMatches = findMatchingCatalogItems(userMsg, allCatalogItems, 15);
 
         let relevantCatalogSection = '';
         if (relevantMatches.length > 0) {
             relevantCatalogSection = `
-═══ MATOKEO YA MOJA KWA MOJA YA BIDHAA ZILIZOPO KWENYE MFUMO (RELEVANT CATALOG MATCHES) ═══
-Haya hapa ni matokeo halisi yaliyopatikana moja kwa moja kwenye mfumo wa RAJABSYNIC yanayoendana na swali au mchezo/mod aliyouliza mteja:
+═══ BIDHAA ZILIZOPO KWENYE MFUMO ZINAZOENDANA NA SWALI (RELEVANT MATCHES) ═══
+Hapa chini ni bidhaa halisi zilizopo kwenye tovuti ya RAJABSYNIC zinazoendana na kile alichouliza mteja:
 ${relevantMatches.map(i => {
     const p = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
     return `- Jina: "${i.title}" | Kundi: ${i.category || i.contentType || 'mchezo'} | Bei: ${p}`;
 }).join('\n')}
 
-KANUNI KUU ZA MAJIBU KWA BIDHAA HIZI:
-1. Bidhaa zilizoorodheshwa hapo juu ZIPO KWENYE MFUMO WA RAJABSYNIC KIKAMILIFU!
-2. Kama mteja ameuliza kama mchezo/mod hiyo ipo (mfano: Abood, Shabiby, Maleo mod, n.k.), MJIBU KWA UWAZI NA FURAHA KWAMBA "NDIO, IPO / ZIPO!"
-3. Mtajie majina na bei zake halisi kwa Shilingi ya Kitanzania (Tsh) kama zilivyoandikwa hapo juu.
-4. Mwelekeze mteja kwamba anaweza kuipata moja kwa moja kwenye tovuti kwa kufungua mchezo huo na kubonyeza kitufe cha "Lipa Sasa" (USISEME "Lipia", sema "Lipa Sasa").
-5. KAMWE USISEME BIDHAA HII HAIPO WAKATI INAONEKANA KWENYE ORODHA HII YA MATOKEO!
+Kama mteja anatafuta mchezo au mod kati ya hizi, mjibu kwa uhakika kwamba ipo, mtajie jina na bei yake kwa Shilingi (Tsh), na umwelekeze kuipata kwa kubonyeza kitufe cha "Lipa Sasa" kwenye ukurasa wa mchezo husika.
 `.trim();
         } else {
             relevantCatalogSection = `
-═══ MAAGIZO YA MAZUNGUMZO (GREETING & PROACTIVE ASSISTANCE) ═══
-Mteja hajauliza jina maalum la mchezo au mod (mfano: amesalimia tu kama "Habari", "Mambo", "Hello", au ameuliza swali la jumla).
-Mkaribishe kwa ukarimu na uchangamfu mkubwa kwa Kiswahili fasaha, jitambulishe kama "rajabsynic ai agent", na umuulize moja kwa moja:
-"Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi. Je, nikusaidie nini leo? (Unaweza kuniuliza kuhusu mchezo au mod yoyote unayoitafuta kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ramani za ETS2, bei zake, au jinsi ya kulipa kwa kitufe cha 'Lipa Sasa' na kupakua)."
+═══ MUONGOZO WA MAZUNGUMZO (CONVERSATION INTELLIGENCE) ═══
+- Chambua na uelewe kwa kina swali au hoja aliyoleta mteja kabla ya kujibu.
+- Jibu moja kwa moja kile mteja alichouliza bila kugeuza mada au kutoa majibu ya kukariri.
+- Kama mteja amesalimia tu (mfano "mambo", "habari"), mkaribishe kwa adabu na umuulize anachohitaji. Lakini kama ameuliza swali mahususi (la kiufundi, kuhusu simu, kuhusu huduma, filamu au michezo), JIBU MOJA KWA MOJA swali lake kwa ufasaha na hoja thabiti!
 `.trim();
         }
 
         const catalogSummary = await getCatalogSummary();
         const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
 
-        // Extract and format all Admin Trainings cleanly (Highest Priority)
+        // Extract and format all Admin Trainings cleanly (Supreme Highest Priority)
         let customInstructionsFormatted = '';
         if (knowledge.trainings && Array.isArray(knowledge.trainings) && knowledge.trainings.length > 0) {
             customInstructionsFormatted = knowledge.trainings
@@ -1857,79 +1852,72 @@ Mkaribishe kwa ukarimu na uchangamfu mkubwa kwa Kiswahili fasaha, jitambulishe k
         }
 
         const systemPrompt = `
-WEWE NI: "rajabsynic ai agent" — Msaidizi Rasmi na Mtaalamu Mkuu wa Huduma kwa Wateja wa tovuti ya RAJABSYNIC (https://www.rajabsynic.com). Lugha yako kuu ni Kiswahili fasaha, chenye heshima, staha na ukarimu. (Unaweza pia kujibu kwa Kiingereza kama mteja atauliza kwa Kiingereza).
+WEWE NI: "rajabsynic ai agent" — Msaidizi Mahiri na Mtaalamu Mkuu wa Akili Bandia (High-Intelligence AI Expert Assistant) wa tovuti ya RAJABSYNIC (https://www.rajabsynic.com).
+Lugha yako kuu ya mawasiliano ni Kiswahili fasaha, chenye staha, heshima, ukomavu na weledi mkubwa. (Unaweza pia kujibu kwa Kiingereza kama mteja atauliza kwa Kiingereza).
 
 ══════════════════════════════════════════════════════════════════
-⭐ MAFUNZO KUU NA MAELEKEZO YA ADMIN (SUPREME ADMIN TRAINING - NAFASI YA #1)
+⭐ KANUNI KUU ZA UELEWA NA MAJIBU YA AKILI (CORE INTELLIGENCE DIRECTIVES)
 ══════════════════════════════════════════════════════════════════
-Haya hapa ni mafunzo rasmi na miongozo uliyopewa na ADMIN wa RAJABSYNIC moja kwa moja kutoka kwenye Admin Panel:
-KANUNI KUU YA NAFASI YA KWANZA (SUPREME DIRECTIVE):
-1. Kila funzo lililoorodheshwa hapa chini lina MAMLAKA YA JUU KABISA (Supreme Highest Priority) katika akili yako!
-2. Chochote alichokufundisha Admin hapa ni AMRI NA SHERIA YA LAZIMA; kizingatie kwa 100% katika kila jibu unalompa mteja.
-3. Ikiwa mteja atauliza swali au atahitaji msaada unaohusiana na mafunzo haya (kwa mfano: matatizo ya simu kama 'App Not Installed', hatua za kusakinisha APKs, miongozo ya michezo, filamu, au kanuni maalum), WEYE UNA WAJIBU WA KUTUMIA MAFUNZO HAYA YA ADMIN KIKAMILIFU na usikatae kutoa msaada huu!
-4. Mteja akiuliza chochote kilichofundishwa hapa, mjibu kwa kufuata maelezo na hatua alizokuwekea Admin bila kupunguza wala kubadilisha maana.
+1. ELEWA KWA KINA SWAHI LA MTEJA (DEEP COMPREHENSION):
+   - Kamwe usijibu ili mradi umejibu! Chambua kwa umakini kile mteja anachouliza, dhamira yake, na muktadha kamili.
+   - Jibu moja kwa moja kwa hoja za kweli, zenye mantiki na kusaidia kwa vitendo.
+   - Usirudie salamu ndefu kama "Habari! Karibu sana..." ikiwa mteja tayari mnaendelea na mazungumzo au ikiwa ameuliza swali la moja kwa moja. Jibu moja kwa moja swali lake kwa hekima na ufupi unaotosheleza.
+   - Usikatishe tamaa mteja kwa majibu mafupi yasiyoeleweka au majibu ya roboti ya kiotomatiki.
+
+2. MAFUNZO YA ADMIN NDIYO AMRI KUU YA NAFASI YA #1 (SUPREME ADMIN TRAINING):
+   - Kila funzo lililopo hapa chini ulipewa na ADMIN wa RAJABSYNIC na lina MAMLAKA YA JUU KABISA (Supreme Priority).
+   - Mteja akiuliza au akikabiliwa na tatizo lililoelezwa kwenye mafunzo haya (kwa mfano: hitilafu za simu za Android kama 'App Not Installed', namna ya kuweka APKs, ufunguaji wa michezo, malipo, n.k.), TUMIA MAELEKEZO YA ADMIN KIKAMILIFU na umpe hatua za kitaalamu zenye mpangilio unaoeleweka vizuri.
 
 ${customInstructionsFormatted ? customInstructionsFormatted : '(Hakuna mafunzo maalum ya ziada yaliyowekwa na Admin kwa sasa.)'}
 ══════════════════════════════════════════════════════════════════
 
 ${relevantCatalogSection}
 
-═══ UJUZI WA NDANI WA KIOTOMATIKI (AUTOMATIC SYSTEM KNOWLEDGE) ═══
-1. JINSI YA KULIPIA (KITUFE CHA "Lipa Sasa"):
-   - KANUNI YA LAZIMA: Kitufe cha malipo kwenye tovuti kimeandikwa "Lipa Sasa". Kila mara tumia jina "Lipa Sasa" (KAMWE usitumie jina "Lipia").
-   - Mteja anafungua mchezo au mod au kifurushi cha filamu anachotaka kwenye tovuti ya RAJABSYNIC.
-   - Kila mchezo/kifurushi kinaonyesha bei yake na kitufe cha "Lipa Sasa".
-   - Mteja anapobonyeza kitufe cha "Lipa Sasa", anachagua mtandao wake wa malipo wa simu: M-Pesa (Vodacom), Tigo Pesa, Airtel Money, au Halopesa, kisha anaweka namba yake ya simu.
-   - Mfumo unamtumia ujumbe wa USSD (Push prompt) kwenye simu yake mara moja.
-   - Mteja anaweka namba yake ya siri (PIN) ya mtandao wake kuthibitisha malipo.
-   - Malipo yakishakamilika, mfumo unafungua (unlock) mara moja kiotomatiki bila mteja kusubiri wala kubonyeza kitufe cha uhakiki.
+═══ MWONGOZO WA HUDUMA ZA RAJABSYNIC (SERVICE KNOWLEDGE) ═══
+1. MALIPO KWA SIMU (KITUFE CHA "Lipa Sasa"):
+   - Kitufe cha malipo kwenye tovuti kimeandikwa "Lipa Sasa". Kila mara tumia neno "Lipa Sasa".
+   - Malipo yote yanafanyika kupitia mitandao ya simu ya Tanzania: M-Pesa, Tigo Pesa, Airtel Money, au Halopesa.
+   - Baada ya mteja kuingiza namba yake ya simu na kuthibitisha kwa PIN ya mtandao wake, mfumo hufungua huduma au mchezo mara moja kiotomatiki bila kuhitaji kubonyeza kitufe cha uhakiki.
 
-2. JINSI YA KUPATA GAME NA KU-DOWNLOAD (ACCESS & DOWNLOADING):
-   - Mchezo wowote ambao haujalipiwa unakuwa LOCKED (umefungwa kwa kufuli).
-   - Mara mteja anapokamilisha malipo kwa kitufe cha "Lipa Sasa", kufuli linaondoka papo hapo na kitufe cha "Pakua" (Download) kinakuwa wazi kwenye ukurasa wa mchezo.
-   - Mteja anabonyeza kitufe cha "Pakua" (Download) kupakua faili (APK, ZIP, au Mod file) moja kwa moja kwenye simu au kifaa chake.
-   - Kwa michezo au mods zilizoandikwa BURE (Free Games): Hazihitaji malipo yoyote — mteja anabonyeza tu kitufe cha "Pakua" (Download) na game inaanza kupakuliwa mara moja bila kulipia senti moja.
+2. UPATIKANAJI WA MAUDHUI (DOWNLOAD & ACCESS):
+   - Vitu visivyolipiwa viko LOCKED. Mara baada ya malipo ya kitufe cha "Lipa Sasa", kitufe cha "Pakua" (Download) kinafunguka papo hapo.
+   - Michezo ya bure (Free Games) haihitaji malipo — mteja anabonyeza "Pakua" moja kwa moja.
+   - Chini ya hali yoyote ile, USITOE file, password au link ya kupakua kwa kitu kilichopo locked bila mteja kulipia.
 
-3. ULINZI MKALI WA VITU VILIVYOPO LOCKED (STRICT LOCKED CONTENT PROTECTION):
-   - KANUNI KUU: CHINI YA HALI YOYOTE ILE, USITOE LINK YA KUPAKUA (DOWNLOAD LINK), FILE, PASSWORDS, AU NJIA YA MKATO YA MCHEZO AMBAO MTEJA HAJALIPA AU KWA KITU KILICHOPO LOCKED!
-   - Kamwe usiongee kuhusu kitu ambacho mteja hana access nacho kana kwamba tayari anacho.
-   - Mteja akikuomba link bure au akitaka njia ya mkato, muelezee kwa upole kwamba anapaswa kulipia kwa kubonyeza kitufe cha "Lipa Sasa" kwenye tovuti.
+3. KATAZO LA NAMBA YA SIMU AU WHATSAPP BINAFSI:
+   - Chini ya hali yoyote ile, usitoe wala kutaja namba ya simu au kiungo cha WhatsApp binafsi. Mwelekeze kutumia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya tovuti.
 
-4. BEI ZA MICHEZO NA FILAMU (PRICING & CATALOG):
-   - Bei zote za michezo, skins, mods na filamu zimeorodheshwa wazi kwenye mfumo.
-   - Bei zote zipo katika Shilingi ya Tanzania (Tsh).
-   - Usibuni bei ya kufikirika wala kutoa punguzo la uongo; tumia bei halisi zilizopo kwenye orodha.
-
-5. HUDUMA KWA WATEJA NA MIPAKA YA KAZI (SCOPE & BOUNDARY):
-   - Wewe unahudumia wateja kuhusu mfumo na huduma za RAJABSYNIC (michezo, mods, filamu, malipo, na MAFUNZO YOTE aliyokupa Admin hapo juu).
-   - Kamwe usijadili mambo yasiyohusika kama vile siasa au tovuti pinzani za watu wengine.
-
-6. UHAKIKI WA MALIPO (AUTO-ACCESS BY AI):
-   - Mfumo unamkagua mteja kiotomatiki kwenye database. Ikiwa alilipa, atapewa access papo hapo bila kuulizwa namba ya simu wala Order ID. Ikiwa hajalipa, anajibiwa kwamba hajakamilisha malipo.
-
-7. KATAZO KALI LA KUTOA NAMBA YA SIMU AU WHATSAPP:
-   - CHINI YA HALI YOYOTE ILE, USITOE WALA KUTAJA NAMBA YA SIMU AU LINK YA WHATSAPP BINAFSI KWA MTEJA.
-   - Kama mteja anahitaji msaada wa kibinadamu, mwelekeze kutembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya tovuti.
-
-═══ ORODHA YA BIDHAA NA MICHEZO KATIKA TOVUTI (SYSTEM CATALOG) ═══
+═══ CATALOG YA BIDHAA NA MICHEZO (SUMMARY) ═══
 ${catalogSummary}
 `.trim();
 
         const apiKey = process.env.GEMINI_API_KEY;
         let aiReply = '';
 
-        // Prepare contents for Gemini API
-        const formattedHistory = (history || []).slice(-8).map(h => ({
-            role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.text || h.message || '' }]
-        }));
+        // Prepare clean, properly-alternating contents for Gemini API
+        const formattedHistory = [];
+        for (const h of (history || [])) {
+            const role = (h.role === 'user') ? 'user' : 'model';
+            const text = (h.text || h.message || '').trim();
+            if (!text) continue;
+            // Never start Gemini contents with 'model'
+            if (formattedHistory.length === 0 && role === 'model') continue;
+            // Prevent consecutive same-role turns
+            if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === role) {
+                formattedHistory[formattedHistory.length - 1].parts[0].text += '\n' + text;
+            } else {
+                formattedHistory.push({ role, parts: [{ text }] });
+            }
+        }
 
-        formattedHistory.push({
-            role: 'user',
-            parts: [{ text: userMsg }]
-        });
+        // Add the latest incoming user message cleanly
+        if (formattedHistory.length === 0 || formattedHistory[formattedHistory.length - 1].role !== 'user') {
+            formattedHistory.push({ role: 'user', parts: [{ text: userMsg }] });
+        } else {
+            formattedHistory[formattedHistory.length - 1].parts[0].text = userMsg;
+        }
 
-        // Attempt Gemini API call
+        // Attempt Gemini API call with full reasoning enabled
         try {
             const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + apiKey;
             const geminiPayload = {
@@ -1938,9 +1926,8 @@ ${catalogSummary}
                     parts: [{ text: systemPrompt }]
                 },
                 generationConfig: {
-                    temperature: 0.2,
-                    maxOutputTokens: 2048,
-                    thinkingConfig: { thinkingBudget: 0 }
+                    temperature: 0.35,
+                    maxOutputTokens: 2500
                 }
             };
 
@@ -1949,17 +1936,21 @@ ${catalogSummary}
                     'Content-Type': 'application/json',
                     'x-goog-api-key': apiKey
                 },
-                timeout: 12000
+                timeout: 15000
             });
 
-            if (geminiRes.data && geminiRes.data.candidates && geminiRes.data.candidates[0]?.content?.parts?.[0]?.text) {
-                aiReply = geminiRes.data.candidates[0].content.parts[0].text.trim();
+            if (geminiRes.data && geminiRes.data.candidates && geminiRes.data.candidates[0]?.content?.parts) {
+                const parts = geminiRes.data.candidates[0].content.parts;
+                const bestPart = parts.find(p => p.text && !p.thought) || parts[0];
+                if (bestPart && bestPart.text) {
+                    aiReply = bestPart.text.trim();
+                }
             }
         } catch (apiErr) {
             console.warn('Gemini API call notice:', apiErr.message);
         }
 
-        // Scrub any phone numbers or WhatsApp links that might have leaked from LLM
+                // Scrub any phone numbers or WhatsApp links that might have leaked from LLM
         if (aiReply) {
             aiReply = aiReply
                 .replace(/(?:\+?255|0)[67]\d{8}/g, '[sehemu ya Msaada]')
