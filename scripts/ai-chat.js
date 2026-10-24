@@ -736,7 +736,7 @@ class AIChatWidget {
     }
 
     sendWelcomeMessage() {
-        const welcomeText = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.\n\nJe, nikusaidie nini leo? Unaweza kuniuliza kuhusu:\n- 🎮 Mchezo au mod yoyote unayoitafuta na bei zake (kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ramani za ETS2, au michezo ya bure)\n- 💳 Jinsi ya kulipia kwa urahisi kwa kubonyeza kitufe cha **'Lipa Sasa'**\n- 📥 Jinsi ya kupakua (Download) baada ya kulipa\n- ⚡ Uhakiki wa papo hapo wa malipo yako kama ulishalipa na bado mchezo umefungwa.\n\nUngependa nikuonyeshe au nikusaidie kuhusu mchezo gani leo?`;
+        const welcomeText = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
         this.appendMessage('bot', welcomeText, false);
     }
 
@@ -745,6 +745,10 @@ class AIChatWidget {
             const saved = sessionStorage.getItem('rajabsynic_ai_history');
             if (saved) {
                 this.history = JSON.parse(saved);
+                if (this.history.length > 0 && this.history[0].role === 'bot' && this.history[0].text.includes('Unaweza kuniuliza kuhusu:')) {
+                    this.history[0].text = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
+                    sessionStorage.setItem('rajabsynic_ai_history', JSON.stringify(this.history));
+                }
                 this.history.forEach(item => {
                     this.renderMessageBubble(item.role, item.text, item.time, false);
                 });
