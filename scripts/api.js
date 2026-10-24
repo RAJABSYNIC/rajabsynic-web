@@ -619,11 +619,21 @@ class ApiService {
 
     async checkSubscription(userId, contentId) {
         try {
-            const q = query(
-                collection(db, "subscriptions"),
-                where("userId", "==", userId),
-                where("contentId", "==", contentId)
-            );
+            const moviePackageIds = ['movies-access', 'movies-package-mikumi', 'movies-package-ngorongoro', 'movies-package-serengeti', 'movies-subscription'];
+            let q;
+            if (moviePackageIds.includes(contentId)) {
+                q = query(
+                    collection(db, "subscriptions"),
+                    where("userId", "==", userId),
+                    where("contentId", "in", moviePackageIds)
+                );
+            } else {
+                q = query(
+                    collection(db, "subscriptions"),
+                    where("userId", "==", userId),
+                    where("contentId", "==", contentId)
+                );
+            }
 
             const querySnapshot = await getDocs(q);
             const now = new Date();

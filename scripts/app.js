@@ -22,6 +22,45 @@ class Router {
         this.activeMovieCategory = 'all';
         this.movieSearchQuery = '';
         this.movieFeaturedSlides = [];
+        this.pendingMovieRedirect = null;
+        this.moviePackages = [
+            {
+                id: 'movies-package-mikumi',
+                name: 'Mikumi',
+                title: 'Kifurushi cha Mikumi (Siku 1)',
+                price: 1000,
+                durationDays: 1,
+                durationText: 'Siku 1 (Masaa 24)',
+                desc: 'Upatikanaji kamili wa filamu zote kwa siku 1.',
+                tag: 'Kiwango cha Kuanzia',
+                tagColor: '#94a3b8'
+            },
+            {
+                id: 'movies-package-ngorongoro',
+                name: 'Ngorongoro',
+                title: 'Kifurushi cha Ngorongoro (Siku 7)',
+                price: 3000,
+                durationDays: 7,
+                durationText: 'Siku 7 (Wiki 1)',
+                desc: 'Upatikanaji kamili wa filamu zote kwa wiki nzima.',
+                tag: 'Inayopendwa Zaidi ⭐',
+                tagColor: '#00ff80',
+                popular: true
+            },
+            {
+                id: 'movies-package-serengeti',
+                name: 'Serengeti',
+                title: 'Kifurushi cha Serengeti (Siku 30)',
+                price: 5000,
+                durationDays: 30,
+                durationText: 'Siku 30 (Mwezi Mzima)',
+                desc: 'Upatikanaji kamili wa filamu zote kwa mwezi mzima.',
+                tag: 'Thamani Bora 👑',
+                tagColor: '#f59e0b',
+                bestValue: true
+            }
+        ];
+        this.selectedMoviePackage = 'movies-package-ngorongoro';
     }
 
     navigate(route, param = null) {
@@ -488,6 +527,16 @@ class Router {
 
         // Pay-to-Access gate: any item not marked isFree AND has a price requires payment
         const isPaid = (item.isFree !== true && item.price > 0);
+
+        // Movie Package Gate: Movies use packages (Mikumi, Ngorongoro, Serengeti) instead of individual payments
+        if (this.isMovieItem(item)) {
+            const movieAccess = await this.hasMoviesAccess();
+            if (!movieAccess.hasAccess) {
+                this.pendingMovieRedirect = item.id;
+                this.showMoviePackagesModal(item);
+                return;
+            }
+        }
 
         // Check subscription status - CHECK LOCAL FIRST for instant access!
         let hasAccess = !isPaid; // Free items always have access
@@ -1367,6 +1416,166 @@ class Router {
         return itemCat.includes(cat) || itemTitle.includes(cat);
     }
 
+
+    async hasMoviesAccess() {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const paidItems = JSON.parse(localStorage.getItem('paid_items') || '[]');
+        const subscriptions = JSON.parse(localStorage.getItem('subscriptions') || '{}');
+        const now = new Date();
+
+        const movieKeys = ['movies-access', 'movies-package-mikumi', 'movies-package-ngorongoro', 'movies-package-serengeti', 'movies-subscription'];
+
+        // 1. Check local storage first (instant)
+        for (const key of movieKeys) {
+            if (paidItems.includes(key) || subscriptions[key]) {
+                const sub = subscriptions[key];
+                if (sub && sub.expiresAt) {
+                    if (new Date(sub.expiresAt) > now) {
+                        return { hasAccess: true, source: 'local', package: sub.packageId || key, expiresAt: sub.expiresAt };
+                    } else {
+                        delete subscriptions[key];
+                        const idx = paidItems.indexOf(key);
+                        if (idx !== -1) paidItems.splice(idx, 1);
+                        localStorage.setItem('paid_items', JSON.stringify(paidItems));
+                        localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
+                    }
+                } else if (paidItems.includes(key)) {
+                    return { hasAccess: true, source: 'local-legacy', package: key };
+                }
+            }
+        }
+
+        // 2. Check server if logged in
+        if (user && user.uid) {
+            try {
+                const check = await api.checkSubscription(user.uid, 'movies-access');
+                if (check && check.hasAccess) {
+                    if (!paidItems.includes('movies-access')) {
+                        paidItems.push('movies-access');
+                        localStorage.setItem('paid_items', JSON.stringify(paidItems));
+                    }
+                    subscriptions['movies-access'] = {
+                        grantedAt: new Date().toISOString(),
+                        expiresAt: check.expiresAt || new Date(Date.now() + 30 * 86400000).toISOString(),
+                        packageId: check.package || 'movies-package-serengeti',
+                        contentTitle: 'Kifurushi cha Movies'
+                    };
+                    localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
+                    return { hasAccess: true, source: 'server', package: check.package, expiresAt: check.expiresAt };
+                }
+            } catch (err) {
+                console.warn('Server movie access check failed:', err);
+            }
+        }
+
+        return { hasAccess: false };
+    }
+
+    showMoviePackagesModal(targetItem = null) {
+        this.selectedMoviePackage = 'movies-package-ngorongoro';
+
+        const previewHTML = targetItem ? `
+            <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:10px 14px; margin-bottom:18px;">
+                <img src="${targetItem.image || targetItem.poster || '/assets/hero-avengers.jpg'}" style="width:48px; height:64px; border-radius:8px; object-fit:cover; flex-shrink:0;" onerror="this.src='/assets/hero-avengers.jpg';">
+                <div style="flex:1; min-width:0;">
+                    <span style="font-size:0.7rem; color:#00ff80; font-weight:700; text-transform:uppercase;">Filamu Uliyochagua</span>
+                    <div style="font-weight:700; font-size:0.95rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${targetItem.title}</div>
+                    <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Chagua kifurushi kupata ufikiaji wa filamu hii na nyingine zote:</div>
+                </div>
+            </div>
+        ` : '';
+
+        const packagesHTML = this.moviePackages.map(pkg => `
+            <div class="movie-pkg-card ${pkg.id === this.selectedMoviePackage ? 'selected' : ''}" id="pkg-card-${pkg.id}" onclick="window.app.router.selectMoviePackage('${pkg.id}')">
+                <div class="movie-pkg-radio-circle"></div>
+                <div style="flex:1; margin-right:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:800; font-size:1.05rem; color:#fff;">${pkg.name}</span>
+                        ${pkg.tag ? `<span style="font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:6px; background:${pkg.popular ? 'rgba(0,255,128,0.2)' : (pkg.bestValue ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)')}; color:${pkg.tagColor};">${pkg.tag}</span>` : ''}
+                    </div>
+                    <div style="font-size:0.78rem; color:#94a3b8; margin-top:3px;">${pkg.desc}</div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-weight:900; font-size:1.15rem; color:#00ff80;">Tsh ${pkg.price.toLocaleString()}</div>
+                    <div style="font-size:0.75rem; color:#cbd5e1; font-weight:500;">/ ${pkg.durationText}</div>
+                </div>
+            </div>
+        `).join('');
+
+        const selected = this.moviePackages.find(p => p.id === this.selectedMoviePackage) || this.moviePackages[1];
+
+        const modalHTML = `
+            <div id="movie-pkg-overlay" class="movie-pkg-overlay">
+                <div class="movie-pkg-modal">
+                    <button class="movie-pkg-close-btn" onclick="window.app.router.closeMoviePackagesModal()">
+                        <ion-icon name="close"></ion-icon>
+                    </button>
+                    
+                    <div style="text-align:center; margin-bottom:18px;">
+                        <div style="display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:50%; background:rgba(0,255,128,0.12); border:1px solid #00ff80; margin-bottom:10px; color:#00ff80; font-size:1.7rem;">
+                            <ion-icon name="film-outline"></ion-icon>
+                        </div>
+                        <h2 style="margin:0 0 4px; font-size:1.35rem; font-weight:800; color:#fff;">Vifurushi vya Movies</h2>
+                        <p style="margin:0; font-size:0.85rem; color:#94a3b8;">Chagua kifurushi uweze kutazama na kupakua movies zote:</p>
+                    </div>
+
+                    ${previewHTML}
+
+                    <div id="movie-packages-container">
+                        ${packagesHTML}
+                    </div>
+
+                    <button id="movie-pkg-submit-btn" class="movie-pkg-submit-btn" onclick="window.app.router.submitMoviePackagePayment()">
+                        <ion-icon name="card-outline" style="font-size:1.3rem;"></ion-icon>
+                        <span>LIPA SASA TSH ${selected.price.toLocaleString()} — ANZA KUTAZAMA</span>
+                    </button>
+
+                    <div style="text-align:center; margin-top:14px; font-size:0.75rem; color:#64748b;">
+                        🔒 Malipo salama kwa M-Pesa, Tigo Pesa, Airtel Money & Halopesa
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const existing = document.getElementById('movie-pkg-overlay');
+        if (existing) existing.remove();
+
+        const wrap = document.createElement('div');
+        wrap.innerHTML = modalHTML;
+        document.body.appendChild(wrap.firstElementChild);
+    }
+
+    selectMoviePackage(pkgId) {
+        this.selectedMoviePackage = pkgId;
+        this.moviePackages.forEach(p => {
+            const el = document.getElementById(`pkg-card-${p.id}`);
+            if (el) {
+                if (p.id === pkgId) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                }
+            }
+        });
+        const selected = this.moviePackages.find(p => p.id === pkgId);
+        const btn = document.getElementById('movie-pkg-submit-btn');
+        if (btn && selected) {
+            btn.innerHTML = `<ion-icon name="card-outline" style="font-size:1.3rem;"></ion-icon> <span>LIPA SASA TSH ${selected.price.toLocaleString()} — ANZA KUTAZAMA</span>`;
+        }
+    }
+
+    submitMoviePackagePayment() {
+        const pkg = this.moviePackages.find(p => p.id === this.selectedMoviePackage);
+        if (!pkg) return;
+        this.closeMoviePackagesModal();
+        window.app.openPaymentModal(pkg.id, pkg.title, pkg.price, pkg.price);
+    }
+
+    closeMoviePackagesModal() {
+        const overlay = document.getElementById('movie-pkg-overlay');
+        if (overlay) overlay.remove();
+    }
+
     async showMovies() {
         await this.ensureContent();
         const movieItems = this.getMovieItems();
@@ -1413,6 +1622,49 @@ class Router {
         this.activeMovieCategory = 'all';
         this.movieSearchQuery = '';
 
+        const movieAccess = await this.hasMoviesAccess();
+        let movieSubBannerHTML = '';
+        if (movieAccess.hasAccess) {
+            let pkgName = 'Movies VIP Pass';
+            if (movieAccess.package === 'movies-package-mikumi') pkgName = 'Kifurushi cha Mikumi';
+            if (movieAccess.package === 'movies-package-ngorongoro') pkgName = 'Kifurushi cha Ngorongoro';
+            if (movieAccess.package === 'movies-package-serengeti') pkgName = 'Kifurushi cha Serengeti';
+
+            let daysRemainingText = '';
+            if (movieAccess.expiresAt) {
+                const diffDays = Math.ceil((new Date(movieAccess.expiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+                daysRemainingText = diffDays > 0 ? ` (Bado siku ${diffDays})` : '';
+            }
+
+            movieSubBannerHTML = `
+                <div class="movies-sub-active-badge">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <ion-icon name="shield-checkmark" style="font-size:1.4rem; color:#00ff80; flex-shrink:0;"></ion-icon>
+                        <div>
+                            <span style="font-size:0.7rem; text-transform:uppercase; color:#00ff80; font-weight:800; letter-spacing:0.5px;">VIP PASS HAI</span>
+                            <div style="font-size:0.88rem; color:#fff; font-weight:700;">${pkgName}${daysRemainingText}</div>
+                        </div>
+                    </div>
+                    <button onclick="window.app.router.showMoviePackagesModal()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#fff; padding:6px 14px; border-radius:10px; font-size:0.75rem; cursor:pointer; font-weight:600; transition:all 0.15s;">
+                        Ongeza Muda
+                    </button>
+                </div>
+            `;
+        } else {
+            movieSubBannerHTML = `
+                <div class="movies-sub-banner" onclick="window.app.router.showMoviePackagesModal()">
+                    <div>
+                        <span class="movies-sub-tag">VIP MOVIES PASS</span>
+                        <h4 style="margin:2px 0 3px; font-size:0.98rem; font-weight:800; color:#fff;">Fungua Movies Zote Bila Kikomo</h4>
+                        <p style="margin:0; font-size:0.78rem; color:#cbd5e1;">Mikumi (Tsh 1,000) • Ngorongoro (Tsh 3,000) • Serengeti (Tsh 5,000)</p>
+                    </div>
+                    <button class="movies-sub-btn">
+                        <ion-icon name="sparkles"></ion-icon> Chagua Kifurushi
+                    </button>
+                </div>
+            `;
+        }
+
         const hero = this.movieFeaturedSlides[0];
 
         const modal = `
@@ -1454,6 +1706,9 @@ class Router {
                             <span class="movies-hero-dot ${idx === 0 ? 'active' : ''}" onclick="window.app.router.setMovieHeroSlide(${idx})"></span>
                         `).join('')}
                     </div>
+
+                    <!-- Movies Subscription Package Banner / Status -->
+                    ${movieSubBannerHTML}
 
                     <!-- Horizontal Category Filter Pills (System Neon Green active pill) -->
                     <div class="movies-pills-row" id="movies-pills-row">
@@ -1627,12 +1882,15 @@ class Router {
     }
 
     createMovieCard(item) {
-        const isPaid = !item.isFree && item.price;
         const isFree = item.isFree;
-        const priceLabel = isFree ? '' : (isPaid ? `Tsh ${item.price}` : '');
-        const badgeHTML = isPaid
-            ? `<div class="card-price-badge" style="background: rgba(0,0,0,0.85); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="lock-closed"></ion-icon> ${priceLabel}</div>`
-            : (isFree ? `<div class="card-free-badge" style="background:#00ff80; color:#000; font-weight:700;">FREE</div>` : '');
+        const paidItems = JSON.parse(localStorage.getItem('paid_items') || '[]');
+        const isSubscribed = paidItems.includes('movies-access') || paidItems.includes('movies-package-mikumi') || paidItems.includes('movies-package-ngorongoro') || paidItems.includes('movies-package-serengeti');
+
+        const badgeHTML = isFree
+            ? `<div class="card-free-badge" style="background:#00ff80; color:#000; font-weight:700;">FREE</div>`
+            : (isSubscribed
+                ? `<div class="card-price-badge" style="background:rgba(0,255,128,0.2); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="checkmark-circle"></ion-icon> VIP PASS</div>`
+                : `<div class="card-price-badge" style="background:rgba(0,0,0,0.85); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="lock-closed"></ion-icon> KIFURUSHI</div>`);
 
         const posterImg = item.image || item.poster || '/assets/hero-avengers.jpg';
         const displayCat = (item.category || 'Movie').replace(/-/g, ' ');
@@ -2840,6 +3098,12 @@ const app = {
                 } else if (contentId === 'live-tv-access') {
                     const settings = await api.getSettings();
                     durationDays = settings?.liveSubscription?.durationDays || 30;
+                } else if (contentId === 'movies-package-mikumi') {
+                    durationDays = 1;
+                } else if (contentId === 'movies-package-ngorongoro') {
+                    durationDays = 7;
+                } else if (contentId === 'movies-package-serengeti' || contentId === 'movies-access') {
+                    durationDays = 30;
                 }
             } catch (err) {
                 console.warn('Could not fetch settings, using defaults');
@@ -2858,6 +3122,23 @@ const app = {
                     durationDays,
                     contentTitle
                 };
+
+                // Also grant general 'movies-access' for all movie packages
+                if (contentId.startsWith('movies-package-') || contentId === 'movies-access') {
+                    if (!paidItems.includes('movies-access')) {
+                        paidItems.push('movies-access');
+                        localStorage.setItem('paid_items', JSON.stringify(paidItems));
+                    }
+                    subscriptions['movies-access'] = {
+                        orderId,
+                        grantedAt: new Date().toISOString(),
+                        expiresAt: expiryDate.toISOString(),
+                        durationDays,
+                        packageId: contentId,
+                        contentTitle: contentTitle || 'Kifurushi cha Movies'
+                    };
+                }
+
                 localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
                 console.log(`✅ Subscription saved: ${contentId} expires ${expiryDate.toLocaleDateString()}`);
             }
@@ -2919,6 +3200,14 @@ const app = {
             await this.router.enterAdult();
         } else if (contentId === 'live-tv-access') {
             this.router.navigate('live');
+        } else if (contentId && (contentId.startsWith('movies-package-') || contentId === 'movies-access')) {
+            if (this.router.pendingMovieRedirect) {
+                const targetId = this.router.pendingMovieRedirect;
+                this.router.pendingMovieRedirect = null;
+                this.router.navigate('details', targetId);
+            } else {
+                this.router.navigate('movies');
+            }
         } else if (contentId) {
             this.router.navigate('details', contentId);
         }

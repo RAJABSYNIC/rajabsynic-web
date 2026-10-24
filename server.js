@@ -176,9 +176,13 @@ app.get('/api/payments', requireAdmin, async (req, res) => {
 // ─── Access / Subscription helpers ────────────────────────────────────────────
 // Resolve subscription duration (days) for a given content, from settings.
 function getDurationDays(db, contentId) {
-    const settings = deepMerge(DEFAULT_SETTINGS, db.settings || {});
-    if (contentId === 'adult-section-access') return settings.adultSubscription.durationDays || 30;
-    if (contentId === 'live-tv-access')       return settings.liveSubscription.durationDays || 30;
+    const settings = deepMerge(DEFAULT_SETTINGS, (db && db.settings) || {});
+    if (contentId === 'adult-section-access') return (settings.adultSubscription && settings.adultSubscription.durationDays) || 30;
+    if (contentId === 'live-tv-access')       return (settings.liveSubscription && settings.liveSubscription.durationDays) || 30;
+    if (contentId === 'movies-package-mikumi')     return 1;
+    if (contentId === 'movies-package-ngorongoro') return 7;
+    if (contentId === 'movies-package-serengeti')  return 30;
+    if (contentId === 'movies-access')             return 30;
     return 14; // default for individual content
 }
 
@@ -255,6 +259,23 @@ async function grantAccessForPayment(payment) {
             expiresAt: expiresAt.toISOString()
         };
         await fsdb.collection('subscriptions').doc(subData.id).set(subData);
+
+        // If a movie package was purchased, also grant general 'movies-access'
+        if (['movies-package-mikumi', 'movies-package-ngorongoro', 'movies-package-serengeti'].includes(contentId)) {
+            const movieAccessSub = {
+                id: 'SUB-MOVIES-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+                userId,
+                contentId: 'movies-access',
+                packageId: contentId,
+                orderId,
+                contentTitle: 'Upatikanaji wa Movies (VIP Pass)',
+                durationDays,
+                createdAt: new Date().toISOString(),
+                expiresAt: expiresAt.toISOString()
+            };
+            await fsdb.collection('subscriptions').doc(movieAccessSub.id).set(movieAccessSub).catch(() => {});
+        }
+
         console.log(`🔓 Access granted: user=${userId} content=${contentId} until ${expiresAt.toISOString().slice(0, 10)}`);
         return true;
     }
@@ -325,6 +346,26 @@ app.get('/api/subscription/check', async (req, res) => {
     const now = new Date();
 
     if (fsdb) {
+        const moviePackageIds = ['movies-access', 'movies-package-mikumi', 'movies-package-ngorongoro', 'movies-package-serengeti', 'movies-subscription'];
+        if (moviePackageIds.includes(contentId)) {
+            const mSubs = await fsdb.collection('subscriptions')
+                .where('userId', '==', userId)
+                .where('contentId', 'in', moviePackageIds)
+                .get();
+            let validMSub = null;
+            mSubs.forEach(doc => {
+                const data = doc.data();
+                if (new Date(data.expiresAt) > now) {
+                    if (!validMSub || new Date(data.expiresAt) > new Date(validMSub.expiresAt)) {
+                        validMSub = data;
+                    }
+                }
+            });
+            if (validMSub) {
+                return res.json({ hasAccess: true, source: 'movies-subscription', package: validMSub.contentId, expiresAt: validMSub.expiresAt });
+            }
+        }
+
         const subs = await fsdb.collection('subscriptions')
             .where('userId', '==', userId)
             .where('contentId', '==', contentId)
