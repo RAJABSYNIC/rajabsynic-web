@@ -865,15 +865,20 @@ class AIChatWidget {
         this.isTyping = true;
 
         try {
-            // Call API backend proxy
+            // Call API backend proxy with complete user & payment context
             let userId = '';
             let userPhone = '';
             try {
-                const uStr = localStorage.getItem('rajabsynic_user') || sessionStorage.getItem('rajabsynic_user');
+                const uStr = localStorage.getItem('user') || localStorage.getItem('rajabsynic_user') || sessionStorage.getItem('rajabsynic_user');
                 if (uStr) {
                     const u = JSON.parse(uStr);
                     userId = u.id || u.uid || '';
                     userPhone = u.phone || '';
+                }
+                if (!userPhone) {
+                    const txnPhones = JSON.parse(localStorage.getItem('txn_phones') || '{}');
+                    const vals = Object.values(txnPhones);
+                    if (vals.length > 0) userPhone = vals[vals.length - 1];
                 }
             } catch (_) {}
             const res = await api.sendSupportChat(text, this.history, this.sessionId, userId, userPhone);
@@ -881,6 +886,23 @@ class AIChatWidget {
             this.isTyping = false;
 
             if (res && res.reply) {
+                // If AI verified payment and granted access, instantly update local storage
+                if (res.accessGranted && res.contentId) {
+                    try {
+                        const paid = JSON.parse(localStorage.getItem('paid_items') || '[]');
+                        if (!paid.includes(res.contentId)) {
+                            paid.push(res.contentId);
+                            localStorage.setItem('paid_items', JSON.stringify(paid));
+                        }
+                        if (res.contentId.startsWith('movies-package-') || res.contentId === 'movies-access') {
+                            if (!paid.includes('movies-access')) {
+                                paid.push('movies-access');
+                                localStorage.setItem('paid_items', JSON.stringify(paid));
+                            }
+                        }
+                        console.log('✅ AI granted access synced to local storage:', res.contentId);
+                    } catch (_) {}
+                }
                 this.appendMessage('bot', res.reply, true);
             } else {
                 this.appendMessage(

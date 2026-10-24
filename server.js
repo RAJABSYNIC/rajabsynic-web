@@ -913,98 +913,52 @@ app.get('/api/payment/status/:orderId', async (req, res) => {
         
         // --- ACTIVE POLLING (For Vercel Serverless environment) ---
         const TEST_MODE = process.env.TEST_MODE === 'true';
-        if (!TEST_MODE && PRESSSO_API_KEY && PRESSSO_API_SECRET && payment.status === 'pending') {
-            try {
-                // ✅ FIX: PressoPay status check uses /api/v1/payments/PAY-...
-                const apiPath = `/api/v1/payments/${orderId}`;
-                console.log(`🔍 Polling PressoPay: ${PRESSSO_BASE_URL}${apiPath}`);
-                const pollResp = await axios.get(`${PRESSSO_BASE_URL}${apiPath}`, {
-                    headers: {
-                        ...pressoAuthHeaders('GET', apiPath)
-                    },
-                    timeout: 8000
-                });
-                
-                const pStatus = String(pollResp.data.status || '').toUpperCase();
-                console.log(`🔍 PressoPay status for ${orderId}: ${pStatus} (raw: ${JSON.stringify(pollResp.data)})`);
-                
-                if (pStatus === 'COMPLETED' || pStatus === 'SUCCESS') {
-                    // ✅ FIX: Use direct doc reference - Firestore transactions cannot use .where() queries!
-                    const paymentDocRef = fsdb.collection('payments').doc(orderId);
-                    const paymentSnap = await paymentDocRef.get();
-                    
-                    if (!paymentSnap.exists) {
-                        console.error(`Payment doc ${orderId} not found in Firestore`);
-                    } else {
-                        const txPayment = paymentSnap.data();
-                        
-                        // Only process if still pending (idempotent)
-                        if (!['completed', 'success'].includes((txPayment.status || '').toLowerCase())) {
-                            // Step 1: Mark payment as completed
-                            await paymentDocRef.update({ status: 'completed' });
-                            payment.status = 'completed';
-                            console.log(`✅ Payment ${orderId} marked as completed`);
-                            
-                            // Step 2: Create subscription immediately
-                            const pUserId = txPayment.userId || txPayment.uid;
-                            const pContentId = txPayment.contentId;
-                            
-                            if (pUserId && pContentId) {
-                                // Check if subscription already exists
-                                const existingSubs = await fsdb.collection('subscriptions')
-                                    .where('orderId', '==', orderId).limit(1).get();
-                                
-                                if (existingSubs.empty) {
-                                    const subId = 'SUB-' + orderId;
-                                    await fsdb.collection('subscriptions').doc(subId).set({
-                                        id: subId,
-                                        userId: pUserId,
-                                        contentId: pContentId,
-                                        orderId: orderId,
-                                        createdAt: new Date().toISOString(),
-                                        expiresAt: new Date(Date.now() + 31536000000).toISOString() // 1 year
-                                    });
-                                    console.log(`✅ Subscription created for user ${pUserId} content ${pContentId}`);
-                                } else {
-                                    console.log(`ℹ️ Subscription already exists for order ${orderId}`);
-                                }
-                                
-                                // Step 3: Credit referral if applicable
-                                if (txPayment.referredBy) {
-                                    try {
-                                        const refEarnRef = fsdb.collection('referralEarnings').doc('REF-' + orderId);
-                                        const refSnap = await refEarnRef.get();
-                                        if (!refSnap.exists) {
-                                            const pFullPrice = Number(txPayment.fullPrice) || Number(txPayment.amount);
-                                            await refEarnRef.set({
-                                                referralCode: txPayment.referredBy,
-                                                orderId: orderId,
-                                                earnedAmount: Math.floor(pFullPrice * 0.35),
-                                                createdAt: new Date().toISOString()
-                                            });
-                                        }
-                                    } catch (refErr) {
-                                        console.error('Referral credit error (non-fatal):', refErr.message);
-                                    }
-                                }
-                            }
-                        } else {
-                            payment.status = txPayment.status;
-                        }
+        if (!TEST_MODE && payment.status === 'pending') {
+            const pGateway = payment.gateway || 'pressopay';
+            const paymentDocRef = fsdb.collection('payments').doc(orderId);
+
+            if (pGateway === 'harakapay') {
+                try {
+                    const harakaApiKey = process.env.HARAKAPAY_API_KEY || 'hpk_2956fec8e3e5f80597bb59c734275096e99a6e6628046826';
+                    const pollResp = await axios.get('https://harakapay.net/api/v1/status/' + orderId, {
+                        headers: { 'X-API-Key': harakaApiKey },
+                        timeout: 8000
+                    });
+                    const hStatus = String(pollResp.data?.payment?.status || pollResp.data?.status || '').toUpperCase();
+                    if (hStatus === 'COMPLETED' || hStatus === 'SUCCESS') {
+                        await paymentDocRef.update({ status: 'completed', updatedAt: new Date().toISOString() });
+                        payment.status = 'completed';
+                        await grantAccessForPayment({ ...payment, id: orderId });
+                        console.log('✅ HarakaPay active poll confirmed completed for ' + orderId);
+                    } else if (hStatus === 'FAILED' || hStatus === 'CANCELLED') {
+                        await paymentDocRef.update({ status: 'failed', updatedAt: new Date().toISOString() });
+                        payment.status = 'failed';
                     }
-                    console.log(`✅ Active poll: SUCCESS processed for ${orderId}`);
-                } else if (pStatus === 'FAILED' || pStatus === 'CANCELLED') {
-                    await fsdb.collection('payments').doc(orderId).update({ status: 'failed' });
-                    payment.status = 'failed';
-                    console.log(`❌ Active poll detected FAILURE for ${orderId}`);
+                } catch (hErr) {
+                    console.warn('⚠️ HarakaPay poll notice for ' + orderId + ': ' + hErr.message);
                 }
-            } catch (apiErr) {
-                // 401 means GET signature is different from POST - log but don't fail
-                // Frontend will rely on Firebase onSnapshot for real-time updates from webhook
-                console.warn(`⚠️ PressoPay GET poll failed (${apiErr.response?.status || apiErr.message}) - relying on webhook for status update`);
+            } else if (PRESSSO_API_KEY && PRESSSO_API_SECRET) {
+                try {
+                    const apiPath = '/api/v1/payments/' + orderId;
+                    const pollResp = await axios.get(PRESSSO_BASE_URL + apiPath, {
+                        headers: { ...pressoAuthHeaders('GET', apiPath) },
+                        timeout: 8000
+                    });
+                    const pStatus = String(pollResp.data?.status || '').toUpperCase();
+                    if (pStatus === 'COMPLETED' || pStatus === 'SUCCESS') {
+                        await paymentDocRef.update({ status: 'completed', updatedAt: new Date().toISOString() });
+                        payment.status = 'completed';
+                        await grantAccessForPayment({ ...payment, id: orderId });
+                        console.log('✅ PressoPay active poll confirmed completed for ' + orderId);
+                    } else if (pStatus === 'FAILED' || pStatus === 'CANCELLED') {
+                        await paymentDocRef.update({ status: 'failed', updatedAt: new Date().toISOString() });
+                        payment.status = 'failed';
+                    }
+                } catch (apiErr) {
+                    console.warn('⚠️ PressoPay GET poll notice: ' + (apiErr.response?.status || apiErr.message));
+                }
             }
         }
-        
         res.json({ success: true, payment: payment });
     } catch(e) {
         console.error('Status route error:', e);
@@ -1616,64 +1570,52 @@ async function getCatalogSummary() {
     }).join('\n');
 }
 
-// Helper: Verify Payment and Grant Access Automatically
+// Helper: Verify Payment and Grant Access Automatically (Zero-prompt AI Verification)
 async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = '' }) {
     if (!userMsg) return null;
     const msg = userMsg.trim();
     const lower = msg.toLowerCase();
 
-    // 1. Only trigger automatic payment verification intercept if:
-    // - User provided an explicit Order ID (ORD-..., CPM..., PAY-...) OR a phone number
-    // - OR user explicitly claimed they paid / had payment verification issues
+    // 1. Detect if user claims they paid, missed service, or needs verification
     const paymentClaimKeywords = [
         'nimelipa', 'nmelipa', 'nimeshalipa', 'tayari nimelipa', 'nmelipia', 'nimelipia',
         'namba niliyolipia', 'sijapata link', 'sijaona link', 'sijapata access', 'bado imefungwa',
         'haifunguki baada ya kulipa', 'hakiki malipo', 'thibitisha malipo', 'kagua malipo',
-        'nimeshakatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela', 'nimeshatuma pesa'
+        'nimeshakatwa', 'nimekatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela',
+        'nimeshatuma pesa', 'haina link', 'kifurushi hakijafunguka', 'sioni movies',
+        'sijapewa huduma', 'nimekwama baada ya kulipa', 'pesa imetoka', 'malipo yamepita',
+        'nililipia', 'nililipa', 'nimefanya malipo'
     ];
     const hasClaimedPaid = paymentClaimKeywords.some(kw => lower.includes(kw));
 
-    // 2. Extract phone numbers (Tanzania mobile: 06..., 07..., 2556..., 2557...)
+    // 2. Extract phone numbers from message or context
     const phoneRegex = /(?:(?:\+?255)|0)([67]\d{8})/;
     const phoneMatch = msg.replace(/[\s\-]/g, '').match(phoneRegex);
     let extractedPhone = '';
     let phoneVariations = [];
     if (phoneMatch) {
-        const digits = phoneMatch[1]; // 8 digits after 0 or 255
+        const digits = phoneMatch[1];
         extractedPhone = '0' + digits;
-        phoneVariations = [
-            '0' + digits,
-            '255' + digits,
-            '+255' + digits,
-            digits
-        ];
+        phoneVariations = ['0' + digits, '255' + digits, '+255' + digits, digits];
     } else if (userPhone) {
-        const upClean = userPhone.replace(/[^0-9]/g, '');
+        const upClean = String(userPhone).replace(/[^0-9]/g, '');
         if (upClean.length >= 9) {
             extractedPhone = upClean.startsWith('0') ? upClean : ('0' + upClean.slice(-9));
             phoneVariations = [extractedPhone, '255' + extractedPhone.slice(1), '+' + '255' + extractedPhone.slice(1)];
         }
     }
 
-    // 3. Extract Order IDs / Transaction IDs
+    // 3. Extract Order IDs from message
     const orderRegex = /\b(ORD-[A-Za-z0-9_\-]+|CPM[A-Za-z0-9_\-]+|PAY-[A-Za-z0-9_\-]+)\b/i;
     const orderMatch = msg.match(orderRegex);
     const extractedOrderId = orderMatch ? orderMatch[1].trim() : '';
 
-    // If no payment claim and no payment identifiers, let Gemini handle the conversation normally!
+    // If no payment claim and no identifiers, let normal AI conversation handle it
     if (!hasClaimedPaid && !extractedPhone && !extractedOrderId) {
         return null;
     }
 
-    // If user specifically claimed they paid but provided NO phone and NO Order ID, prompt them for it
-    if (!extractedPhone && !extractedOrderId) {
-        return {
-            handled: true,
-            reply: 'Habari! Kama umekamilisha malipo na bado hujaona kitufe cha kupakua (Download), tafadhali niandikie hapa **Namba ya Simu** uliyofanyia malipo (mfano: 07XXXXXXXX au 06XXXXXXXX) au **Order ID** yako, nami nitakagua mfumo mara moja na kukupa access papo hapo!'
-        };
-    }
-
-    // Search payments in Firestore / local DB
+    // Search payments in Firestore / local DB automatically without demanding user input
     let payments = [];
     if (fsdb) {
         try {
@@ -1692,6 +1634,10 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
                     if (payments.length > 0) break;
                 }
             }
+            if (payments.length === 0 && userId) {
+                const snap4 = await fsdb.collection('payments').where('userId', '==', userId).limit(5).get();
+                snap4.forEach(d => payments.push({ id: d.id, ...d.data() }));
+            }
         } catch (dbErr) {
             console.warn('Payment search notice:', dbErr.message);
         }
@@ -1705,6 +1651,7 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
             payments = localList.filter(p => {
                 if (extractedOrderId && (p.id === extractedOrderId || p.order_id === extractedOrderId || p.merchantReference === extractedOrderId)) return true;
                 if (phoneVariations.length > 0 && phoneVariations.includes(p.phone)) return true;
+                if (userId && p.userId === userId) return true;
                 return false;
             });
         } catch (_) {}
@@ -1715,9 +1662,18 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
 
     if (payments.length > 0) {
         const p = payments[0];
-        const status = String(p.status || '').toLowerCase();
-        const contentName = p.contentTitle || 'mchezo wako';
+        let status = String(p.status || '').toLowerCase();
+        const contentName = p.contentTitle || 'mchezo/filamu yako';
         const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+        const searchPhone = p.phone || extractedPhone || userPhone;
+
+        // If status in record was pending, do a live check in case webhook just arrived
+        if (status === 'pending' && p.id && fsdb) {
+            const pDoc = await fsdb.collection('payments').doc(p.id).get();
+            if (pDoc.exists && ['completed', 'success'].includes((pDoc.data()?.status || '').toLowerCase())) {
+                status = 'completed';
+            }
+        }
 
         if (status === 'completed' || status === 'success' || status === 'complete') {
             // GRANT ACCESS INSTANTLY!
@@ -1725,37 +1681,57 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
                 if (userId && !p.userId) p.userId = userId;
                 await grantAccessForPayment(p);
 
-                // If a logged-in userId exists and is different, ensure they also get an active subscription
-                if (userId && fsdb) {
+                let durationDays = 30;
+                const cId = p.contentId || '';
+                if (cId === 'adult-section-access') durationDays = 5;
+                else if (cId === 'live-tv-access') durationDays = 30;
+                else if (cId === 'movies-package-mikumi') durationDays = 1;
+                else if (cId === 'movies-package-ngorongoro') durationDays = 7;
+                else if (cId === 'movies-package-serengeti' || cId === 'movies-access') durationDays = 30;
+
+                const targetUid = userId || p.userId || p.uid || searchPhone;
+                if (fsdb && targetUid) {
                     const now = new Date();
-                    const expiresAt = new Date();
-                    expiresAt.setDate(expiresAt.getDate() + 30);
+                    const expiresAt = new Date(Date.now() + durationDays * 86400000);
                     const subId = 'SUB-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
                     await fsdb.collection('subscriptions').doc(subId).set({
                         id: subId,
-                        userId,
-                        contentId: p.contentId || '',
+                        userId: targetUid,
+                        contentId: cId,
                         orderId: p.order_id || p.id || '',
                         contentTitle: contentName,
-                        durationDays: 30,
+                        durationDays,
                         createdAt: now.toISOString(),
                         expiresAt: expiresAt.toISOString(),
                         grantedByAI: true
                     }).catch(() => {});
+
+                    if (cId.startsWith('movies-package-') || cId === 'movies-access') {
+                        const mSubId = 'SUB-MOVIES-' + targetUid;
+                        await fsdb.collection('subscriptions').doc(mSubId).set({
+                            id: mSubId,
+                            userId: targetUid,
+                            contentId: 'movies-access',
+                            packageId: cId,
+                            orderId: p.order_id || p.id || '',
+                            createdAt: now.toISOString(),
+                            expiresAt: expiresAt.toISOString(),
+                            grantedByAI: true
+                        }, { merge: true }).catch(() => {});
+                    }
                 }
 
                 // Log this automated grant event
-                const grantRecord = {
-                    id: 'grant_' + Date.now(),
-                    phone: p.phone || extractedPhone,
-                    orderId: p.order_id || p.id || '',
-                    contentTitle: contentName,
-                    amount: p.amount || 0,
-                    userId: userId || p.userId || '',
-                    timestamp: new Date().toISOString()
-                };
                 if (fsdb) {
-                    fsdb.collection('ai_access_grants').add(grantRecord).catch(() => {});
+                    fsdb.collection('ai_access_grants').add({
+                        id: 'grant_' + Date.now(),
+                        phone: searchPhone,
+                        orderId: p.order_id || p.id || '',
+                        contentTitle: contentName,
+                        amount: p.amount || 0,
+                        userId: targetUid,
+                        timestamp: new Date().toISOString()
+                    }).catch(() => {});
                 }
             } catch (grantErr) {
                 console.error('Error granting access by AI:', grantErr.message);
@@ -1763,26 +1739,35 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
 
             return {
                 handled: true,
-                reply: `✅ UHAKIKI UMEKAMILIKA!\n\nMalipo yako ya Tsh ${amountStr} kwa ajili ya "${contentName}" yamehakikiwa kikamilifu kwenye mfumo wetu.\n\n🔓 NIMEKUPA ACCESS (RUHUSA) PAPO HAPO!\n\nTafadhali fungua upya (Refresh) ukurasa wa "${contentName}" au nenda kwenye ukurasa wa Akaunti/Downloads. Kitufe cha kupakua (Download) sasa kipo wazi na tayari kutumika. Furahia mchezo wako!`
+                accessGranted: true,
+                contentId: p.contentId,
+                reply: `✅ Nimehakiki malipo yako na tayari nimekupa access papo hapo!\n\nMalipo yako ya Tsh ${amountStr} kwa ajili ya "${contentName}" yamethibitishwa kikamilifu. Sasa unaweza kufungua ukurasa wa "${contentName}" na kuanza kupakua au kutazama mara moja bila kizuizi chochote. Karibu sana!`
             };
         } else if (status === 'pending') {
             return {
                 handled: true,
-                reply: `⏳ Muamala wako wa Tsh ${amountStr} kwa ajili ya "${contentName}" bado unaonekana unachakatwa (Status: Pending / Inasubiri PIN).\n\nTafadhali hakikisha umeweka PIN kwenye simu yako ili kukamilisha malipo. Mara baada ya sekunde chache ukiweka PIN, fanya refresh kwenye ukurasa au uniandikie tena namba yako hapa nami nitakupa access mara moja!`
+                reply: `Hujakamilisha malipo. Muamala wako wa Tsh ${amountStr} kwa ajili ya "${contentName}" bado unangoja uthibitisho (PIN) kwenye simu yako (${searchPhone}). Tafadhali weka namba yako ya siri (PIN) ili ukamilishe muamala huo na upate huduma mara moja.`
             };
-        } else if (status === 'failed' || status === 'cancelled') {
+        } else {
             return {
                 handled: true,
-                reply: `⚠️ Uhakiki wa malipo ya namba ${p.phone || extractedPhone}: Mfumo unaonyesha kuwa muamala huu haukukamilika (Status: Failed / Cancelled).\n\nKama fedha zimekatwa kwenye simu yako kimakosa, tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu ili Admin aweze kukuhakikia mara moja.`
+                reply: `Hujakamilisha malipo. Mfumo unaonyesha muamala wako wa "${contentName}" haukufanikiwa au ulikataliwa kwenye mtandao wa simu. Tafadhali jaribu kulipia tena kwa kubonyeza "Lipa Sasa" au wasiliana nasi kwa usaidizi zaidi.`
             };
         }
     }
 
-    // Payment not found
-    const identifier = extractedPhone || extractedOrderId;
+    // If completely unknown visitor with no identifiers at all
+    if (!extractedPhone && !extractedOrderId && !userId) {
+        return {
+            handled: true,
+            reply: `Hujakamilisha malipo au namba yako ya simu haijatambuliwa. Kama tayari umefanya malipo kwenye simu, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) nami nitakuhakikia na kukupa access papo hapo bila kuchelewa.`
+        };
+    }
+
+    // Payment not found for known user/phone
     return {
         handled: true,
-        reply: `🔍 Samahani, sijafanikiwa kuona kumbukumbu ya malipo yaliyokamilika kwa namba au Order ID hiyo (${identifier}).\n\nTafadhali hakikisha umeandika namba sahihi uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) au tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu ili Admin aweze kukusaidia moja kwa moja.`
+        reply: `Hujakamilisha malipo. Hakuna kumbukumbu ya malipo iliyopatikana kwenye akaunti yako. Tafadhali bonyeza "Lipa Sasa" kwenye maudhui au kifurushi unachotaka ili kukamilisha malipo na kupata access papo hapo.`
     };
 }
 
@@ -1810,12 +1795,16 @@ app.post('/api/support/chat', async (req, res) => {
                 isPaymentAction: true,
                 ip: req.ip || req.headers['x-forwarded-for'] || 'local'
             };
+            logEntry.accessGranted = !!paymentCheck.accessGranted;
+            logEntry.contentId = paymentCheck.contentId || '';
             appendAIChatLog(logEntry);
             if (fsdb) fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
 
             return res.json({
                 success: true,
                 reply: paymentCheck.reply,
+                accessGranted: !!paymentCheck.accessGranted,
+                contentId: paymentCheck.contentId || '',
                 botName: knowledge.botName || 'rajabsynic ai agent'
             });
         }
