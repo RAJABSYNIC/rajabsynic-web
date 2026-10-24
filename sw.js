@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v27-complete-ai-intelligence';
+const CACHE_NAME = 'rajabsynic-v28-abood-fuzzy-lipasasa';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

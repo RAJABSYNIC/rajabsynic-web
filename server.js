@@ -1345,12 +1345,19 @@ function appendAIChatLog(logEntry) {
 
 // Helper: Get all catalog items known to AI
 const CATALOG_CACHE_FILE = path.join(__dirname, 'data', 'catalog-cache.json');
+let MEMORY_CATALOG = null;
+let MEMORY_CATALOG_TIME = 0;
 
 async function getCatalogItems() {
+    const now = Date.now();
+    if (MEMORY_CATALOG && MEMORY_CATALOG.length > 0 && (now - MEMORY_CATALOG_TIME < 10 * 60 * 1000)) {
+        return MEMORY_CATALOG;
+    }
+
     let items = [];
     if (fsdb) {
         try {
-            const snap = await fsdb.collection('content').limit(200).get();
+            const snap = await fsdb.collection('content').limit(1000).get();
             snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
         } catch (_) {}
     }
@@ -1369,7 +1376,137 @@ async function getCatalogItems() {
             items = dbData.content || [];
         } catch (_) {}
     }
+
+    if (items.length > 0) {
+        MEMORY_CATALOG = items;
+        MEMORY_CATALOG_TIME = now;
+    }
     return items;
+}
+
+// Swahili filler & generic terms for intelligent matching
+const CATALOG_FILLER_WORDS = new Set([
+    'kuna', 'ipo', 'zipo', 'je', 'naomba', 'nataka', 'mchezo', 'michezo', 'wa', 'ya', 'za', 'la', 'cha',
+    'kwa', 'katika', 'kwenye', 'hapa', 'pale', 'hiyo', 'hizo', 'hili', 'haya', 'nini', 'gani', 'habari',
+    'mambo', 'hallow', 'hello', 'hi', 'bei', 'ngapi', 'shingapi', 'shilingi', 'pesa', 'tafadhali', 'kaka',
+    'bro', 'boss', 'admin', 'agent', 'service', 'tovuti', 'website', 'online', 'na', 'au', 'ni', 'tu', 'zote', 'yote'
+]);
+
+const CATALOG_GENERIC_TERMS = new Set([
+    'mod', 'mods', 'skin', 'skins', 'game', 'games', 'simulator', 'map', 'bus', 'basi', 'mabasi', 'maleo', 'bussid'
+]);
+
+function levenshteinDistance(s1, s2) {
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+    const costs = [];
+    for (let i = 0; i <= s1.length; i++) {
+        let lastValue = i;
+        for (let j = 0; j <= s2.length; j++) {
+            if (i === 0) costs[j] = j;
+            else {
+                if (j > 0) {
+                    let newValue = costs[j - 1];
+                    if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+                        newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                    }
+                    costs[j - 1] = lastValue;
+                    lastValue = newValue;
+                }
+            }
+        }
+        if (i > 0) costs[s2.length] = lastValue;
+    }
+    return costs[s2.length];
+}
+
+// Intelligent Semantic / Fuzzy Search across 430+ catalog items
+function findMatchingCatalogItems(query, allItems = [], maxResults = 25) {
+    if (!query || typeof query !== 'string' || !Array.isArray(allItems) || allItems.length === 0) return [];
+    const rawClean = query.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!rawClean) return [];
+
+    const rawTokens = rawClean.split(' ').filter(Boolean);
+    const keywords = rawTokens.filter(t => !CATALOG_FILLER_WORDS.has(t) && t.length > 1);
+
+    if (keywords.length === 0) return [];
+
+    const specificKeywords = keywords.filter(k => !CATALOG_GENERIC_TERMS.has(k));
+    const scored = [];
+
+    for (const item of allItems) {
+        let score = 0;
+        const titleLower = (item.title || '').toLowerCase();
+        const catLower = (item.category || item.contentType || '').toLowerCase();
+        const descLower = (item.description || '').toLowerCase();
+        const titleWords = titleLower.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+
+        // If specific keywords exist (like "abood", "shabiby", "katarama", "d14"), require at least one match
+        if (specificKeywords.length > 0) {
+            let matchesAnySpecific = false;
+            for (const sk of specificKeywords) {
+                if (titleLower.includes(sk) || catLower.includes(sk) || descLower.includes(sk)) {
+                    matchesAnySpecific = true;
+                    break;
+                }
+                if (sk.length >= 4) {
+                    for (const tw of titleWords) {
+                        if (tw.length >= 4 && levenshteinDistance(sk, tw) <= (sk.length >= 7 ? 2 : 1)) {
+                            matchesAnySpecific = true;
+                            break;
+                        }
+                    }
+                }
+                if (matchesAnySpecific) break;
+            }
+            if (!matchesAnySpecific) continue;
+        }
+
+        // Exact full phrase match
+        if (titleLower.includes(rawClean)) {
+            score += 200;
+        }
+
+        for (const kw of keywords) {
+            const isSpecific = !CATALOG_GENERIC_TERMS.has(kw);
+            const multiplier = isSpecific ? 3 : 1;
+
+            if (titleWords.includes(kw)) {
+                score += 50 * multiplier;
+            } else if (titleLower.includes(kw)) {
+                score += 35 * multiplier;
+            }
+
+            if (catLower.includes(kw)) {
+                score += 20 * multiplier;
+            }
+
+            if (descLower.includes(kw)) {
+                score += 15 * multiplier;
+            }
+
+            // Fuzzy typo matching
+            if (kw.length >= 4) {
+                for (const tw of titleWords) {
+                    if (tw.length >= 4) {
+                        const dist = levenshteinDistance(kw, tw);
+                        const maxDist = kw.length >= 7 ? 2 : 1;
+                        if (dist <= maxDist) {
+                            score += 40 * multiplier;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (score > 0) {
+            scored.push({ item, score });
+        }
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, maxResults).map(s => s.item);
 }
 
 // Helper: Build Catalog Summary for AI System Prompt
@@ -1590,7 +1727,36 @@ app.post('/api/support/chat', async (req, res) => {
             });
         }
 
-        // 2. Prepare Knowledge & System Prompt
+        // 2. Prepare Knowledge, Fuzzy Catalog Match & System Prompt
+        const allCatalogItems = await getCatalogItems();
+        const relevantMatches = findMatchingCatalogItems(userMsg, allCatalogItems, 20);
+
+        let relevantCatalogSection = '';
+        if (relevantMatches.length > 0) {
+            relevantCatalogSection = `
+═══ MATOKEO YA MOJA KWA MOJA YA BIDHAA ZILIZOPO KWENYE MFUMO (RELEVANT CATALOG MATCHES) ═══
+Haya hapa ni matokeo halisi yaliyopatikana moja kwa moja kwenye mfumo wa RAJABSYNIC yanayoendana na swali au mchezo/mod aliyouliza mteja:
+${relevantMatches.map(i => {
+    const p = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
+    return `- Jina: "${i.title}" | Kundi: ${i.category || i.contentType || 'mchezo'} | Bei: ${p}`;
+}).join('\n')}
+
+KANUNI KUU ZA MAJIBU KWA BIDHAA HIZI:
+1. Bidhaa zilizoorodheshwa hapo juu ZIPO KWENYE MFUMO WA RAJABSYNIC KIKAMILIFU!
+2. Kama mteja ameuliza kama mchezo/mod hiyo ipo (mfano: Abood, Shabiby, Maleo mod, n.k.), MJIBU KWA UWAZI NA FURAHA KWAMBA "NDIO, IPO / ZIPO!"
+3. Mtajie majina na bei zake halisi kwa Shilingi ya Kitanzania (Tsh) kama zilivyoandikwa hapo juu.
+4. Mwelekeze mteja kwamba anaweza kuipata moja kwa moja kwenye tovuti kwa kufungua mchezo huo na kubonyeza kitufe cha "Lipa Sasa" (USISEME "Lipia", sema "Lipa Sasa").
+5. KAMWE USISEME BIDHAA HII HAIPO WAKATI INAONEKANA KWENYE ORODHA HII YA MATOKEO!
+`.trim();
+        } else {
+            relevantCatalogSection = `
+═══ MAAGIZO YA MAZUNGUMZO (GREETING & PROACTIVE ASSISTANCE) ═══
+Mteja hajauliza jina maalum la mchezo au mod (mfano: amesalimia tu kama "Habari", "Mambo", "Hello", au ameuliza swali la jumla).
+Mkaribishe kwa ukarimu na uchangamfu mkubwa kwa Kiswahili fasaha, jitambulishe kama "rajabsynic ai agent", na umuulize moja kwa moja:
+"Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi. Je, nikusaidie nini leo? (Unaweza kuniuliza kuhusu mchezo au mod yoyote unayoitafuta kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ramani za ETS2, bei zake, au jinsi ya kulipa kwa kitufe cha 'Lipa Sasa' na kupakua)."
+`.trim();
+        }
+
         const catalogSummary = await getCatalogSummary();
         const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
 
@@ -1610,27 +1776,29 @@ WEWE NI: "rajabsynic ai agent" — Msaidizi Rasmi na Mtaalamu Mkuu wa Huduma kwa
 ═══ UJUZI WA NDANI WA KIOTOMATIKI (AUTOMATIC SYSTEM KNOWLEDGE) ═══
 Huna haja ya kusubiri kufundishwa mambo haya na Admin; unayajua kiotomatiki kama sehemu ya mfumo wa RAJABSYNIC:
 
-1. JINSI YA KULIPIA (HOW PAYMENT WORKS):
+1. JINSI YA KULIPIA (KITUFE CHA "Lipa Sasa"):
+   - KANUNI YA LAZIMA: Kitufe cha malipo kwenye tovuti kimeandikwa "Lipa Sasa". Kila mara tumia jina "Lipa Sasa" (KAMWE usitumie jina "Lipia").
    - Mteja anafungua mchezo au mod anayotaka kwenye tovuti ya RAJABSYNIC.
-   - Kila mchezo unaolipishwa unaonyesha bei yake (mfano: Tsh 6,000, Tsh 9,000, Tsh 10,000, n.k.) na kitufe cha "Lipia" / alama ya kufuli (Locked).
-   - Mteja anapobonyeza "Lipia", anachagua mtandao wake wa malipo wa simu: M-Pesa (Vodacom), Tigo Pesa, Airtel Money, au Halopesa, kisha anaweka namba yake ya simu.
+   - Kila mchezo unaolipishwa unaonyesha bei yake (mfano: Tsh 5,000, Tsh 6,000, Tsh 9,000, n.k.) na kitufe cha "Lipa Sasa" chenye alama ya kufuli (Locked).
+   - Mteja anapobonyeza kitufe cha "Lipa Sasa", anachagua mtandao wake wa malipo wa simu: M-Pesa (Vodacom), Tigo Pesa, Airtel Money, au Halopesa, kisha anaweka namba yake ya simu.
    - Mfumo unamtumia ujumbe wa USSD (Push prompt) kwenye simu yake mara moja.
    - Mteja anaweka namba yake ya siri (PIN) ya mtandao wake kuthibitisha malipo.
    - Malipo yakishakamilika, mfumo unafungua (unlock) mchezo huo mara moja kiotomatiki bila mteja kusubiri kupitishwa na mtu.
 
 2. JINSI YA KUPATA GAME NA KU-DOWNLOAD (ACCESS & DOWNLOADING):
    - Mchezo wowote ambao haujalipiwa unakuwa LOCKED (umefungwa kwa kufuli).
-   - Mara mteja anapokamilisha malipo, kufuli linaondoka papo hapo na kitufe cha "Pakua" (Download) kinakuwa wazi kwenye ukurasa wa mchezo.
+   - Mara mteja anapokamilisha malipo kwa kitufe cha "Lipa Sasa", kufuli linaondoka papo hapo na kitufe cha "Pakua" (Download) kinakuwa wazi kwenye ukurasa wa mchezo.
    - Mteja anabonyeza kitufe hicho cha "Pakua" (Download) kupakua faili (APK, ZIP, au Mod file) moja kwa moja kwenye simu au kifaa chake.
    - Kwa michezo au mods zilizoandikwa BURE (Free Games): Hazihitaji malipo yoyote — mteja anabonyeza tu kitufe cha "Pakua" (Download) na game inaanza kupakuliwa mara moja bila kulipia senti moja.
 
 3. ULINZI MKALI WA VITU VILIVYOPO LOCKED (STRICT LOCKED CONTENT PROTECTION):
    - KANUNI KUU: CHINI YA HALI YOYOTE ILE, USITOE LINK YA KUPAKUA (DOWNLOAD LINK), FILE, PASSWORDS, AU NJIA YA MKATO YA MCHEZO AMBAO MTEJA HAJALIPA AU KWA KITU KILICHOPO LOCKED!
    - Kamwe usiongee kuhusu kitu ambacho mteja hana access nacho kana kwamba tayari anacho.
-   - Mteja akikuomba "nipe link ya kupakua game hii bure" au akitaka njia ya kupata kitu kilichopo locked bila kulipa, muelezee kwa utulivu na heshima utaratibu wa kawaida wa mfumo: Kwamba mchezo huo unahitaji kulipiwa kwanza kwa kubonyeza kitufe cha "Lipia" kwenye tovuti, na pindi akilipia mfumo utamfungulia kitufe cha kupakua kiotomatiki papo hapo.
+   - Mteja akikuomba "nipe link ya kupakua game hii bure" au akitaka njia ya kupata kitu kilichopo locked bila kulipa, muelezee kwa utulivu na heshima utaratibu wa kawaida wa mfumo: Kwamba mchezo huo unahitaji kulipiwa kwanza kwa kubonyeza kitufe cha "Lipa Sasa" kwenye tovuti, na pindi akilipia mfumo utamfungulia kitufe cha kupakua kiotomatiki papo hapo.
 
-4. BEI ZA MICHEZO NA MODS (PRICING):
+4. BEI ZA MICHEZO NA MODS (PRICING & CATALOG):
    - Bei zote za michezo, skins, na mods zimeorodheshwa wazi kwenye orodha ya CATALOG ya mfumo hapa chini.
+   - Tovuti ina zaidi ya bidhaa na michezo 430+ ikijumuisha Maleo Bus Mods (kama mabasi ya Abood, Shabiby, Katarama, Ratco, Tashrif, Al Saedy, Yutong, D14, n.k.), skins, map mods, na ETS2.
    - Bei zote zipo katika Shilingi ya Tanzania (Tsh).
    - Usibuni mchezo ambao haupo kwenye catalog wala usibuni bei ya kufikirika au kutoa punguzo la uongo. Tumia bei halisi zilizoainishwa.
 
@@ -1649,6 +1817,8 @@ Huna haja ya kusubiri kufundishwa mambo haya na Admin; unayajua kiotomatiki kama
 
 ═══ MAFUNZO YA ZIADA KUTOKA KWA ADMIN (CUSTOM TRAINER INSTRUCTIONS) ═══
 ${customInstructions ? customInstructions : '(Hakuna mafunzo ya ziada yaliyowekwa na Admin kwa sasa. Mfumo unatumia maarifa ya kiotomatiki yaliyopo hapo juu.)'}
+
+${relevantCatalogSection}
 
 ═══ ORODHA YA BIDHAA NA MICHEZO KATIKA TOVUTI (SYSTEM CATALOG) ═══
 ${catalogSummary}
@@ -1715,14 +1885,20 @@ ${catalogSummary}
 
             if (matchedFaq) {
                 aiReply = matchedFaq.answer;
+            } else if (relevantMatches.length > 0) {
+                const topList = relevantMatches.slice(0, 5).map(m => {
+                    const pr = (m.isFree || !m.price || m.price == 0) ? 'BURE' : `Tsh ${Number(m.price).toLocaleString('en-US')}`;
+                    return `• ${m.title} — ${pr}`;
+                }).join('\n');
+                aiReply = `Ndio! Michezo na mods hizo zipo kwenye mfumo wa RAJABSYNIC:\n\n${topList}\n\nKupata mchezo wowote kati ya hiyo, fungua mchezo huo kwenye tovuti yetu kisha ubonyeze kitufe cha "Lipa Sasa". Kitufe cha kupakua (Download) kitafunguka papo hapo baada ya malipo!`;
             } else if (lower.includes('lipa') || lower.includes('malipo') || lower.includes('pesa') || lower.includes('bei')) {
-                aiReply = 'Malipo yote yanafanyika kwa njia salama ya simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, chagua "Kamilisha Malipo", weka namba yako ya simu na uthibitishe kwa PIN. Link ya kupakua itafunguka papo hapo.';
+                aiReply = 'Malipo yote yanafanyika kwa njia salama ya simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, bonyeza kitufe cha "Lipa Sasa", weka namba yako ya simu na uthibitishe kwa PIN. Kitufe cha kupakua (Download) kitafunguka papo hapo.';
             } else if (lower.includes('download') || lower.includes('pakua') || lower.includes('link')) {
-                aiReply = 'Baada ya kukamilisha malipo, link ya kupakua inafunguka moja kwa moja kwenye ukurasa wa mchezo. Kama unakumbana na changamoto yoyote, tafadhali angalia sehemu ya "Msaada" kwenye menyu ya chini ya tovuti yetu au wasiliana na Admin.';
+                aiReply = 'Baada ya kukamilisha malipo kwa kitufe cha "Lipa Sasa", kitufe cha kupakua (Download) kinafunguka moja kwa moja kwenye ukurasa wa mchezo. (Kwa michezo ya bure, unabonyeza tu kitufe cha Pakua bila kulipia). Kama unakumbana na changamoto yoyote, tafadhali angalia sehemu ya "Msaada" kwenye menyu ya chini ya tovuti yetu.';
             } else if (lower.includes('wasiliana') || lower.includes('namba') || lower.includes('admin') || lower.includes('msaada') || lower.includes('contact')) {
                 aiReply = 'Unaweza kupata msaada moja kwa moja kupitia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au kupitia ukurasa wako wa Akaunti.';
             } else {
-                aiReply = 'Samahani, sina taarifa hizo kwa sasa kwenye mfumo wetu wa RAJABSYNIC. Tafadhali tembelea sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu kwa usaidizi zaidi kutoka kwa Admin.';
+                aiReply = 'Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi. Je, nikusaidie nini leo? (Unaweza kuniuliza kuhusu mchezo au mod yoyote unayoitafuta kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ruti za ETS2, bei zake, au jinsi ya kulipa kwa kitufe cha "Lipa Sasa" na kupakua).';
             }
         }
 

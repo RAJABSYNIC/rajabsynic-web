@@ -736,7 +736,7 @@ class AIChatWidget {
     }
 
     sendWelcomeMessage() {
-        const welcomeText = `Habari! Karibu **RAJABSYNIC** (Movies & Games). 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi. Unaweza kuniuliza kuhusu:\n- 🎮 Michezo inayovuma na bei zake\n- 🚌 Maleo Bus Mods na Map Mods\n- 💳 Jinsi ya kufanya malipo salama kwa simu\n- 📥 Msaada wa kupakua faili\n\nNikusaidie nini leo?`;
+        const welcomeText = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.\n\nJe, nikusaidie nini leo? Unaweza kuniuliza kuhusu:\n- 🎮 Mchezo au mod yoyote unayoitafuta na bei zake (kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ramani za ETS2, au michezo ya bure)\n- 💳 Jinsi ya kulipia kwa urahisi kwa kubonyeza kitufe cha **'Lipa Sasa'**\n- 📥 Jinsi ya kupakua (Download) baada ya kulipa\n- ⚡ Uhakiki wa papo hapo wa malipo yako kama ulishalipa na bado mchezo umefungwa.\n\nUngependa nikuonyeshe au nikusaidie kuhusu mchezo gani leo?`;
         this.appendMessage('bot', welcomeText, false);
     }
 

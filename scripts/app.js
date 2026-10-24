@@ -589,7 +589,7 @@ class Router {
                     <button onclick="window.app.showPaymentInstructions('${item.id}', '${(item.title || '').replace(/'/g, '')}', ${totalPaid > 0 ? (item.price || 0) - totalPaid : (item.price || 0)}, ${item.price || 0})" 
                             style="width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; border-radius:14px; padding:18px 20px; color:#000; font-weight:800; font-size:1.1rem; display:flex; align-items:center; justify-content:center; gap:12px; cursor:pointer; text-transform:uppercase; margin-bottom:15px; box-shadow:0 4px 15px rgba(245,158,11,0.3);">
                         <ion-icon name="lock-closed" style="font-size:1.4rem;"></ion-icon>
-                        ${totalPaid > 0 ? `MALIZIA TSH ${((item.price || 0) - totalPaid).toLocaleString()}` : `LIPIA SASA — Tsh ${(item.price || 0).toLocaleString()}`}
+                        ${totalPaid > 0 ? `MALIZIA TSH ${((item.price || 0) - totalPaid).toLocaleString()}` : `LIPA SASA — Tsh ${(item.price || 0).toLocaleString()}`}
                     </button>
 
                     <!-- Video ya Maonyesho (Gameplay Preview) - inaonekana kabla ya malipo -->
@@ -599,7 +599,7 @@ class Router {
                         <div style="position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; background:#000; border:1px solid #374151;">
                             <iframe src="${previewGameplayUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                         </div>
-                        <p style="color:#6b7280; font-size:0.78rem; text-align:center; margin-top:6px;">📌 Hii ni video ya maonyesho tu — lipia kupata download links</p>
+                        <p style="color:#6b7280; font-size:0.78rem; text-align:center; margin-top:6px;">📌 Hii ni video ya maonyesho tu — bonyeza Lipa Sasa kupata download links</p>
                     </div>` : ''}
 
                     <!-- Maelezo -->
@@ -1080,7 +1080,7 @@ class Router {
                             <button onclick="window.app.openPaymentModal('adult-section-access', '18+ Premium Access (Siku ${ADULT_DURATION})', ${totalPaid > 0 ? ADULT_PRICE - totalPaid : ADULT_PRICE}, ${ADULT_PRICE})"
                                 style="width:100%; background:linear-gradient(135deg,#dc2626,#991b1b); border:none; border-radius:14px; padding:18px 20px; color:#fff; font-weight:800; font-size:1.1rem; display:flex; align-items:center; justify-content:center; gap:12px; cursor:pointer; text-transform:uppercase; box-shadow:0 4px 20px rgba(220,38,38,0.35); margin-bottom:15px;">
                                 <ion-icon name="lock-open" style="font-size:1.4rem;"></ion-icon>
-                                ${totalPaid > 0 ? `MALIZIA TSH ${(ADULT_PRICE - totalPaid).toLocaleString()}` : 'LIPIA SASA — FUNGUA SEHEMU HII'}
+                                ${totalPaid > 0 ? `MALIZIA TSH ${(ADULT_PRICE - totalPaid).toLocaleString()}` : 'LIPA SASA — FUNGUA SEHEMU HII'}
                             </button>
                         </div>
 
