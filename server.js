@@ -1440,8 +1440,30 @@ const CATALOG_FILLER_WORDS = new Set([
     'kuna', 'ipo', 'zipo', 'je', 'naomba', 'nataka', 'mchezo', 'michezo', 'wa', 'ya', 'za', 'la', 'cha',
     'kwa', 'katika', 'kwenye', 'hapa', 'pale', 'hiyo', 'hizo', 'hili', 'haya', 'nini', 'gani', 'habari',
     'mambo', 'hallow', 'hello', 'hi', 'bei', 'ngapi', 'shingapi', 'shilingi', 'pesa', 'tafadhali', 'kaka',
-    'bro', 'boss', 'admin', 'agent', 'service', 'tovuti', 'website', 'online', 'na', 'au', 'ni', 'tu', 'zote', 'yote'
+    'bro', 'boss', 'admin', 'agent', 'service', 'tovuti', 'website', 'online', 'na', 'au', 'ni', 'tu', 'zote', 'yote',
+    'kwanini', 'mbona', 'sababu', 'vipi', 'jinsi', 'namna', 'lini', 'wapi', 'nani', 'maana', 'inamaanisha',
+    'simu', 'simuni', 'phone', 'android', 'ios', 'pc', 'kompyuta', 'computer',
+    'tatizo', 'shida', 'inachemka', 'moto', 'joto', 'inaganda', 'inakwama', 'haifanyi', 'haikubali', 'haiwaki',
+    'haifunguki', 'haiingii', 'haijafunguka', 'inazima', 'inagoma', 'hitilafu', 'error', 'not', 'installed', 'app',
+    'nifanyeje', 'kufanya', 'msaada', 'saidia', 'nisaidie', 'tatua', 'suluhisho', 'suluhu',
+    'nacheza', 'kucheza', 'kuweka', 'nitaweka', 'nifungue', 'kufungua', 'kupakua', 'kudownload', 'download',
+    'install', 'kusakinisha', 'kuingiza', 'kuondoa', 'futa', 'kufuta', 'clear', 'cache',
+    'sana', 'nikiwa', 'yangu', 'yako', 'wangu', 'wako', 'hiki', 'kitu', 'kila', 'mara'
 ]);
+
+function isTroubleshootingOrTechQuestion(text) {
+    if (!text || typeof text !== 'string') return false;
+    const lower = text.toLowerCase();
+    const troublePatterns = [
+        'kwanini', 'kwa nini', 'mbona', 'sababu', 'tatizo', 'shida', 'hitilafu', 'error',
+        'inachemka', 'inapata moto', 'joto', 'inaganda', 'inakwama', 'inazima', 'inagoma',
+        'haifanyi', 'haikubali', 'haiwaki', 'haifunguki', 'haiingii', 'haijafunguka',
+        'app not installed', 'not installed', 'package installer', 'play protect',
+        'nifanyeje', 'nifanye nini', 'suluhisho', 'jinsi ya kutatua', 'kurekebisha',
+        'namna ya kurekebisha', 'msaada', 'nisaidie', 'kwanini game', 'kwanini simu'
+    ];
+    return troublePatterns.some(p => lower.includes(p));
+}
 
 const CATALOG_GENERIC_TERMS = new Set([
     'mod', 'mods', 'skin', 'skins', 'game', 'games', 'simulator', 'map', 'bus', 'basi', 'mabasi', 'maleo', 'bussid'
@@ -1814,30 +1836,36 @@ app.post('/api/support/chat', async (req, res) => {
         }
 
         // 2. Prepare Knowledge, Fuzzy Catalog Match & System Prompt
+        const isTrouble = isTroubleshootingOrTechQuestion(userMsg);
         const allCatalogItems = await getCatalogItems();
-        const relevantMatches = findMatchingCatalogItems(userMsg, allCatalogItems, 15);
+        // If user is asking a technical/troubleshooting question, do NOT trigger product catalog matches
+        const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(userMsg, allCatalogItems, 15);
 
         let relevantCatalogSection = '';
         if (relevantMatches.length > 0) {
             relevantCatalogSection = `
 ═══ BIDHAA ZILIZOPO KWENYE MFUMO ZINAZOENDANA NA SWALI (RELEVANT MATCHES) ═══
-Hapa chini ni bidhaa halisi zilizopo kwenye tovuti ya RAJABSYNIC zinazoendana na kile alichouliza mteja:
+Hapa chini ni bidhaa zilizopo kwenye mfumo wa RAJABSYNIC:
 ${relevantMatches.map(i => {
     const p = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
     return `- Jina: "${i.title}" | Kundi: ${i.category || i.contentType || 'mchezo'} | Bei: ${p}`;
 }).join('\n')}
 
-Kama mteja anatafuta mchezo au mod kati ya hizi, mjibu kwa uhakika kwamba ipo, mtajie jina na bei yake kwa Shilingi (Tsh), na umwelekeze kuipata kwa kubonyeza kitufe cha "Lipa Sasa" kwenye ukurasa wa mchezo husika.
-`.trim();
-        } else {
-            relevantCatalogSection = `
-═══ MUONGOZO WA MAZUNGUMZO (CONVERSATION INTELLIGENCE) ═══
-- Chambua na uelewe kwa kina swali au hoja aliyoleta mteja kabla ya kujibu.
-- Jibu moja kwa moja kile mteja alichouliza bila kugeuza mada au kutoa majibu ya kukariri.
-- Kama mteja amesalimia tu (mfano "mambo", "habari"), mkaribishe kwa adabu na umuulize anachohitaji. Lakini kama ameuliza swali mahususi (la kiufundi, kuhusu simu, kuhusu huduma, filamu au michezo), JIBU MOJA KWA MOJA swali lake kwa ufasaha na hoja thabiti!
+KANUNI YA BIDHAA:
+- Tumia majina na bei hizi IKIWA TU mteja anaulizia mchezo au mod husika au bei yake. Mtajie bei yake kwa Shilingi (Tsh) na umwelekeze kuipata kwa kubonyeza kitufe cha "Lipa Sasa" kwenye ukurasa wa mchezo husika.
 `.trim();
         }
 
+        const conversationGuide = `
+═══ MUONGOZO WA MAZUNGUMZO NA AKILI BANDIA (DEEP CONVERSATION INTELLIGENCE) ═══
+- CHAMBUA NA UELEWE KWA KINA KILE MTEJA ANACHOULIZA KABLA YA KUJIBU:
+  * Swali la kiufundi / simu / matatizo (mfano: simu kuchemka, simu kuganda, kumbukumbu kujaa, betri kuisha haraka, app not installed):
+    -> JIBU KWA KINA CHA KITAALAMU NA HOJA ZA KISAYANSI/KITEKNOLOJIA! Eleza kwanini tatizo linatokea na mpe hatua madhubuti za kutatua. USIMTAJIE wala kumpa orodha ya bidhaa au mods kwenye swali la kiufundi!
+  * Utafutaji wa mchezo, mod au filamu:
+    -> Kama anatafuta bidhaa maalum, mthibitishie kama ipo, mtajie bei yake ya Shilingi (Tsh), na mwelekeze kutumia kitufe cha "Lipa Sasa".
+  * Salamu za kawaida (mfano "mambo", "habari"):
+    -> Mkaribishe kwa adabu na uchangamfu kisha muulize unavyoweza kumsaidia leo. Kwenye maswali yanayofuata, jibu moja kwa moja bila kurudia salamu.
+`.trim();
         const catalogSummary = await getCatalogSummary();
         const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
 
@@ -1870,6 +1898,8 @@ Lugha yako kuu ya mawasiliano ni Kiswahili fasaha, chenye staha, heshima, ukomav
 
 ${customInstructionsFormatted ? customInstructionsFormatted : '(Hakuna mafunzo maalum ya ziada yaliyowekwa na Admin kwa sasa.)'}
 ══════════════════════════════════════════════════════════════════
+
+${conversationGuide}
 
 ${relevantCatalogSection}
 
