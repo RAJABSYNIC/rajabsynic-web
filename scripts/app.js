@@ -249,7 +249,7 @@ class Router {
         } else if (cat === 'free') {
             items = this.cachedContent.filter(i => (i.isFree === true || !i.price || i.price == 0) && i.contentType === 'games' && i.category !== 'program-and-app');
         } else if (cat === 'movies') {
-            items = this.cachedContent.filter(i => i.contentType === 'movies' || i.category === 'movies');
+            items = this.cachedContent.filter(i => this.isMovieItem(i));
         } else {
             items = this.cachedContent.filter(i => i.category === cat);
         }
@@ -406,12 +406,26 @@ class Router {
     }
 
     createCard(item) {
-        const isPaid = !item.isFree && item.price;
+        const isMovie = this.isMovieItem(item);
         const isFree = item.isFree;
+        const isPaid = !isFree && item.price;
         const priceLabel = isFree ? '' : (isPaid ? `Tsh ${item.price}` : '');
-        const badgeHTML = isPaid
-            ? `<div class="card-price-badge"><ion-icon name="lock-closed"></ion-icon> ${priceLabel}</div>`
-            : (isFree ? `<div class="card-free-badge">FREE</div>` : '');
+
+        let badgeHTML = '';
+        if (isFree) {
+            badgeHTML = `<div class="card-free-badge">FREE</div>`;
+        } else if (isMovie) {
+            const paidItems = JSON.parse(localStorage.getItem('paid_items') || '[]');
+            const isSubscribed = paidItems.includes('movies-access') ||
+                paidItems.includes('movies-package-mikumi') ||
+                paidItems.includes('movies-package-ngorongoro') ||
+                paidItems.includes('movies-package-serengeti');
+            badgeHTML = isSubscribed
+                ? `<div class="card-price-badge" style="background:rgba(0,255,128,0.2); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="checkmark-circle"></ion-icon></div>`
+                : `<div class="card-price-badge" style="background:rgba(0,0,0,0.8); border:1px solid rgba(0,255,128,0.4); color:#00ff80;"><ion-icon name="lock-closed"></ion-icon></div>`;
+        } else if (isPaid) {
+            badgeHTML = `<div class="card-price-badge"><ion-icon name="lock-closed"></ion-icon> ${priceLabel}</div>`;
+        }
 
         return `
             <div class="media-card" onclick='event.preventDefault(); window.app.router.navigate("details", "${item.id}")'>
@@ -448,7 +462,7 @@ class Router {
             return;
         }
         if (catId === 'movies') {
-            items = this.cachedContent.filter(i => i.contentType === 'movies' || i.category === 'movies');
+            items = this.cachedContent.filter(i => this.isMovieItem(i));
         }
 
         if (catId === 'tanzania-games') {
@@ -1572,7 +1586,7 @@ class Router {
                 id: m1.id,
                 title: m1.title,
                 year: m1.year || 'Kiswahili HD',
-                quality: m1.isFree ? 'Free' : (m1.price ? `Tsh ${m1.price}` : 'Ultra HD'),
+                quality: m1.isFree ? 'Free' : 'Ultra HD',
                 image: m1.image || '/assets/hero-avengers.jpg',
                 tags: [m1.category || 'Action', 'Featured', 'Movie'],
                 description: m1.description || ''
@@ -1584,7 +1598,7 @@ class Router {
                 id: m2.id,
                 title: m2.title,
                 year: m2.year || 'Kiswahili Audio',
-                quality: m2.isFree ? 'Free' : (m2.price ? `Tsh ${m2.price}` : 'Single Movie'),
+                quality: m2.isFree ? 'Free' : 'HD',
                 image: m2.image || '/assets/hero-avengers.jpg',
                 tags: [m2.category || 'Action', 'Trending', 'HD'],
                 description: m2.description || ''
