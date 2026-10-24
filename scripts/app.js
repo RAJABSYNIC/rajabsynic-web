@@ -3161,6 +3161,57 @@ const app = {
         this.showPaymentSection('failed');
     },
 
+    manualVerifyPayment: async function () {
+        const btn = document.getElementById('payment-manual-verify-btn');
+        const orderId = this.currentPaymentData?.orderId;
+        const contentId = this.currentPaymentData?.contentId;
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!orderId && !contentId) {
+            alert('Hakuna taarifa za malipo zinazosubiriwa.');
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<ion-icon name="sync-outline" class="spin" style="font-size:1.3rem;"></ion-icon> <span>Inahakiki malipo...</span>';
+        }
+
+        try {
+            // 1. Check status via server API
+            if (orderId) {
+                try {
+                    const statusRes = await paymentService.checkPaymentStatus(orderId);
+                    if (statusRes && statusRes.payment && (statusRes.payment.status === 'completed' || statusRes.payment.status === 'success')) {
+                        await this.handlePaymentSuccess(orderId);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Manual verify poll warning:', e.message);
+                }
+            }
+
+            // 2. Check subscription in Firestore
+            if (user.uid && contentId) {
+                const sub = await api.checkSubscription(user.uid, contentId);
+                if (sub && sub.hasAccess) {
+                    await this.handlePaymentSuccess(orderId || 'verified-sub');
+                    return;
+                }
+            }
+
+            alert('Malipo yako bado yanachakatwa na mtandao wa simu. Kama umeshaweka PIN, tafadhali subiri sekunde chache kisha bonyeza kitufe hiki tena.');
+        } catch (err) {
+            console.error('Manual verify error:', err);
+            alert('Hitilafu ya mtandao wakati wa kuhakiki. Jaribu tena.');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<ion-icon name="checkmark-circle" style="font-size: 1.3rem;"></ion-icon> <span>NIMESHALIPA — HAKIKI SASA</span>';
+            }
+        }
+    },
+
     cancelPayment: function () {
         if (confirm('Je, una uhakika unataka kughairi malipo haya?')) {
             paymentService.stopPolling();

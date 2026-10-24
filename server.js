@@ -114,18 +114,43 @@ async function requireAdmin(req, res, next) {
 // app). Falls back to local db.json only if the service account key is missing.
 let fsdb = null;
 try {
-    const { initializeApp, cert } = require('firebase-admin/app');
+    const { initializeApp, cert, getApps } = require('firebase-admin/app');
     const { getFirestore } = require('firebase-admin/firestore');
-    const keyPath = process.env.SERVICE_ACCOUNT_PATH || path.join(__dirname, 'serviceAccountKey.json');
-    if (fs.existsSync(keyPath)) {
-        initializeApp({ credential: cert(require(keyPath)) });
+    
+    let serviceAccount = null;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_B64) {
+        try {
+            const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8');
+            serviceAccount = JSON.parse(decoded);
+        } catch (b64Err) {
+            console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_B64:', b64Err.message);
+        }
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        try {
+            serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        } catch (jsonErr) {
+            console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', jsonErr.message);
+        }
+    }
+    
+    if (!serviceAccount) {
+        const keyPath = process.env.SERVICE_ACCOUNT_PATH || path.join(__dirname, 'serviceAccountKey.json');
+        if (fs.existsSync(keyPath)) {
+            serviceAccount = require(keyPath);
+        }
+    }
+    
+    if (serviceAccount) {
+        if (!getApps().length) {
+            initializeApp({ credential: cert(serviceAccount) });
+        }
         fsdb = getFirestore();
-        console.log('✅ Firebase Admin initialized — referral data stored in Firestore');
+        console.log('✅ Firebase Admin initialized — full Firestore access enabled (project: ' + (serviceAccount.project_id || 'rajabsynicmob') + ')');
     } else {
-        console.warn('⚠️  serviceAccountKey.json not found — referral data falls back to local db.json');
+        console.warn('⚠️ serviceAccountKey not found — referral data falls back to local db.json');
     }
 } catch (e) {
-    console.warn('⚠️  Firebase Admin init failed, using local db.json for referral data:', e.message);
+    console.warn('⚠️ Firebase Admin init failed, using local db.json for referral data:', e.message);
 }
 
 // --- API ROUTES ---
@@ -448,28 +473,30 @@ app.get('/api/referral/summary', async (req, res) => {
 app.post('/api/payment/webhook', async (req, res) => {
     const body = req.body || {};
     console.log('📥 Webhook received:', JSON.stringify(body));
-    const reference = body.reference || body.merchantReference || body.order_id;
+    const reference = body.reference || body.merchantReference || body.order_id || body.orderId || body.data?.reference || body.data?.merchantReference || body.data?.order_id || body.id;
     if (!reference) return res.status(400).json({ error: 'Missing reference' });
     try {
         if (!fsdb) {
+            console.error('Webhook Error: fsdb not initialized');
             return res.status(500).json({ error: 'DB not ready' });
         }
-        const TEST_MODE = process.env.TEST_MODE === 'true';
+
+        // Check if webhook reports failure
+        const rawStatus = String(body.status || body.data?.status || body.event || 'COMPLETED').toUpperCase();
+        const isFailed = rawStatus.includes('FAIL') || rawStatus.includes('CANCEL');
 
         // Resolve orderId from reference (could be PAY-... or ORD-...)
         let orderId = reference;
-        // Try to find by merchantReference (ORD-...) first via paymentIndex
         const indexSnap = await fsdb.collection('paymentIndex').doc(reference).get();
         if (indexSnap.exists) {
             orderId = indexSnap.data().orderId;
             console.log(`📥 Webhook: resolved ${reference} -> ${orderId}`);
         }
 
-        // Find the payment doc directly
+        // Find payment doc
         let paymentRef = fsdb.collection('payments').doc(orderId);
         let paymentSnap = await paymentRef.get();
         
-        // Fallback: search by merchantReference or id field
         if (!paymentSnap.exists) {
             const byMerchRef = await fsdb.collection('payments').where('merchantReference', '==', reference).limit(1).get();
             if (!byMerchRef.empty) {
@@ -491,8 +518,13 @@ app.post('/api/payment/webhook', async (req, res) => {
             return res.status(404).send('Not Found');
         }
 
-        const doc = paymentSnap;
-        const payment = doc.data();
+        if (isFailed) {
+            await paymentRef.update({ status: 'failed', updatedAt: new Date().toISOString() });
+            console.log(`❌ Webhook: payment ${orderId} marked failed`);
+            return res.status(200).send('OK');
+        }
+
+        const payment = paymentSnap.data();
 
         if (['completed', 'success'].includes((payment.status || '').toLowerCase())) {
             console.log(`Webhook: payment ${orderId} already processed, skipping`);
@@ -500,28 +532,48 @@ app.post('/api/payment/webhook', async (req, res) => {
         }
 
         // Update payment to completed
-        await paymentRef.update({ status: 'completed' });
+        await paymentRef.update({ 
+            status: 'completed',
+            updatedAt: new Date().toISOString()
+        });
         console.log(`✅ Webhook: payment ${orderId} marked completed`);
 
         const userId = payment.userId || payment.uid;
         const contentId = payment.contentId;
 
         if (userId && contentId) {
-            // Create subscription (idempotent)
-            const existingSubs = await fsdb.collection('subscriptions')
-                .where('orderId', '==', orderId).limit(1).get();
+            let durationDays = 365;
+            if (contentId === 'adult-section-access') durationDays = 5;
+            else if (contentId === 'live-tv-access') durationDays = 30;
+            else if (contentId === 'movies-package-mikumi') durationDays = 1;
+            else if (contentId === 'movies-package-ngorongoro') durationDays = 7;
+            else if (contentId === 'movies-package-serengeti' || contentId === 'movies-access') durationDays = 30;
 
-            if (existingSubs.empty) {
-                const subId = 'SUB-' + orderId;
-                await fsdb.collection('subscriptions').doc(subId).set({
-                    id: subId,
+            const subId = 'SUB-' + orderId;
+            await fsdb.collection('subscriptions').doc(subId).set({
+                id: subId,
+                userId,
+                contentId,
+                contentTitle: payment.contentTitle || '',
+                orderId,
+                createdAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + durationDays * 86400000).toISOString()
+            });
+            console.log(`✅ Webhook: subscription created for user=${userId} content=${contentId} (duration=${durationDays}d)`);
+
+            // If it's a movie package, also grant general movies-access subscription
+            if (contentId.startsWith('movies-package-') || contentId === 'movies-access') {
+                const generalSubId = 'SUB-MOVIES-' + userId;
+                await fsdb.collection('subscriptions').doc(generalSubId).set({
+                    id: generalSubId,
                     userId,
-                    contentId,
+                    contentId: 'movies-access',
+                    packageId: contentId,
                     orderId,
                     createdAt: new Date().toISOString(),
-                    expiresAt: new Date(Date.now() + 31536000000).toISOString()
-                });
-                console.log(`✅ Webhook: subscription created for user=${userId} content=${contentId}`);
+                    expiresAt: new Date(Date.now() + durationDays * 86400000).toISOString()
+                }, { merge: true });
+                console.log(`✅ Webhook: general movies-access granted to user=${userId}`);
             }
 
             // Credit referral

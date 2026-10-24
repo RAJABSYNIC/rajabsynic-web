@@ -313,9 +313,14 @@
                     <p style="color: #6b7280; font-size: 0.9rem;" id="payment-status-text">Inasubiri uthibitisho...
                     </p>
 
-                    <button class="btn btn-secondary" onclick="app.cancelPayment()" style="margin-top: 20px; background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                        Ghairi
-                    </button>
+                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin-left: auto; margin-right: auto;">
+                        <button class="btn btn-primary" id="payment-manual-verify-btn" onclick="app.manualVerifyPayment()" style="width: 100%; background: #00ff80; color: #000; border: none; padding: 13px 18px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 255, 128, 0.35); transition: transform 0.15s ease;">
+                            <ion-icon name="checkmark-circle" style="font-size: 1.3rem;"></ion-icon> NIMESHALIPA — HAKIKI SASA
+                        </button>
+                        <button class="btn btn-secondary" onclick="app.cancelPayment()" style="background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.15); padding: 9px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.88rem;">
+                            Ghairi
+                        </button>
+                    </div>
                 </div>
 
 
@@ -371,7 +376,7 @@
 
     <!-- Scripts -->
     <script type="module" src="scripts/payment.js?v=2"></script>
-    <script type="module" src="scripts/app.js?v=10"></script>
+    <script type="module" src="scripts/app.js?v=11"></script>
     <script type="module" src="scripts/ai-chat.js?v=5"></script>
     
     <!-- Error Detection -->

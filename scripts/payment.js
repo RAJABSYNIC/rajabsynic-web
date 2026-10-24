@@ -141,7 +141,7 @@ class PaymentService {
                 } catch (error) {
                     console.error('Polling check error (retrying...):', error.message);
                 }
-            }, 5000);
+            }, 3000);
 
             // Firebase Listener (Backup/Real-time)
             try {
