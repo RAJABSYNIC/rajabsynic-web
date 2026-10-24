@@ -1317,7 +1317,7 @@ class Router {
         if (item.contentType === 'movies' || item.category === 'movies') return true;
         const cat = (item.category || '').toLowerCase().trim();
         const movieCats = [
-            'hollywood', 'nollywood', 'bongo movie', 'bongo-movie', 'series',
+            'hollywood', 'bollywood', 'nollywood', 'bongo movie', 'bongo-movie', 'series',
             'animation', 'action', 'adventure', 'comedy', 'sci-fi', 'drama',
             'romance', 'horror', 'thriller', 'crime', 'fantasy'
         ];
@@ -1345,6 +1345,9 @@ class Router {
         }
         if (cat === 'nollywood') {
             return itemCat === 'nollywood' || itemTitle.includes('nollywood') || itemDesc.includes('nollywood') || itemTitle.includes('nigeria');
+        }
+        if (cat === 'bollywood') {
+            return itemCat.includes('bollywood') || itemTitle.includes('bollywood') || itemDesc.includes('bollywood') || itemTitle.includes('hindi') || itemTitle.includes('india');
         }
         if (cat === 'bongo-movie' || cat === 'bongo movie') {
             return itemCat.includes('bongo') || itemTitle.includes('bongo') || itemDesc.includes('bongo') || itemTitle.includes('swahili') || itemTitle.includes('kiswahili') || itemTitle.includes('dj ');
@@ -1457,7 +1460,7 @@ class Router {
                         <button class="movies-pill active" data-movie-cat="all" onclick="window.app.router.selectMovieCategory('all')">All</button>
                         <button class="movies-pill" data-movie-cat="hollywood" onclick="window.app.router.selectMovieCategory('hollywood')">Hollywood</button>
                         <button class="movies-pill" data-movie-cat="nollywood" onclick="window.app.router.selectMovieCategory('nollywood')">Nollywood</button>
-                        <button class="movies-pill" data-movie-cat="bongo-movie" onclick="window.app.router.selectMovieCategory('bongo-movie')">Bongo Movie</button>
+                        <button class="movies-pill" data-movie-cat="bollywood" onclick="window.app.router.selectMovieCategory('bollywood')">Bollywood</button>
                         <button class="movies-pill" data-movie-cat="series" onclick="window.app.router.selectMovieCategory('series')">Series</button>
                         <button class="movies-pill" data-movie-cat="animation" onclick="window.app.router.selectMovieCategory('animation')">Animation</button>
                         <button class="movies-pill" data-movie-cat="action" onclick="window.app.router.selectMovieCategory('action')">Action</button>

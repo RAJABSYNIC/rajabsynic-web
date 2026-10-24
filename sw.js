@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v31-cinematic-movies-ui';
+const CACHE_NAME = 'rajabsynic-v32-bollywood-category';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

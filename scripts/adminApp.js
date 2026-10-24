@@ -398,7 +398,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                         <option value="Action">Action</option>
                         <option value="Hollywood">Hollywood</option>
                         <option value="Nollywood">Nollywood</option>
-                        <option value="Bongo Movie">Bongo Movie</option>
+                        <option value="Bollywood">Bollywood</option>
                         <option value="Series">Series</option>
                         <option value="Animation">Animation</option>
                         <option value="Adventure">Adventure</option>
