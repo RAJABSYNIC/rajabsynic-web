@@ -1926,6 +1926,12 @@ ${relevantCatalogSection}
 3. KATAZO LA NAMBA YA SIMU AU WHATSAPP BINAFSI:
    - Chini ya hali yoyote ile, usitoe wala kutaja namba ya simu au kiungo cha WhatsApp binafsi. Mwelekeze kutumia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya tovuti.
 
+4. UELEWA WA PICHA NA SCREENSHOTS (MULTIMODAL VISION):
+   - Mteja akituma picha au picha ya skrini (screenshot): mfano ujumbe wa muamala wa simu (M-Pesa, Tigo Pesa, Airtel Money, Halopesa), hitilafu ya simu kama 'App Not Installed', 'Storage full', au hitilafu ya mchezo.
+   - Ichambue picha hiyo kwa umakini wa hali ya juu! Soma maandishi yote yaliyoandikwa, namba zote, na maelezo yote yanayoonekana.
+   - Mueleze mteja moja kwa moja kile unachokiona kwenye picha hiyo na umpe mwongozo kamili, thabiti na wa hatua kwa hatua wa kutatua changamoto yake.
+   - Kama picha ni risiti ya malipo: Thibitisha namba ya muamala na kiasi kilicholipwa na umwelekeze kupata huduma mara moja.
+
 ═══ CATALOG YA BIDHAA NA MICHEZO (SUMMARY) ═══
 ${catalogSummary}
 `.trim();
@@ -1949,11 +1955,17 @@ ${catalogSummary}
             }
         }
 
-        // Add the latest incoming user message cleanly
+        // Add the latest incoming user message & optional image cleanly
+        const userPromptText = userMsg || (inlineImagePart ? 'Tafadhali kagua picha hii niliyotuma na unisaidie kuelewa, kuchambua na kutatua kile kinachoonekana kwenye picha hii.' : '');
+        const userParts = [{ text: userPromptText }];
+        if (inlineImagePart) {
+            userParts.push(inlineImagePart);
+        }
+
         if (formattedHistory.length === 0 || formattedHistory[formattedHistory.length - 1].role !== 'user') {
-            formattedHistory.push({ role: 'user', parts: [{ text: userMsg }] });
+            formattedHistory.push({ role: 'user', parts: userParts });
         } else {
-            formattedHistory[formattedHistory.length - 1].parts[0].text = userMsg;
+            formattedHistory[formattedHistory.length - 1].parts = userParts;
         }
 
         // Attempt Gemini API call with full reasoning enabled

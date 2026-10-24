@@ -675,17 +675,20 @@ class AIChatWidget {
             });
         });
 
-        // Attachment handler
-        fileInput.addEventListener('change', (e) => {
+        // Attachment handler with client-side canvas compression
+        fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.attachedImage = event.target.result;
-                    document.getElementById('ai-preview-img').src = this.attachedImage;
-                    document.getElementById('ai-attachment-preview').classList.add('show');
-                };
-                reader.readAsDataURL(file);
+                try {
+                    const compressed = await this.compressImage(file);
+                    if (compressed) {
+                        this.attachedImage = compressed;
+                        document.getElementById('ai-preview-img').src = this.attachedImage;
+                        document.getElementById('ai-attachment-preview').classList.add('show');
+                    }
+                } catch (err) {
+                    console.error('Image compression error:', err);
+                }
             }
         });
 
@@ -789,7 +792,41 @@ class AIChatWidget {
         return escaped;
     }
 
-    renderMessageBubble(role, text, time = null, animate = true) {
+    compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 1200;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.82);
+                    resolve(compressed);
+                };
+                img.onerror = () => resolve(event.target.result);
+                img.src = event.target.result;
+            };
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    renderMessageBubble(role, text, time = null, animate = true, image = null) {
         const container = document.getElementById('ai-messages');
         if (!container) return;
 
@@ -798,9 +835,18 @@ class AIChatWidget {
         msgDiv.className = `ai-msg ${role}`;
         if (!animate) msgDiv.style.animation = 'none';
 
+        const imageHtml = image ? `
+            <div class="ai-msg-image-wrap" style="margin-bottom: 8px;">
+                <img src="${image}" alt="Picha iliyoambatanishwa" style="max-width: 100%; max-height: 220px; border-radius: 10px; display: block; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;" onclick="window.open(this.src, '_blank')">
+            </div>
+        ` : '';
+
+        const textContent = text ? `<div class="ai-msg-content">${this.formatMarkdown(text)}</div>` : '';
+
         msgDiv.innerHTML = `
             <div class="ai-msg-bubble">
-                <div class="ai-msg-content">${this.formatMarkdown(text)}</div>
+                ${imageHtml}
+                ${textContent}
                 <div class="ai-msg-time">${timeStr}</div>
             </div>
         `;
@@ -808,11 +854,11 @@ class AIChatWidget {
         this.scrollToBottom();
     }
 
-    appendMessage(role, text, shouldSave = true) {
+    appendMessage(role, text, shouldSave = true, image = null) {
         const time = this.formatTime();
-        this.renderMessageBubble(role, text, time, true);
+        this.renderMessageBubble(role, text, time, true, image);
         if (shouldSave) {
-            this.history.push({ role, text, time });
+            this.history.push({ role, text, time, hasImage: !!image });
             this.saveHistory();
         }
     }
@@ -848,15 +894,11 @@ class AIChatWidget {
     async handleSendMessage() {
         const inputField = document.getElementById('ai-input-text');
         const text = inputField.value.trim();
-        if (!text && !this.attachedImage) return;
+        const imageToSend = this.attachedImage;
+        if (!text && !imageToSend) return;
 
-        let fullUserMessage = text;
-        if (this.attachedImage) {
-            fullUserMessage += text ? ' [Mteja ameambatisha picha ya skrini]' : '[Picha ya skrini imeambatishwa]';
-        }
-
-        // Display user message
-        this.appendMessage('user', fullUserMessage, true);
+        // Display user message with thumbnail
+        this.appendMessage('user', text, true, imageToSend);
 
         // Reset input & preview
         inputField.value = '';
@@ -869,7 +911,7 @@ class AIChatWidget {
         this.isTyping = true;
 
         try {
-            // Call API backend proxy with complete user & payment context
+            // Call API backend proxy with complete user & payment context and attached image
             let userId = '';
             let userPhone = '';
             try {
@@ -885,7 +927,7 @@ class AIChatWidget {
                     if (vals.length > 0) userPhone = vals[vals.length - 1];
                 }
             } catch (_) {}
-            const res = await api.sendSupportChat(text, this.history, this.sessionId, userId, userPhone);
+            const res = await api.sendSupportChat(text, this.history, this.sessionId, userId, userPhone, imageToSend);
             this.hideTypingIndicator();
             this.isTyping = false;
 
