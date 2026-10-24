@@ -1597,7 +1597,7 @@ async function getCatalogSummary() {
 }
 
 // Helper: Verify Payment and Grant Access Automatically (Zero-prompt AI Verification)
-async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = '' }) {
+async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = '', history = [] }) {
     if (!userMsg) return null;
     const msg = userMsg.trim();
     const lower = msg.toLowerCase();
@@ -1610,13 +1610,32 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
         'nimeshakatwa', 'nimekatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela',
         'nimeshatuma pesa', 'haina link', 'kifurushi hakijafunguka', 'sioni movies',
         'sijapewa huduma', 'nimekwama baada ya kulipa', 'pesa imetoka', 'malipo yamepita',
-        'nililipia', 'nililipa', 'nimefanya malipo'
+        'nililipia', 'nililipa', 'nimefanya malipo', 'hakiki', 'thibitisha'
     ];
     const hasClaimedPaid = paymentClaimKeywords.some(kw => lower.includes(kw));
 
-    // 2. Extract phone numbers from message or context
+    // 2. Extract phone numbers explicitly written in userMsg
     const phoneRegex = /(?:(?:\+?255)|0)([67]\d{8})/;
     const phoneMatch = msg.replace(/[\s\-]/g, '').match(phoneRegex);
+
+    // 3. Extract Order IDs from userMsg
+    const orderRegex = /\b(ORD-[A-Za-z0-9_\-]+|CPM[A-Za-z0-9_\-]+|PAY-[A-Za-z0-9_\-]+)\b/i;
+    const orderMatch = msg.match(orderRegex);
+    const extractedOrderId = orderMatch ? orderMatch[1].trim() : '';
+
+    // Check if the previous message from bot asked for a phone number or payment details
+    const nonUserHistory = (Array.isArray(history) ? history : []).filter(h => h.role === 'bot' || h.role === 'model');
+    const lastBotMsg = nonUserHistory.length > 0 ? (nonUserHistory[nonUserHistory.length - 1].text || nonUserHistory[nonUserHistory.length - 1].message || '').toLowerCase() : '';
+    const wasAskedForPaymentPhone = lastBotMsg.includes('namba ya simu') || lastBotMsg.includes('malipo');
+
+    const isExplicitPaymentCheck = hasClaimedPaid || Boolean(extractedOrderId) || (Boolean(phoneMatch) && wasAskedForPaymentPhone);
+
+    // STRICT GUARD: If user is not claiming payment or asking for payment verification, NEVER intercept!
+    if (!isExplicitPaymentCheck) {
+        return null;
+    }
+
+    // Now resolve phone number to search: prioritize phone typed in message, then userPhone from session context
     let extractedPhone = '';
     let phoneVariations = [];
     if (phoneMatch) {
@@ -1629,16 +1648,6 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
             extractedPhone = upClean.startsWith('0') ? upClean : ('0' + upClean.slice(-9));
             phoneVariations = [extractedPhone, '255' + extractedPhone.slice(1), '+' + '255' + extractedPhone.slice(1)];
         }
-    }
-
-    // 3. Extract Order IDs from message
-    const orderRegex = /\b(ORD-[A-Za-z0-9_\-]+|CPM[A-Za-z0-9_\-]+|PAY-[A-Za-z0-9_\-]+)\b/i;
-    const orderMatch = msg.match(orderRegex);
-    const extractedOrderId = orderMatch ? orderMatch[1].trim() : '';
-
-    // If no payment claim and no identifiers, let normal AI conversation handle it
-    if (!hasClaimedPaid && !extractedPhone && !extractedOrderId) {
-        return null;
     }
 
     // Search payments in Firestore / local DB automatically without demanding user input
@@ -1809,7 +1818,7 @@ app.post('/api/support/chat', async (req, res) => {
         const knowledge = await getAIKnowledgeAsync();
 
         // 1. Check if this is a payment verification & access grant request
-        const paymentCheck = await checkPaymentAndGrantAccess({ userMsg, userId, userPhone });
+        const paymentCheck = await checkPaymentAndGrantAccess({ userMsg, userId, userPhone, history });
         if (paymentCheck && paymentCheck.handled) {
             // Log conversation
             const logEntry = {
