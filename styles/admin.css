@@ -620,17 +620,30 @@
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
+                height: 100dvh;
+                height: 100vh;
+                overflow: hidden;
             }
             .mobile-header {
                 display: flex;
+                position: sticky;
+                top: 0;
+                z-index: 900;
+                height: 60px;
+                box-sizing: border-box;
+                flex-shrink: 0;
             }
             .sidebar {
                 position: fixed;
                 left: -100%;
                 top: 0;
-                z-index: 999;
-                transition: left 0.3s ease;
-                box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+                width: 290px;
+                max-width: 85%;
+                height: 100dvh;
+                height: 100vh;
+                z-index: 9999;
+                transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.8);
             }
             .sidebar.show {
                 left: 0;
@@ -638,35 +651,166 @@
             .sidebar-overlay {
                 position: fixed;
                 top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 998;
+                background: rgba(0,0,0,0.7);
+                backdrop-filter: blur(4px);
+                z-index: 9998;
                 display: none;
             }
             .sidebar-overlay.show {
                 display: block;
             }
+            .mobile-sidebar-close {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                background: none;
+                border: none;
+                color: #9ca3af;
+                font-size: 1.8rem;
+                cursor: pointer;
+                padding: 4px;
+            }
             .main-content {
-                padding: 15px;
+                padding: 14px 12px 60px 12px;
+                height: calc(100dvh - 60px);
                 height: calc(100vh - 60px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+                gap: 12px !important;
+                margin-bottom: 25px !important;
+            }
+            .stat-card {
+                padding: 16px !important;
+                border-radius: 14px !important;
+            }
+            .stat-card .value {
+                font-size: 1.8rem !important;
+            }
+            .stat-card .icon {
+                font-size: 1.8rem !important;
+                top: 16px !important;
+                right: 16px !important;
             }
             div[style*="grid-template-columns: 1fr 1fr;"] {
                 grid-template-columns: 1fr !important;
             }
-            .modal-content {
-                width: 95%;
-                padding: 20px;
+            div[style*="grid-template-columns:1fr 1fr;"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Responsive Tables */
+            .data-table-container {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                background: var(--sidebar-bg);
             }
             table {
-                display: block;
-                overflow-x: auto;
+                display: table !important;
+                width: 100% !important;
+                min-width: 540px !important;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 12px 14px !important;
+                font-size: 0.85rem !important;
                 white-space: nowrap;
             }
+
+            /* Buttons & Actions */
+            .btn-sm {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 8px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+            }
+            .btn-primary {
+                padding: 10px 16px;
+                font-size: 0.88rem;
+            }
+
+            /* Inputs & Prevent iOS Zoom */
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+            .input-group {
+                margin-bottom: 14px;
+            }
+
+            /* Modals on Mobile */
+            .modal {
+                align-items: flex-start !important;
+                padding: 10px !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                z-index: 10000;
+            }
+            .modal-content {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 18px 14px !important;
+                margin: 10px auto 30px !important;
+                max-height: calc(100dvh - 20px) !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                box-sizing: border-box;
+                border-radius: 14px !important;
+            }
+
+            /* Dashboard Revenue Chart Card */
+            .rev-tab {
+                padding: 6px 8px !important;
+                font-size: 0.75rem !important;
+                flex: 1;
+                text-align: center;
+            }
+            div[style*="padding: 28px;"] {
+                padding: 16px 12px !important;
+                border-radius: 14px !important;
+            }
+            div[style*="padding: 14px 22px;"] {
+                padding: 10px 14px !important;
+                flex: 1 1 calc(50% - 10px) !important;
+                box-sizing: border-box;
+            }
+            div[style*="height: 280px;"] {
+                height: 220px !important;
+            }
+
+            /* AI Support Training Studio */
+            #view-ai-support div[style*="padding:20px;"] {
+                padding: 14px !important;
+                border-radius: 12px !important;
+            }
+            #ai-cfg-instructions {
+                font-size: 16px !important;
+            }
+
+            /* Section Header Flex Wrapping */
+            .view-section h2 {
+                font-size: 1.25rem;
+                margin-bottom: 8px;
+            }
+            .view-section .flex,
+            .view-section div[style*="justify-content: space-between"],
+            .view-section div[style*="justify-content:space-between"] {
+                flex-wrap: wrap !important;
+                gap: 10px !important;
+            }
+
             /* Fix login overlay width */
             #login-overlay > div {
                 width: 90% !important;
-                padding: 25px !important;
+                max-width: 360px !important;
+                padding: 25px 20px !important;
+                box-sizing: border-box;
             }
         }

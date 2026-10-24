@@ -201,6 +201,12 @@
                 const targetView = document.getElementById('view-' + viewId);
                 if (targetView) targetView.classList.add('active');
 
+                // Auto-close mobile sidebar if open
+                const sb = document.querySelector('.sidebar');
+                const ov = document.getElementById('sidebar-overlay');
+                if (sb && sb.classList.contains('show')) sb.classList.remove('show');
+                if (ov && ov.classList.contains('show')) ov.classList.remove('show');
+
                 // Load Data
                 if (viewId === 'dashboard') this.loadDashboard();
                 if (viewId === 'users') this.loadUsers();
@@ -495,6 +501,15 @@ if (viewId === 'ai-support') this.loadAISupport();
                     this.renderLinkRows([]); // Empty links
                 }
                 document.getElementById('content-modal').classList.add('show');
+                document.getElementById('content-modal').style.display = 'flex';
+            },
+
+            closeContentModal: function () {
+                const modal = document.getElementById('content-modal');
+                if (modal) {
+                    modal.classList.remove('show');
+                    modal.style.display = 'none';
+                }
             },
 
             addLinkRow: function (name = '', url = '') {

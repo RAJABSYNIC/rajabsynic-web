@@ -20,7 +20,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <!-- Styles -->
     <link rel="stylesheet" href="/styles/main.css">
-    <link rel="stylesheet" href="/styles/admin.css?v=5">
+    <link rel="stylesheet" href="/styles/admin.css?v=6">
 </head>
 
 <body>
@@ -112,8 +112,11 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-header">
-            RAJAB<span style="color: #22c55e; margin-left: 2px;">SYNIC</span>
+        <div class="sidebar-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>RAJAB<span style="color: #22c55e; margin-left: 2px;">SYNIC</span></div>
+            <button class="mobile-sidebar-close" onclick="toggleMobileMenu()" style="display:none;" title="Close Menu">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
         </div>
         <div class="sidebar-menu">
             <div class="menu-item active" onclick="adminApp.navigate('dashboard')">
@@ -415,7 +418,7 @@
                 <button class="btn btn-primary" onclick="adminApp.openContentModal('games')">+ Add Game</button>
             </div>
             <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; margin-bottom: 20px;">
-                <input type="text" onkeydown="if(event.key==='Enter') adminApp.filterTable('games-list', this.value)" placeholder="Search games... then press Enter" style="width: 100%; border: none; background: transparent; padding: 18px 20px; color: #9ca3af; outline: none; font-size: 0.95rem;">
+                <input type="text" oninput="adminApp.filterTable('games-list', this.value)" onkeydown="if(event.key==='Enter') adminApp.filterTable('games-list', this.value)" placeholder="Search games..." style="width: 100%; border: none; background: transparent; padding: 16px 20px; color: #fff; outline: none; font-size: 0.95rem; box-sizing: border-box;">
             </div>
             <div class="data-table-container">
                 <table>
@@ -441,7 +444,7 @@
                 <button class="btn btn-primary" onclick="adminApp.openContentModal('movies')">+ Add Movie</button>
             </div>
             <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; margin-bottom: 20px;">
-                <input type="text" onkeydown="if(event.key==='Enter') adminApp.filterTable('movies-list', this.value)" placeholder="Search movies... then press Enter" style="width: 100%; border: none; background: transparent; padding: 18px 20px; color: #9ca3af; outline: none; font-size: 0.95rem;">
+                <input type="text" oninput="adminApp.filterTable('movies-list', this.value)" onkeydown="if(event.key==='Enter') adminApp.filterTable('movies-list', this.value)" placeholder="Search movies..." style="width: 100%; border: none; background: transparent; padding: 16px 20px; color: #fff; outline: none; font-size: 0.95rem; box-sizing: border-box;">
             </div>
             <div class="data-table-container">
                 <table>
@@ -663,7 +666,10 @@
     <!-- Content Modal (Used for both Movies and Games) -->
     <div id="content-modal" class="modal">
         <div class="modal-content">
-            <h2 id="modal-title" style="margin-bottom: 20px;">Add Content</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid #1f2937;">
+                <h2 id="modal-title" style="margin:0; font-size:1.25rem; font-weight:700;">Add Content</h2>
+                <ion-icon name="close" style="font-size:1.6rem; cursor:pointer; color:#9ca3af; padding:4px;" onclick="adminApp.closeContentModal()"></ion-icon>
+            </div>
             <input type="hidden" id="c-id">
             <!-- Hidden field to track if we represent Game or Movie context -->
             <input type="hidden" id="c-context">
@@ -812,7 +818,7 @@
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-secondary"
                     style="background: transparent; border: 1px solid #374151; color: #d1d5db; padding: 10px 20px; border-radius: 8px; cursor: pointer;"
-                    onclick="document.getElementById('content-modal').classList.remove('show')">Cancel</button>
+                    onclick="adminApp.closeContentModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="adminApp.saveContent()">Save Content</button>
             </div>
         </div>
@@ -821,7 +827,10 @@
     <!-- Live Channel Modal -->
     <div id="live-modal" class="modal">
         <div class="modal-content" style="max-width: 600px;">
-            <h2 id="live-modal-title" style="margin-bottom: 20px;">Add Live Channel</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid #1f2937;">
+                <h2 id="live-modal-title" style="margin:0; font-size:1.25rem; font-weight:700;">Add Live Channel</h2>
+                <ion-icon name="close" style="font-size:1.6rem; cursor:pointer; color:#9ca3af; padding:4px;" onclick="document.getElementById('live-modal').classList.remove('show')"></ion-icon>
+            </div>
             <input type="hidden" id="l-id">
 
             <div class="input-group">

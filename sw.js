@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v29-movies-nav-and-admin';
+const CACHE_NAME = 'rajabsynic-v30-admin-mobile-perfect';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
