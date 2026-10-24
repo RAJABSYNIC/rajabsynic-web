@@ -186,7 +186,7 @@
                 // are managed only in Firebase). Order: Dashboard, Users, Games,
                 // LiveTV, Adult, Payments, Settings, Withdrawals.
                 const menuMap = {
-'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'ai-support': 4, 'msaada': 5
+'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'ai-support': 4, 'movies': 5
                 };
 
                 const menuItems = document.querySelectorAll('.menu-item');
@@ -324,6 +324,11 @@ if (viewId === 'ai-support') this.loadAISupport();
                 });
 
                 const tbody = document.getElementById(type + '-list');
+                if (!tbody) return;
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#9ca3af; padding:30px;">Hakuna ${type === 'movies' ? 'movies' : 'michezo'} iliyopatikana. Bonyeza kitufe cha juu kuongeza mpya.</td></tr>`;
+                    return;
+                }
                 tbody.innerHTML = filtered.map(item => `
                     <tr>
                         <td style="font-weight: 500; display: flex; align-items: center; gap: 10px;">

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v28-abood-fuzzy-lipasasa';
+const CACHE_NAME = 'rajabsynic-v29-movies-nav-and-admin';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

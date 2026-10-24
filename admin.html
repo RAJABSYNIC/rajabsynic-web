@@ -151,11 +151,11 @@
                     <span class="menu-desc">Knowledge Base & Chat Logs</span>
                 </div>
             </div>
-            <div class="menu-item" onclick="adminApp.navigate('msaada')">
-                <ion-icon name="help-circle-outline"></ion-icon>
+            <div class="menu-item" onclick="adminApp.navigate('movies')">
+                <ion-icon name="film-outline"></ion-icon>
                 <div class="menu-text">
-                    <span class="menu-title">Msaada (Help)</span>
-                    <span class="menu-desc">Video za kuelekeza watumiaji</span>
+                    <span class="menu-title">Movies Management</span>
+                    <span class="menu-desc">Manage movies and videos</span>
                 </div>
             </div>
         </div>
@@ -433,25 +433,27 @@
 
         </div>
 
-        <!-- MSAADA (HELP VIDEOS) VIEW -->
-        <div id="view-msaada" class="view-section">
+        <!-- MOVIES VIEW -->
+        <div id="view-movies" class="view-section">
             <div class="flex justify-between items-center"
                 style="margin-bottom: 25px; display: flex; justify-content: space-between;">
-                <h2>Msaada — Video za Kuelekeza</h2>
-                <button class="btn btn-primary" onclick="adminApp.openHelpModal()">+ Add Video</button>
+                <h2>Movies Management</h2>
+                <button class="btn btn-primary" onclick="adminApp.openContentModal('movies')">+ Add Movie</button>
             </div>
-            <p style="color:#9ca3af; margin:-15px 0 20px; font-size:0.9rem;">Video hizi huonekana kwenye ukurasa wa Msaada kwa watumiaji wote. Weka link ya YouTube na thumbnail.</p>
+            <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; margin-bottom: 20px;">
+                <input type="text" onkeydown="if(event.key==='Enter') adminApp.filterTable('movies-list', this.value)" placeholder="Search movies... then press Enter" style="width: 100%; border: none; background: transparent; padding: 18px 20px; color: #9ca3af; outline: none; font-size: 0.95rem;">
+            </div>
             <div class="data-table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th>Thumbnail</th>
                             <th>Title</th>
-                            <th>YouTube Link</th>
+                            <th>Link</th>
+                            <th>Type</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="msaada-list"></tbody>
+                    <tbody id="movies-list"></tbody>
                 </table>
             </div>
         </div>

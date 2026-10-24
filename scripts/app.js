@@ -9,6 +9,7 @@ class Router {
             'details': (id) => this.showDetails(id),
             'live': () => this.showLive(),
             'adult': () => this.checkAdult(),
+            'movies': () => this.showMovies(),
             'help': () => this.showHelp(),
             'account': () => this.showAccount()
         };
@@ -49,9 +50,9 @@ class Router {
 
     updateBottomNav(route) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        if (route === 'home') document.querySelector('.bottom-nav .nav-item:nth-child(1)').classList.add('active');
-        if (route === 'help') document.querySelector('.bottom-nav .nav-item:nth-child(3)').classList.add('active');
-        if (route === 'account') document.querySelector('.bottom-nav .nav-item:nth-child(5)').classList.add('active');
+        if (route === 'home') document.querySelector('.bottom-nav .nav-item:nth-child(1)')?.classList.add('active');
+        if (route === 'movies' || route === 'help') document.querySelector('.bottom-nav .nav-item:nth-child(3)')?.classList.add('active');
+        if (route === 'account') document.querySelector('.bottom-nav .nav-item:nth-child(5)')?.classList.add('active');
     }
 
     toggleSearch() {
@@ -1299,6 +1300,27 @@ class Router {
                 </div>
             </div>
         `;
+    }
+
+    async showMovies() {
+        await this.ensureContent();
+        const items = (this.cachedContent || []).filter(i => i.contentType === 'movies' || i.category === 'movies');
+        const modal = `
+            <div class="full-page-modal fade-in" style="background:#0d0d0d;">
+                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
+                    <div onclick="window.app.router.navigate('home')" style="cursor:pointer; margin-right:14px;">
+                        <ion-icon name="arrow-back" style="font-size:1.5rem; color:#fff;"></ion-icon>
+                    </div>
+                    <h2 style="margin:0; font-size:1.2rem; font-weight:700; color:#fff;">Movies</h2>
+                </nav>
+                <div style="padding: 80px 20px 40px;">
+                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;">
+                        ${items.length > 0 ? items.map(item => this.createCard(item)).join('') : '<div style="color:#9ca3af; text-align:center; grid-column:1/-1; padding:60px 10px;"><ion-icon name="film-outline" style="font-size:2.8rem; margin-bottom:10px; color:#4b5563;"></ion-icon><p style="margin:0; font-size:0.95rem;">Hakuna movies zilizowekwa kwa sasa.</p></div>'}
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('modal-container').innerHTML = modal;
     }
 
     async showHelp() {
