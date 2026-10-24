@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rajabsynic-v30-admin-mobile-perfect';
+const CACHE_NAME = 'rajabsynic-v31-cinematic-movies-ui';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -10,7 +10,8 @@ const STATIC_ASSETS = [
   '/scripts/api.js',
   '/scripts/ai-chat.js',
   '/threads-icon.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/assets/hero-avengers.jpg'
 ];
 
 // ─── Install: cache static assets ─────────────────────────────────────────────

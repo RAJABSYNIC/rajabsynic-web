@@ -624,3 +624,281 @@ a {
 #onesignal-slidedown-dialog .close-button svg {
     fill: #9ca3af !important;
 }
+
+
+/* ==========================================================================
+   MOVIES VIEW (Cinematic Layout with System Neon Green)
+   ========================================================================== */
+.movies-page-view {
+    min-height: 100vh;
+    background: #0b0c10;
+    color: #fff;
+    padding: 14px 16px 95px;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.movies-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.movies-back-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #141721;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.movies-back-btn:hover {
+    background: #1a1e2b;
+    border-color: #00ff80;
+    transform: scale(1.05);
+}
+
+.movies-search-box {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #141721;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    padding: 0 16px;
+    height: 46px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.movies-search-box:focus-within {
+    border-color: #00ff80;
+    box-shadow: 0 0 14px rgba(0, 255, 128, 0.3);
+}
+
+.movies-search-icon {
+    font-size: 1.25rem;
+    color: #8a94a6;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.movies-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+.movies-search-input::placeholder {
+    color: #8a94a6;
+    opacity: 0.9;
+}
+
+.movies-search-clear {
+    background: transparent;
+    border: none;
+    color: #8a94a6;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 6px;
+    transition: color 0.15s;
+}
+
+.movies-search-clear:hover {
+    color: #fff;
+}
+
+/* Featured Hero Banner */
+.movies-hero-banner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 185px;
+    max-height: 380px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #161922;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    user-select: none;
+}
+
+.movies-hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: opacity 0.3s ease, transform 0.5s ease;
+}
+
+.movies-hero-banner:hover .movies-hero-bg {
+    transform: scale(1.02);
+}
+
+.movies-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(11, 12, 16, 0.1) 0%, rgba(11, 12, 16, 0.45) 45%, rgba(11, 12, 16, 0.95) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 16px 18px;
+    box-sizing: border-box;
+}
+
+.movies-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.movies-hero-tag {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.movies-hero-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+    margin: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    letter-spacing: -0.3px;
+}
+
+.movies-hero-meta {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Hero Carousel Indicators */
+.movies-hero-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin-top: 12px;
+    margin-bottom: 16px;
+}
+
+.movies-hero-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.movies-hero-dot.active {
+    width: 24px;
+    height: 6px;
+    border-radius: 10px;
+    background: #00ff80;
+    box-shadow: 0 0 10px rgba(0, 255, 128, 0.7);
+}
+
+/* Category Filter Pills */
+.movies-pills-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    margin-bottom: 18px;
+}
+
+.movies-pills-row::-webkit-scrollbar {
+    display: none;
+}
+
+.movies-pill {
+    flex-shrink: 0;
+    background: #161922;
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 18px;
+    border-radius: 9999px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.movies-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.movies-pill.active {
+    background: #00ff80;
+    color: #000000;
+    font-weight: 700;
+    border-color: #00ff80;
+    box-shadow: 0 4px 14px rgba(0, 255, 128, 0.35);
+}
+
+/* Movie Cards Grid */
+.movies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+}
+
+.movie-card-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.movie-card-item:hover {
+    transform: translateY(-4px);
+}
+
+@media (min-width: 640px) {
+    .movies-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 18px;
+    }
+    .movies-hero-title {
+        font-size: 1.9rem;
+    }
+}

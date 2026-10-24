@@ -17,6 +17,11 @@ class Router {
         this.cachedContent = [];
         // Stores where to redirect after login completes
         this.pendingRedirect = null; // { route, param }
+        this.movieHeroIndex = 0;
+        this.movieHeroTimer = null;
+        this.activeMovieCategory = 'all';
+        this.movieSearchQuery = '';
+        this.movieFeaturedSlides = [];
     }
 
     navigate(route, param = null) {
@@ -31,6 +36,11 @@ class Router {
             this.updateBottomNav('account');
             this.showAccount();
             return;
+        }
+
+        if (this.movieHeroTimer && route !== 'movies') {
+            clearInterval(this.movieHeroTimer);
+            this.movieHeroTimer = null;
         }
 
         console.log(`Navigating to ${route} with param ${param}`);
@@ -1302,25 +1312,344 @@ class Router {
         `;
     }
 
+    isMovieItem(item) {
+        if (!item) return false;
+        if (item.contentType === 'movies' || item.category === 'movies') return true;
+        const cat = (item.category || '').toLowerCase().trim();
+        const movieCats = [
+            'hollywood', 'nollywood', 'bongo movie', 'bongo-movie', 'series',
+            'animation', 'action', 'adventure', 'comedy', 'sci-fi', 'drama',
+            'romance', 'horror', 'thriller', 'crime', 'fantasy'
+        ];
+        if (movieCats.includes(cat)) return true;
+
+        const isGame = item.contentType === 'games' || ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(item.category);
+        const isAdult = item.contentType === 'adult' || item.isAdult || ['adult', 'Connection', 'X-Video'].includes(item.category);
+        const isLive = item.contentType === 'live' || item.category === 'Live TV' || item.category === 'live';
+
+        return !isGame && !isAdult && !isLive && (item.category || item.contentType);
+    }
+
+    getMovieItems() {
+        return (this.cachedContent || []).filter(item => this.isMovieItem(item));
+    }
+
+    filterMovieByCategory(item, cat) {
+        if (!cat || cat === 'all') return true;
+        const itemCat = (item.category || '').toLowerCase().trim();
+        const itemTitle = (item.title || '').toLowerCase();
+        const itemDesc = (item.description || '').toLowerCase();
+
+        if (cat === 'hollywood') {
+            return itemCat === 'hollywood' || itemTitle.includes('hollywood') || itemDesc.includes('hollywood') || (!itemTitle.includes('bongo') && !itemTitle.includes('nollywood') && !itemCat.includes('bongo') && !itemCat.includes('nollywood'));
+        }
+        if (cat === 'nollywood') {
+            return itemCat === 'nollywood' || itemTitle.includes('nollywood') || itemDesc.includes('nollywood') || itemTitle.includes('nigeria');
+        }
+        if (cat === 'bongo-movie' || cat === 'bongo movie') {
+            return itemCat.includes('bongo') || itemTitle.includes('bongo') || itemDesc.includes('bongo') || itemTitle.includes('swahili') || itemTitle.includes('kiswahili') || itemTitle.includes('dj ');
+        }
+        if (cat === 'series') {
+            return itemCat === 'series' || itemTitle.includes('series') || itemTitle.includes('part') || itemTitle.includes('season') || itemTitle.includes('s0') || itemTitle.includes('ep ');
+        }
+        if (cat === 'animation') {
+            return itemCat === 'animation' || itemTitle.includes('animation') || itemTitle.includes('katuni') || itemTitle.includes('anime');
+        }
+        if (cat === 'action') {
+            return itemCat === 'action' || itemTitle.includes('action');
+        }
+        if (cat === 'adventure') {
+            return itemCat === 'adventure' || itemTitle.includes('adventure');
+        }
+        return itemCat.includes(cat) || itemTitle.includes(cat);
+    }
+
     async showMovies() {
         await this.ensureContent();
-        const items = (this.cachedContent || []).filter(i => i.contentType === 'movies' || i.category === 'movies');
+        const movieItems = this.getMovieItems();
+
+        // Build featured hero slides (Avengers Doomsday + Top Catalog Movies)
+        this.movieFeaturedSlides = [
+            {
+                id: 'hero-doomsday',
+                title: 'Avengers: Doomsday',
+                year: '2026',
+                quality: 'Ultra HD',
+                image: '/assets/hero-avengers.jpg',
+                tags: ['Science Fiction', 'Action', 'Adventure'],
+                description: 'Avengers: Doomsday (2026) — Vita kuu ya mashujaa wa Marvel dhidi ya Doctor Doom.'
+            }
+        ];
+
+        if (movieItems.length > 0) {
+            const m1 = movieItems[0];
+            this.movieFeaturedSlides.push({
+                id: m1.id,
+                title: m1.title,
+                year: m1.year || 'Kiswahili HD',
+                quality: m1.isFree ? 'Free' : (m1.price ? `Tsh ${m1.price}` : 'Ultra HD'),
+                image: m1.image || '/assets/hero-avengers.jpg',
+                tags: [m1.category || 'Action', 'Featured', 'Movie'],
+                description: m1.description || ''
+            });
+        }
+        if (movieItems.length > 1) {
+            const m2 = movieItems[1];
+            this.movieFeaturedSlides.push({
+                id: m2.id,
+                title: m2.title,
+                year: m2.year || 'Kiswahili Audio',
+                quality: m2.isFree ? 'Free' : (m2.price ? `Tsh ${m2.price}` : 'Single Movie'),
+                image: m2.image || '/assets/hero-avengers.jpg',
+                tags: [m2.category || 'Action', 'Trending', 'HD'],
+                description: m2.description || ''
+            });
+        }
+
+        this.movieHeroIndex = 0;
+        this.activeMovieCategory = 'all';
+        this.movieSearchQuery = '';
+
+        const hero = this.movieFeaturedSlides[0];
+
         const modal = `
-            <div class="full-page-modal fade-in" style="background:#0d0d0d;">
-                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
-                    <div onclick="window.app.router.navigate('home')" style="cursor:pointer; margin-right:14px;">
-                        <ion-icon name="arrow-back" style="font-size:1.5rem; color:#fff;"></ion-icon>
+            <div class="full-page-modal fade-in" style="background:#0b0c10;">
+                <div class="movies-page-view">
+                    <!-- Top Search Bar Header -->
+                    <div class="movies-top-bar">
+                        <button class="movies-back-btn" onclick="window.app.router.navigate('home')" title="Rudi Home" aria-label="Home">
+                            <ion-icon name="arrow-back"></ion-icon>
+                        </button>
+                        <div class="movies-search-box">
+                            <ion-icon name="search-outline" class="movies-search-icon"></ion-icon>
+                            <input type="text" id="movies-search-input" class="movies-search-input" placeholder="Search movies / TV Shows" autocomplete="off" oninput="window.app.router.filterMoviesSearch(this.value)">
+                            <button id="movies-search-clear" class="movies-search-clear" style="display:none;" onclick="window.app.router.clearMoviesSearch()" title="Futa">
+                                <ion-icon name="close-circle"></ion-icon>
+                            </button>
+                        </div>
                     </div>
-                    <h2 style="margin:0; font-size:1.2rem; font-weight:700; color:#fff;">Movies</h2>
-                </nav>
-                <div style="padding: 80px 20px 40px;">
-                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;">
-                        ${items.length > 0 ? items.map(item => this.createCard(item)).join('') : '<div style="color:#9ca3af; text-align:center; grid-column:1/-1; padding:60px 10px;"><ion-icon name="film-outline" style="font-size:2.8rem; margin-bottom:10px; color:#4b5563;"></ion-icon><p style="margin:0; font-size:0.95rem;">Hakuna movies zilizowekwa kwa sasa.</p></div>'}
+
+                    <!-- Featured Hero Banner / Carousel -->
+                    <div id="movies-hero-banner" class="movies-hero-banner" onclick="window.app.router.onMovieHeroClick()">
+                        <img id="movies-hero-img" src="${hero.image}" class="movies-hero-bg" alt="${hero.title}">
+                        <div class="movies-hero-overlay">
+                            <div id="movies-hero-tags" class="movies-hero-tags">
+                                ${(hero.tags || []).map(t => `<span class="movies-hero-tag">${t}</span>`).join('')}
+                            </div>
+                            <h1 id="movies-hero-title" class="movies-hero-title">${hero.title}</h1>
+                            <div id="movies-hero-meta" class="movies-hero-meta">
+                                <span id="movies-hero-year">${hero.year}</span>
+                                <span>•</span>
+                                <span id="movies-hero-quality">${hero.quality}</span>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Hero Carousel Indicator Dots (System Neon Green active dot) -->
+                    <div id="movies-hero-dots" class="movies-hero-dots">
+                        ${this.movieFeaturedSlides.map((_, idx) => `
+                            <span class="movies-hero-dot ${idx === 0 ? 'active' : ''}" onclick="window.app.router.setMovieHeroSlide(${idx})"></span>
+                        `).join('')}
+                    </div>
+
+                    <!-- Horizontal Category Filter Pills (System Neon Green active pill) -->
+                    <div class="movies-pills-row" id="movies-pills-row">
+                        <button class="movies-pill active" data-movie-cat="all" onclick="window.app.router.selectMovieCategory('all')">All</button>
+                        <button class="movies-pill" data-movie-cat="hollywood" onclick="window.app.router.selectMovieCategory('hollywood')">Hollywood</button>
+                        <button class="movies-pill" data-movie-cat="nollywood" onclick="window.app.router.selectMovieCategory('nollywood')">Nollywood</button>
+                        <button class="movies-pill" data-movie-cat="bongo-movie" onclick="window.app.router.selectMovieCategory('bongo-movie')">Bongo Movie</button>
+                        <button class="movies-pill" data-movie-cat="series" onclick="window.app.router.selectMovieCategory('series')">Series</button>
+                        <button class="movies-pill" data-movie-cat="animation" onclick="window.app.router.selectMovieCategory('animation')">Animation</button>
+                        <button class="movies-pill" data-movie-cat="action" onclick="window.app.router.selectMovieCategory('action')">Action</button>
+                        <button class="movies-pill" data-movie-cat="adventure" onclick="window.app.router.selectMovieCategory('adventure')">Adventure</button>
+                    </div>
+
+                    <!-- Movies Grid Container -->
+                    <div id="movies-grid-container" class="movies-grid"></div>
                 </div>
             </div>
         `;
         document.getElementById('modal-container').innerHTML = modal;
+
+        // Render movies grid
+        this.renderMoviesGrid();
+
+        // Start Auto Slide (6 seconds)
+        if (this.movieHeroTimer) clearInterval(this.movieHeroTimer);
+        this.movieHeroTimer = setInterval(() => {
+            if (this.currentRoute !== 'movies') {
+                clearInterval(this.movieHeroTimer);
+                this.movieHeroTimer = null;
+                return;
+            }
+            if (this.movieFeaturedSlides && this.movieFeaturedSlides.length > 1) {
+                const next = (this.movieHeroIndex + 1) % this.movieFeaturedSlides.length;
+                this.setMovieHeroSlide(next);
+            }
+        }, 6000);
+    }
+
+    setMovieHeroSlide(idx) {
+        if (!this.movieFeaturedSlides || !this.movieFeaturedSlides.length) return;
+        this.movieHeroIndex = (idx + this.movieFeaturedSlides.length) % this.movieFeaturedSlides.length;
+        const slide = this.movieFeaturedSlides[this.movieHeroIndex];
+        if (!slide) return;
+
+        const imgEl = document.getElementById('movies-hero-img');
+        const tagsEl = document.getElementById('movies-hero-tags');
+        const titleEl = document.getElementById('movies-hero-title');
+        const yearEl = document.getElementById('movies-hero-year');
+        const qualityEl = document.getElementById('movies-hero-quality');
+
+        if (imgEl) {
+            imgEl.style.opacity = '0.35';
+            setTimeout(() => {
+                imgEl.src = slide.image;
+                imgEl.style.opacity = '1';
+            }, 120);
+        }
+        if (tagsEl) {
+            tagsEl.innerHTML = (slide.tags || []).map(t => `<span class="movies-hero-tag">${t}</span>`).join('');
+        }
+        if (titleEl) titleEl.textContent = slide.title;
+        if (yearEl) yearEl.textContent = slide.year;
+        if (qualityEl) qualityEl.textContent = slide.quality;
+
+        document.querySelectorAll('.movies-hero-dot').forEach((dot, dIdx) => {
+            if (dIdx === this.movieHeroIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+
+    onMovieHeroClick() {
+        const slide = this.movieFeaturedSlides && this.movieFeaturedSlides[this.movieHeroIndex];
+        if (!slide) return;
+        if (slide.id && !slide.id.startsWith('hero-')) {
+            this.navigate('details', slide.id);
+        } else {
+            const match = (this.cachedContent || []).find(i => (i.title || '').toLowerCase().includes('avengers'));
+            if (match) {
+                this.navigate('details', match.id);
+            } else {
+                alert(`${slide.title} (${slide.year})\n\nFilamu hii itapatikana hivi karibuni kwenye RAJABSYNIC!`);
+            }
+        }
+    }
+
+    selectMovieCategory(catId) {
+        this.activeMovieCategory = catId;
+        document.querySelectorAll('.movies-pill').forEach(pill => {
+            if (pill.getAttribute('data-movie-cat') === catId) {
+                pill.classList.add('active');
+                pill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+        this.renderMoviesGrid();
+    }
+
+    filterMoviesSearch(query) {
+        this.movieSearchQuery = (query || '').trim();
+        const clearBtn = document.getElementById('movies-search-clear');
+        if (clearBtn) {
+            clearBtn.style.display = this.movieSearchQuery ? 'flex' : 'none';
+        }
+        this.renderMoviesGrid();
+    }
+
+    clearMoviesSearch() {
+        this.movieSearchQuery = '';
+        const input = document.getElementById('movies-search-input');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        const clearBtn = document.getElementById('movies-search-clear');
+        if (clearBtn) clearBtn.style.display = 'none';
+        this.renderMoviesGrid();
+    }
+
+    resetMovieFilters() {
+        this.movieSearchQuery = '';
+        const input = document.getElementById('movies-search-input');
+        if (input) input.value = '';
+        const clearBtn = document.getElementById('movies-search-clear');
+        if (clearBtn) clearBtn.style.display = 'none';
+        this.selectMovieCategory('all');
+    }
+
+    renderMoviesGrid() {
+        const grid = document.getElementById('movies-grid-container');
+        if (!grid) return;
+
+        let items = this.getMovieItems();
+
+        if (this.activeMovieCategory && this.activeMovieCategory !== 'all') {
+            items = items.filter(i => this.filterMovieByCategory(i, this.activeMovieCategory));
+        }
+
+        if (this.movieSearchQuery) {
+            const q = this.movieSearchQuery.toLowerCase();
+            items = items.filter(i => {
+                const title = (i.title || '').toLowerCase();
+                const cat = (i.category || '').toLowerCase();
+                const desc = (i.description || '').toLowerCase();
+                return title.includes(q) || cat.includes(q) || desc.includes(q);
+            });
+        }
+
+        if (items.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; color: #9ca3af;">
+                    <ion-icon name="film-outline" style="font-size: 3rem; color: #4b5563; margin-bottom: 12px;"></ion-icon>
+                    <h4 style="margin: 0 0 6px; color: #e2e8f0; font-size: 1.05rem;">Hakuna Movies Zilizopatikana</h4>
+                    <p style="margin: 0; font-size: 0.88rem; color: #64748b;">
+                        ${this.movieSearchQuery ? `Hakuna filamu iliyolingana na "${this.movieSearchQuery}".` : 'Hakuna filamu zilizowekwa katika kipengele hiki kwa sasa.'}
+                    </p>
+                    ${this.activeMovieCategory !== 'all' || this.movieSearchQuery ? `
+                        <button onclick="window.app.router.resetMovieFilters()" style="margin-top: 16px; background: rgba(0, 255, 128, 0.15); border: 1px solid #00ff80; color: #00ff80; padding: 8px 18px; border-radius: 20px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                            Tazama Movies Zote
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = items.map(item => this.createMovieCard(item)).join('');
+    }
+
+    createMovieCard(item) {
+        const isPaid = !item.isFree && item.price;
+        const isFree = item.isFree;
+        const priceLabel = isFree ? '' : (isPaid ? `Tsh ${item.price}` : '');
+        const badgeHTML = isPaid
+            ? `<div class="card-price-badge" style="background: rgba(0,0,0,0.85); border:1px solid #00ff80; color:#00ff80;"><ion-icon name="lock-closed"></ion-icon> ${priceLabel}</div>`
+            : (isFree ? `<div class="card-free-badge" style="background:#00ff80; color:#000; font-weight:700;">FREE</div>` : '');
+
+        const posterImg = item.image || item.poster || '/assets/hero-avengers.jpg';
+        const displayCat = (item.category || 'Movie').replace(/-/g, ' ');
+
+        return `
+            <div class="media-card movie-card-item" onclick='event.preventDefault(); window.app.router.navigate("details", "${item.id}")'>
+                <div style="position:relative; aspect-ratio: 2/3; border-radius: 10px; overflow:hidden; background:#141721;">
+                    <img src="${posterImg}" class="poster" loading="lazy" decoding="async" alt="${item.title}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='/assets/hero-avengers.jpg';">
+                    <div style="position:absolute; top:8px; right:8px;">${badgeHTML}</div>
+                    <div style="position:absolute; bottom:0; left:0; right:0; height:45%; background:linear-gradient(to top, rgba(0,0,0,0.85), transparent); pointer-events:none;"></div>
+                </div>
+                <div class="media-info" style="margin-top: 8px;">
+                    <div class="media-title" style="font-weight:600; font-size:0.88rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.75rem;">
+                        <span style="color:#00ff80; text-transform:capitalize; font-weight:500;">${displayCat}</span>
+                        <span style="color:#94a3b8;">${item.year || (item.duration ? item.duration : 'HD')}</span>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     async showHelp() {

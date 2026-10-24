@@ -396,14 +396,18 @@ if (viewId === 'ai-support') this.loadAISupport();
                     multiLinks.style.display = 'none';
                     catSelect.innerHTML = `
                         <option value="Action">Action</option>
-                        <option value="Comedy">Comedy</option>
-                        <option value="Romance">Romance</option>
-                        <option value="Horror">Horror</option>
-                        <option value="Sci-Fi">Sci-Fi</option>
-                        <option value="Drama">Drama</option>
-                        <option value="Thriller">Thriller</option>
+                        <option value="Hollywood">Hollywood</option>
+                        <option value="Nollywood">Nollywood</option>
+                        <option value="Bongo Movie">Bongo Movie</option>
+                        <option value="Series">Series</option>
                         <option value="Animation">Animation</option>
                         <option value="Adventure">Adventure</option>
+                        <option value="Comedy">Comedy</option>
+                        <option value="Sci-Fi">Sci-Fi</option>
+                        <option value="Drama">Drama</option>
+                        <option value="Romance">Romance</option>
+                        <option value="Horror">Horror</option>
+                        <option value="Thriller">Thriller</option>
                         <option value="Crime">Crime</option>
                         <option value="Fantasy">Fantasy</option>
                     `;
