@@ -970,16 +970,34 @@ if (viewId === 'ai-support') this.loadAISupport();
 
             openGrantAccessModal: async function (userId) {
                 document.getElementById('grant-user-id').value = userId;
-                document.getElementById('grant-type').value = 'movies-package-ngorongoro';
+                
+                const grantTypeSelect = document.getElementById('grant-type');
+                if (grantTypeSelect) grantTypeSelect.value = 'games';
+                
                 const daysInput = document.getElementById('grant-duration-days');
-                if (daysInput) daysInput.value = '7';
-                document.getElementById('grant-item-selection').style.display = 'none';
+                if (daysInput) daysInput.value = '3650';
+
+                const searchInput = document.getElementById('grant-item-search');
+                if (searchInput) searchInput.value = '';
+
+                const itemSelect = document.getElementById('grant-item-select');
+                if (itemSelect) itemSelect.innerHTML = '<option disabled>Inapakia michezo...</option>';
+
+                const selectionDiv = document.getElementById('grant-item-selection');
+                if (selectionDiv) selectionDiv.style.display = 'block';
+
                 document.getElementById('grant-access-modal').classList.add('show');
                 
                 // Ensure content is loaded
-                if (!window.allContent) {
-                    window.allContent = await api.getContent();
+                if (!window.allContent || window.allContent.length === 0) {
+                    try {
+                        window.allContent = await api.getContent();
+                    } catch (e) {
+                        console.error('Error fetching content for grant modal:', e);
+                    }
                 }
+                
+                this.onGrantTypeChange();
             },
 
             onGrantTypeChange: function () {
@@ -987,7 +1005,8 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const selectionDiv = document.getElementById('grant-item-selection');
                 const labelEl = document.getElementById('grant-item-label');
                 const daysInput = document.getElementById('grant-duration-days');
-                document.getElementById('grant-item-search').value = '';
+                const searchInput = document.getElementById('grant-item-search');
+                if (searchInput) searchInput.value = '';
                 
                 // Auto-set duration based on selected package
                 if (type === 'movies-package-mikumi') {
@@ -1025,27 +1044,32 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const data = window.allContent || [];
                 let items = [];
                 
-                if (type === 'movies-single') {
-                    labelEl.innerText = "Chagua Filamu Maalum (Select Movie)";
-                    if (daysInput) daysInput.value = '30';
-                    const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
-                    const isLive = (i) => i.contentType === 'live';
-                    const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
-                    items = data.filter(i => i.contentType === 'movies' || (!isGame(i) && !isAdult(i) && !isLive(i)));
+                const isLive = (i) => i.contentType === 'live';
+                const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
+                const isGame = (i) => {
+                    if (i.contentType === 'games') return true;
+                    if (i.contentType === 'movies' || isAdult(i) || isLive(i)) return false;
+                    const cat = (i.category || '').toLowerCase();
+                    return ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category) ||
+                           cat.includes('game') || cat.includes('mod') || cat.includes('maleo') || cat.includes('ets') || cat.includes('bus');
+                };
+
+                if (type === 'games') {
+                    labelEl.innerText = "Select Game / Mod";
+                    if (daysInput) daysInput.value = '3650';
+                    items = data.filter(i => isGame(i) && !isLive(i));
                 } else if (type === 'livetv') {
                     labelEl.innerText = "Select Live TV Channel";
                     if (daysInput) daysInput.value = '30';
-                    items = data.filter(i => i.contentType === 'live');
-                } else if (type === 'games') {
-                    labelEl.innerText = "Select Game / Mod";
-                    if (daysInput) daysInput.value = '3650';
-                    const isGame = (i) => i.contentType === 'games' || (!i.contentType && ['tanzania-games', 'free-games', 'maleo-bus-mod', 'maleo-bus-mod-multi', 'maleo-bus-skin', 'maleo-map-mod', 'ets-2-mod-bus', 'program-and-app'].includes(i.category));
-                    items = data.filter(i => isGame(i) && i.contentType !== 'live');
+                    items = data.filter(i => isLive(i));
+                } else if (type === 'movies-single') {
+                    labelEl.innerText = "Chagua Filamu Maalum (Select Movie)";
+                    if (daysInput) daysInput.value = '30';
+                    items = data.filter(i => i.contentType === 'movies' || (!isGame(i) && !isAdult(i) && !isLive(i)));
                 } else if (type === 'adult') {
                     labelEl.innerText = "Select Adult Content";
                     if (daysInput) daysInput.value = '3650';
-                    const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
-                    items = data.filter(i => isAdult(i) && i.contentType !== 'live');
+                    items = data.filter(i => isAdult(i) && !isLive(i));
                 }
                 
                 // Sort alphabetically
@@ -1062,11 +1086,14 @@ if (viewId === 'ai-support') this.loadAISupport();
             
             renderGrantItems: function (items) {
                 const selectEl = document.getElementById('grant-item-select');
-                if (items.length === 0) {
+                if (!items || items.length === 0) {
                     selectEl.innerHTML = '<option disabled>No items found</option>';
                     return;
                 }
-                selectEl.innerHTML = items.map(i => `<option value="${i.id}">${i.title || 'Untitled'}</option>`).join('');
+                selectEl.innerHTML = items.map(i => `<option value="${i.id}">${i.title || 'Untitled'}${i.price ? ' (' + i.price + ' Tzs)' : ''}</option>`).join('');
+                if (selectEl.options.length > 0) {
+                    selectEl.selectedIndex = 0;
+                }
             },
 
             confirmGrantAccess: async function () {
