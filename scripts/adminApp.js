@@ -275,6 +275,7 @@ if (viewId === 'ai-support') this.loadAISupport();
 
                 // Reuse the single payments fetch for the chart
                 this.loadRevenueChart('7days', payments);
+                this.loadTopSpenders(payments);
             },
 
             // --- CONTENT (Combined Logic) ---
@@ -964,6 +965,132 @@ if (viewId === 'ai-support') this.loadAISupport();
 
             debugConnection: async function () {
                 await this.checkSystemHealth(true);
+            },
+
+            // --- TOP 10 SPENDERS / BUYERS ---
+            loadTopSpenders: async function (preloadedPayments) {
+                const tbody = document.getElementById('top-spenders-body');
+                if (!tbody) return;
+
+                try {
+                    const payments = preloadedPayments || await api.getPayments();
+                    const completed = (payments || []).filter(p => ['completed', 'success', 'complete'].includes(String(p.status || '').toLowerCase()));
+
+                    if (completed.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:35px; color:#6b7280; font-size:0.88rem;">
+                                    Hakuna kumbukumbu ya malipo yaliyokamilika kwa sasa.
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    // Group by phone or userId
+                    const map = {};
+                    completed.forEach(p => {
+                        const phone = (p.phone || '').trim();
+                        const userId = (p.userId || p.uid || '').trim();
+                        const username = (p.username || '').trim();
+                        const key = phone || userId || username || p.id;
+                        if (!key) return;
+
+                        if (!map[key]) {
+                            map[key] = {
+                                key,
+                                username: username || (phone ? `Mteja (${phone})` : 'Mteja'),
+                                phone: phone || '-',
+                                userId: userId || '-',
+                                itemCount: 0,
+                                totalSpent: 0,
+                                lastItem: p.contentTitle || 'Mchezo/Huduma',
+                                lastDate: p.createdAt || p.timestamp || p.created_at || ''
+                            };
+                        }
+
+                        map[key].totalSpent += parseFloat(p.amount) || 0;
+                        map[key].itemCount += 1;
+                        if (username && map[key].username.startsWith('Mteja (')) {
+                            map[key].username = username;
+                        }
+                        if (phone && map[key].phone === '-') {
+                            map[key].phone = phone;
+                        }
+
+                        const rawD = p.createdAt || p.timestamp || p.created_at;
+                        if (rawD) {
+                            const newD = new Date(rawD);
+                            const oldD = map[key].lastDate ? new Date(map[key].lastDate) : new Date(0);
+                            if (newD > oldD) {
+                                map[key].lastDate = rawD;
+                                if (p.contentTitle) map[key].lastItem = p.contentTitle;
+                            }
+                        }
+                    });
+
+                    // Sort by itemCount (vitengo vilivyonunuliwa zaidi) DESC, then totalSpent DESC
+                    const topSpenders = Object.values(map)
+                        .sort((a, b) => (b.itemCount - a.itemCount) || (b.totalSpent - a.totalSpent))
+                        .slice(0, 10);
+
+                    const getMedalBadge = (rank) => {
+                        if (rank === 1) {
+                            return `<span style="display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg, #ffd700, #ffae00); color:#000; font-weight:900; font-size:1.05rem; box-shadow:0 0 12px rgba(255,215,0,0.5);">🥇</span>`;
+                        }
+                        if (rank === 2) {
+                            return `<span style="display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg, #e0e0e0, #a0a0a0); color:#000; font-weight:900; font-size:1.05rem; box-shadow:0 0 10px rgba(200,200,200,0.4);">🥈</span>`;
+                        }
+                        if (rank === 3) {
+                            return `<span style="display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg, #cd7f32, #8b4513); color:#fff; font-weight:900; font-size:1.05rem; box-shadow:0 0 10px rgba(205,127,50,0.4);">🥉</span>`;
+                        }
+                        return `<span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#1f2937; color:#9ca3af; font-weight:700; font-size:0.75rem; border:1px solid #374151;">#${rank}</span>`;
+                    };
+
+                    tbody.innerHTML = topSpenders.map((s, idx) => {
+                        const rank = idx + 1;
+                        const amountFormatted = 'Tsh ' + Number(s.totalSpent).toLocaleString('en-US');
+                        const initial = (s.username || 'M').charAt(0).toUpperCase();
+
+                        return `
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                                <td style="padding:16px; text-align:center;">${getMedalBadge(rank)}</td>
+                                <td style="padding:16px;">
+                                    <div style="display:flex; align-items:center; gap:12px;">
+                                        <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg, #1f2937, #111827); border:1px solid rgba(0,255,128,0.25); display:flex; align-items:center; justify-content:center; font-weight:800; color:#00ff80; font-size:0.95rem; flex-shrink:0;">
+                                            ${initial}
+                                        </div>
+                                        <div>
+                                            <div style="font-weight:700; color:#fff; font-size:0.9rem;">${s.username}</div>
+                                            <div style="font-size:0.75rem; color:#6b7280;">${s.userId !== '-' ? `ID: ${s.userId.slice(0, 10)}...` : 'Mteja wa Wavuti'}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="padding:16px; color:#d1d5db; font-size:0.88rem; font-family:monospace; font-weight:600;">
+                                    <span style="display:inline-flex; align-items:center; gap:6px;">
+                                        <ion-icon name="call-outline" style="color:#00ff80; font-size:0.9rem;"></ion-icon>
+                                        ${s.phone}
+                                    </span>
+                                </td>
+                                <td style="padding:16px; text-align:center;">
+                                    <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,255,128,0.1); border:1px solid rgba(0,255,128,0.3); color:#00ff80; font-weight:800; font-size:0.82rem; padding:4px 12px; border-radius:20px;">
+                                        <ion-icon name="bag-check-outline"></ion-icon>
+                                        ${s.itemCount} ${s.itemCount === 1 ? 'kitu' : 'vitu'}
+                                    </span>
+                                </td>
+                                <td style="padding:16px; font-weight:800; color:#00ff80; font-size:0.95rem;">
+                                    ${amountFormatted}
+                                </td>
+                                <td style="padding:16px; color:#9ca3af; font-size:0.82rem; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${s.lastItem}">
+                                    <div style="color:#e5e7eb; font-weight:600; text-overflow:ellipsis; overflow:hidden;">${s.lastItem}</div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                } catch (err) {
+                    console.error('Error loading top spenders:', err);
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#ef4444;">Imeshindwa kupakia orodha ya wateja.</td></tr>`;
+                }
             },
 
             // --- USERS ---

@@ -397,6 +397,47 @@
                     <canvas id="revenueChart"></canvas>
                 </div>
             </div>
+
+            <!-- TOP 10 SPENDERS SECTION -->
+            <div style="background: #111217; border: 1px solid #1f2937; border-radius: 20px; padding: 26px; margin-bottom: 35px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h3 style="font-size:1.15rem; font-weight:700; color:#fff; margin:0; display:flex; align-items:center; gap:8px;">
+                            <span>🏆</span>
+                            <span>Wateja 10 Walionunua Vitu Zaidi (Top 10 Buyers)</span>
+                        </h3>
+                        <p style="color:#6b7280; font-size:0.82rem; margin:4px 0 0;">Orodha ya wateja walionunua vitu vingi zaidi na kuingiza kiasi kikubwa cha mapato</p>
+                    </div>
+                    <span style="font-size:0.75rem; font-weight:700; color:#00ff80; background:rgba(0,255,128,0.1); border:1px solid rgba(0,255,128,0.25); border-radius:20px; padding:4px 12px; display:inline-flex; align-items:center; gap:6px;">
+                        <ion-icon name="ribbon-outline"></ion-icon> VIP Customers
+                    </span>
+                </div>
+
+                <div class="data-table-container" style="border-radius:14px; overflow-x:auto; border:1px solid #1f2937; background:#0b0c10;">
+                    <table style="width:100%; min-width:750px; border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom:1px solid #1f2937; background:rgba(255,255,255,0.02);">
+                                <th style="color:#9ca3af; text-transform:uppercase; font-size:0.75rem; padding:14px 16px; text-align:center; font-weight:700; width:70px;">NAFASI</th>
+                                <th style="color:#9ca3af; text-transform:uppercase; font-size:0.75rem; padding:14px 16px; text-align:left; font-weight:700;">MTEJA</th>
+                                <th style="color:#9ca3af; text-transform:uppercase; font-size:0.75rem; padding:14px 16px; text-align:left; font-weight:700;">NAMBA YA SIMU</th>
+                                <th style="color:#9ca3af; text-transform:uppercase; font-size:0.75rem; padding:14px 16px; text-align:center; font-weight:700;">VITU ALIVYONUNUA</th>
+                                <th style="color:#9ca3af; text-transform:uppercase; font-size:0.75rem; padding:14px 16px; text-align:left; font-weight:700;">JUMLA ALIYOLIPA</th>
+                                <th style="color:#9ca3af; text-transform:uppercase; font-size:0.75rem; padding:14px 16px; text-align:left; font-weight:700;">MANUNUZI YA MWISHO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-spenders-body">
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:35px; color:#9ca3af; font-size:0.85rem;">
+                                    <div style="display:inline-block; animation:spin 1s linear infinite; font-size:1.5rem; color:#00ff80; margin-bottom:8px;">
+                                        <ion-icon name="sync-outline"></ion-icon>
+                                    </div>
+                                    <div>Inapakia wateja 10 bora...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- USERS VIEW -->
@@ -1216,7 +1257,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=26"></script>
+<script type="module" src="/scripts/adminApp.js?v=27"></script>
 </body>
 
 </html>
