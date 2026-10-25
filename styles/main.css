@@ -1098,3 +1098,12 @@ a {
     transform: scale(1.02);
     box-shadow: 0 6px 22px rgba(0, 255, 128, 0.55);
 }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}

@@ -272,6 +272,115 @@ app.get('/api/payments', requireAdmin, async (req, res) => {
 
 });
 
+// GET /api/user/payments?phone=...&userId=...&username=...
+// Public endpoint for a logged-in user to fetch their own payment/transaction history safely
+app.get('/api/user/payments', async (req, res) => {
+    const rawPhone = (req.query.phone || '').trim();
+    const userId = (req.query.userId || '').trim();
+    const username = (req.query.username || '').trim();
+
+    if (!rawPhone && !userId && !username) {
+        return res.status(400).json({ success: false, error: 'Taarifa za mtumiaji zinahitajika', payments: [] });
+    }
+
+    try {
+        const paymentsMap = new Map();
+
+        // 1. Prepare phone variations
+        let phoneVariations = [];
+        if (rawPhone) {
+            const digits = rawPhone.replace(/[^0-9]/g, '');
+            if (digits.length >= 9) {
+                const last9 = digits.slice(-9);
+                phoneVariations = [
+                    '0' + last9,
+                    '255' + last9,
+                    '+255' + last9,
+                    last9,
+                    rawPhone
+                ];
+            } else if (digits.length > 0) {
+                phoneVariations = [rawPhone, digits];
+            }
+        }
+        const uniquePhones = Array.from(new Set(phoneVariations.filter(Boolean))).slice(0, 10);
+
+        // 2. Fetch from Firestore if available
+        if (fsdb) {
+            const queries = [];
+
+            if (userId) {
+                queries.push(fsdb.collection('payments').where('userId', '==', String(userId)).get());
+            }
+
+            if (uniquePhones.length > 0) {
+                queries.push(fsdb.collection('payments').where('phone', 'in', uniquePhones).get());
+            }
+
+            const snaps = await Promise.all(queries);
+            snaps.forEach(snap => {
+                snap.forEach(doc => {
+                    const data = doc.data() || {};
+                    const key = data.id || data.order_id || data.orderId || data.merchantReference || doc.id;
+                    if (key && !paymentsMap.has(key)) {
+                        paymentsMap.set(key, { ...data, docId: doc.id });
+                    }
+                });
+            });
+
+            // If empty and username provided, fallback search by username
+            if (paymentsMap.size === 0 && username) {
+                const uSnap = await fsdb.collection('payments').where('username', '==', username).limit(25).get();
+                uSnap.forEach(doc => {
+                    const data = doc.data() || {};
+                    const key = data.id || data.order_id || data.orderId || data.merchantReference || doc.id;
+                    if (key && !paymentsMap.has(key)) {
+                        paymentsMap.set(key, { ...data, docId: doc.id });
+                    }
+                });
+            }
+        }
+
+        // 3. Fallback to local db.json if needed
+        if (paymentsMap.size === 0) {
+            try {
+                const dbPath = path.join(__dirname, 'data', 'db.json');
+                if (fs.existsSync(dbPath)) {
+                    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+                    const localPayments = dbData.payments || [];
+                    localPayments.forEach(p => {
+                        const matchUser = userId && p.userId === userId;
+                        const matchPhone = uniquePhones.length > 0 && uniquePhones.includes(p.phone);
+                        const matchName = username && p.username && p.username.toLowerCase() === username.toLowerCase();
+                        if (matchUser || matchPhone || matchName) {
+                            const key = p.id || p.order_id || p.orderId || p.merchantReference;
+                            if (key && !paymentsMap.has(key)) {
+                                paymentsMap.set(key, p);
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Local db user-payments fallback error:', e.message);
+            }
+        }
+
+        const payments = Array.from(paymentsMap.values());
+
+        // Sort descending by date (newest first)
+        payments.sort((a, b) => {
+            const timeA = new Date(a.createdAt || a.timestamp || a.date || a.updatedAt || 0).getTime();
+            const timeB = new Date(b.createdAt || b.timestamp || b.date || b.updatedAt || 0).getTime();
+            return timeB - timeA;
+        });
+
+        return res.json({ success: true, count: payments.length, payments });
+    } catch (err) {
+        console.error('Error fetching user payments:', err);
+        return res.status(500).json({ success: false, error: err.message, payments: [] });
+    }
+});
+
 // ─── Access / Subscription helpers ────────────────────────────────────────────
 // Resolve subscription duration (days) for a given content, from settings.
 function getDurationDays(db, contentId) {

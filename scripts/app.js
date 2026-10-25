@@ -11,7 +11,10 @@ class Router {
             'adult': () => this.checkAdult(),
             'movies': () => this.showMovies(),
             'help': () => this.showHelp(),
-            'account': () => this.showAccount()
+            'account': () => this.showAccount(),
+            'transactions': () => this.showMyList(),
+            'payments': () => this.showMyList(),
+            'my-list': () => this.showMyList()
         };
         this.currentRoute = 'home';
         this.cachedContent = [];
@@ -1960,7 +1963,7 @@ class Router {
                 <!-- Action Buttons -->
                 <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:32px;">
 
-                    <!-- Historia ya Malipo (hidden for now - not in use; uncomment to restore)
+                    <!-- Historia ya Miamala -->
                     <button onclick="window.app.router.showMyList()" style="
                         width:100%; padding:16px; border-radius:14px;
                         background:var(--accent-color); color:#000; border:none;
@@ -1970,9 +1973,8 @@ class Router {
                         transition: transform 0.15s, box-shadow 0.15s;
                     " onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
                         <ion-icon name="receipt-outline" style="font-size:1.3rem;"></ion-icon>
-                        Historia ya Malipo
+                        Historia ya Miamala
                     </button>
-                    -->
 
                     <!-- Sign Out -->
                     <button onclick="window.app.router.logout()" style="
@@ -2199,57 +2201,224 @@ class Router {
 
     async showMyList() {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        let paymentsHTML = '';
-        try {
-            const res = await fetch('/api/payments');
-            const allPayments = await res.json();
-            // Filter payments belonging to this user
-            const userPayments = allPayments.filter(p =>
-                p.userId === user.uid ||
-                p.username === user.username ||
-                p.phone === user.phone
-            );
+        if (!user || (!user.uid && !user.phone)) {
+            this.showAccount();
+            return;
+        }
 
-            if (userPayments.length === 0) {
-                paymentsHTML = `
-                    <div style="text-align:center; padding:60px 20px; color:#888;">
-                        <ion-icon name="receipt-outline" style="font-size:3.5rem; margin-bottom:15px; color:#333;"></ion-icon>
-                        <p style="font-size:1rem;">Hakuna malipo yaliyopatikana.</p>
-                    </div>`;
-            } else {
-                paymentsHTML = userPayments.map(p => {
-                    const statusColor = p.status === 'completed' ? '#22c55e' : p.status === 'failed' ? '#ef4444' : '#f59e0b';
-                    const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-                    return `
-                    <div style="background:#1a1a1a; border:1px solid #2a2a2a; border-radius:14px; padding:16px 18px; margin-bottom:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-weight:700; font-size:0.95rem; color:#fff; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.contentTitle || 'Malipo'}</span>
-                            <span style="background:${statusColor}22; color:${statusColor}; border:1px solid ${statusColor}44; border-radius:20px; padding:2px 10px; font-size:0.72rem; font-weight:700; margin-left:10px; white-space:nowrap;">${p.status === 'completed' ? '✅ Imekamilika' : p.status === 'failed' ? '❌ Imeshindwa' : '⏳ Inasubiri'}</span>
+        // Show immediate loading modal with modern UI
+        document.getElementById('modal-container').innerHTML = `
+            <div class="full-page-modal fade-in" style="background:#0a0b0e; min-height:100vh;">
+                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div onclick="window.app.router.showAccount()" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#1a1a1a; border:1px solid #2a2a2a;">
+                            <ion-icon name="arrow-back" style="font-size:1.3rem; color:#fff;"></ion-icon>
                         </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:#22c55e; font-size:1.05rem; font-weight:800;">Tsh ${(p.amount || 0).toLocaleString()}</span>
-                            <span style="color:#555; font-size:0.78rem;">${date}</span>
+                        <h2 style="margin:0; font-size:1.1rem; color:#fff; font-weight:700;">Historia ya Miamala</h2>
+                    </div>
+                </nav>
+                <div style="padding:120px 20px 40px; text-align:center; color:#888;">
+                    <ion-icon name="sync-outline" class="spin" style="font-size:2.8rem; color:#00ff80;"></ion-icon>
+                    <p style="margin-top:14px; font-size:0.95rem; color:#aaa;">Inapakia historia ya malipo yako...</p>
+                </div>
+            </div>`;
+
+        let payments = [];
+        let fetchError = null;
+
+        try {
+            const params = new URLSearchParams();
+            if (user.phone) params.set('phone', user.phone);
+            if (user.uid) params.set('userId', user.uid);
+            if (user.username) params.set('username', user.username);
+
+            const res = await fetch(`/api/user/payments?${params.toString()}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            payments = Array.isArray(data.payments) ? data.payments : [];
+        } catch (err) {
+            console.error('Failed to load user payments:', err);
+            fetchError = err;
+        }
+
+        let bodyHTML = '';
+
+        if (fetchError) {
+            bodyHTML = `
+                <div style="text-align:center; padding:50px 20px; color:#888;">
+                    <ion-icon name="alert-circle-outline" style="font-size:3.5rem; color:#ef4444; margin-bottom:12px;"></ion-icon>
+                    <h3 style="color:#fff; font-size:1.15rem; font-weight:700; margin-bottom:6px;">Imeshindwa Kupakia</h3>
+                    <p style="font-size:0.85rem; color:#777; margin-bottom:24px;">Tafadhali hakikisha kifaa chako kimeunganishwa kwenye intaneti kisha jaribu tena.</p>
+                    <button onclick="window.app.router.showMyList()" style="background:#00ff80; color:#000; border:none; padding:12px 28px; border-radius:12px; font-weight:800; cursor:pointer;">
+                        Jaribu Tena
+                    </button>
+                </div>`;
+        } else if (payments.length === 0) {
+            bodyHTML = `
+                <div style="text-align:center; padding:60px 20px 40px;">
+                    <div style="width:76px; height:76px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid #222; display:flex; align-items:center; justify-content:center; margin:0 auto 18px;">
+                        <ion-icon name="receipt-outline" style="font-size:2.6rem; color:#555;"></ion-icon>
+                    </div>
+                    <h3 style="color:#fff; font-size:1.2rem; font-weight:800; margin-bottom:8px;">Hakuna Miamala Bado</h3>
+                    <p style="color:#777; font-size:0.88rem; max-width:320px; margin:0 auto 24px; line-height:1.6;">
+                        Bado haujafanya muamala wowote wa malipo. Unaponunua huduma, mchezo au kifurushi cha filamu, historia yako itaonekana hapa.
+                    </p>
+                    <button onclick="window.app.router.navigate('home')" style="background:#00ff80; color:#000; border:none; padding:13px 30px; border-radius:12px; font-weight:800; cursor:pointer; box-shadow:0 4px 20px rgba(0,255,128,0.3);">
+                        Gundua Maudhui Sasa
+                    </button>
+                </div>`;
+        } else {
+            const completedList = payments.filter(p => ['completed', 'success', 'complete'].includes(String(p.status || '').toLowerCase()));
+            const totalSpent = completedList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+            const summaryHTML = `
+                <div style="background: linear-gradient(135deg, #12141c 0%, #0d0f14 100%); border: 1px solid #1f2937; border-radius: 16px; padding: 18px 20px; margin-bottom: 22px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                    <div>
+                        <div style="color:#9ca3af; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; font-weight:700;">Jumla ya Miamala</div>
+                        <div style="color:#fff; font-size:1.35rem; font-weight:900; margin-top:2px;">
+                            ${payments.length} <span style="font-size:0.82rem; font-weight:600; color:#00ff80;">(${completedList.length} Imekamilika)</span>
                         </div>
-                        ${p.phone ? `<div style="color:#666; font-size:0.8rem; margin-top:4px;">📱 ${p.phone}</div>` : ''}
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:#9ca3af; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; font-weight:700;">Jumla Iliyolipwa</div>
+                        <div style="color:#00ff80; font-size:1.35rem; font-weight:900; margin-top:2px;">Tsh ${totalSpent.toLocaleString()}</div>
+                    </div>
+                </div>`;
+
+            const cardsHTML = payments.map(p => {
+                const statusNormalized = String(p.status || 'pending').toLowerCase();
+                const isCompleted = ['completed', 'success', 'complete'].includes(statusNormalized);
+                const isFailed = ['failed', 'fail', 'cancelled'].includes(statusNormalized);
+
+                const statusBadge = isCompleted
+                    ? `<span style="background:rgba(34,197,94,0.12); color:#22c55e; border:1px solid rgba(34,197,94,0.35); border-radius:20px; padding:3px 10px; font-size:0.72rem; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:5px;"><ion-icon name="checkmark-circle"></ion-icon> Imekamilika</span>`
+                    : isFailed
+                    ? `<span style="background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.35); border-radius:20px; padding:3px 10px; font-size:0.72rem; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:5px;"><ion-icon name="close-circle"></ion-icon> Imeshindwa</span>`
+                    : `<span style="background:rgba(245,158,11,0.12); color:#f59e0b; border:1px solid rgba(245,158,11,0.35); border-radius:20px; padding:3px 10px; font-size:0.72rem; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:5px;"><ion-icon name="time-outline"></ion-icon> Inasubiri</span>`;
+
+                const rawDate = p.createdAt || p.timestamp || p.date || p.updatedAt;
+                const dateObj = rawDate ? new Date(rawDate) : null;
+                const dateFormatted = dateObj && !isNaN(dateObj)
+                    ? dateObj.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : '-';
+
+                const orderRef = p.merchantReference || p.order_id || p.orderId || p.id || '-';
+                const amountFormatted = (Number(p.amount) || 0).toLocaleString();
+                const contentTitle = p.contentTitle || p.description || 'Muamala wa Huduma';
+                const gateway = (p.gateway || 'PressoPay').toUpperCase();
+                const phone = p.phone || '';
+
+                // Action buttons based on status
+                let actionBtn = '';
+                if (isCompleted && p.contentId) {
+                    actionBtn = `
+                        <button onclick="window.app.router.navigate('details', '${p.contentId}')" style="margin-top:14px; width:100%; padding:11px; border-radius:10px; background:rgba(0,255,128,0.1); border:1px solid rgba(0,255,128,0.3); color:#00ff80; font-weight:800; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
+                            <ion-icon name="play-circle-outline" style="font-size:1.15rem;"></ion-icon> Fungua / Pakua Maudhui
+                        </button>`;
+                } else if (!isCompleted && !isFailed) {
+                    actionBtn = `
+                        <button onclick="window.app.router.verifyPendingPayment('${orderRef}', this)" style="margin-top:14px; width:100%; padding:11px; border-radius:10px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:#f59e0b; font-weight:800; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
+                            <ion-icon name="sync-outline" style="font-size:1.15rem;"></ion-icon> Kagua Hali ya Malipo
+                        </button>`;
+                }
+
+                return `
+                    <div style="background:#13151c; border:1px solid #1f2937; border-radius:16px; padding:18px 20px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px;">
+                            <div style="font-weight:800; font-size:1rem; color:#fff; flex:1; line-height:1.35; overflow:hidden; text-overflow:ellipsis;">
+                                ${contentTitle}
+                            </div>
+                            <div>${statusBadge}</div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <div style="color:#00ff80; font-size:1.25rem; font-weight:900; letter-spacing:0.3px;">
+                                Tsh ${amountFormatted}
+                            </div>
+                            <div style="color:#6b7280; font-size:0.8rem; font-weight:500;">
+                                ${dateFormatted}
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:0.78rem; color:#9ca3af;">
+                            <div>
+                                <span style="color:#4b5563;">Kumbukumbu:</span>
+                                <div style="color:#e5e7eb; font-family:monospace; font-size:0.75rem; word-break:break-all; margin-top:2px;">${orderRef}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <span style="color:#4b5563;">Njia ya Malipo:</span>
+                                <div style="color:#e5e7eb; font-weight:600; margin-top:2px;">${gateway} ${phone ? `· ${phone}` : ''}</div>
+                            </div>
+                        </div>
+
+                        ${actionBtn}
                     </div>`;
-                }).join('');
-            }
-        } catch (e) {
-            paymentsHTML = `<p style="text-align:center; color:#888; padding:40px 0;">Imeshindwa kupakia. Jaribu tena.</p>`;
+            }).join('');
+
+            bodyHTML = summaryHTML + cardsHTML;
         }
 
         document.getElementById('modal-container').innerHTML = `
-            <div class="full-page-modal fade-in">
-                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
-                    <div onclick="window.app.router.showAccount()" style="cursor:pointer; margin-right:14px;">
-                        <ion-icon name="arrow-back" style="font-size:1.5rem;"></ion-icon>
+            <div class="full-page-modal fade-in" style="background:#0a0b0e; min-height:100vh;">
+                <nav style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:#0d0d0d; border-bottom:1px solid #1f2937;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div onclick="window.app.router.showAccount()" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#1a1a1a; border:1px solid #2a2a2a;">
+                            <ion-icon name="arrow-back" style="font-size:1.3rem; color:#fff;"></ion-icon>
+                        </div>
+                        <h2 style="margin:0; font-size:1.1rem; color:#fff; font-weight:700;">Historia ya Miamala</h2>
                     </div>
-                    <h2 style="margin:0; font-size:1.1rem;">My List (Malipo Yangu)</h2>
+                    <div onclick="window.app.router.showMyList()" title="Refresh" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#1a1a1a; border:1px solid #2a2a2a; color:#00ff80;">
+                        <ion-icon name="refresh-outline" style="font-size:1.3rem;"></ion-icon>
+                    </div>
                 </nav>
-                <div style="padding:80px 20px 40px;">
-                    ${paymentsHTML}
+                <div style="padding:85px 20px 40px; max-width:560px; margin:0 auto;">
+                    ${bodyHTML}
                 </div>
             </div>`;
+    }
+
+    async verifyPendingPayment(orderId, btn) {
+        if (!orderId || orderId === '-') return;
+        const origText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<ion-icon name="sync-outline" class="spin"></ion-icon> Inakagua hali...';
+            btn.disabled = true;
+        }
+        try {
+            const res = await fetch(`/api/payment/status/${encodeURIComponent(orderId)}?t=${Date.now()}`, { cache: 'no-store' });
+            const data = await res.json();
+            const status = String(data.status || '').toLowerCase();
+            if (status === 'completed' || status === 'success' || data.success) {
+                if (window.Swal) {
+                    await Swal.fire({
+                        title: 'Malipo Yamethibitishwa! 🎉',
+                        text: 'Muamala huu umekamilika kikamilifu. Sasa unaweza kufungua au kupakua maudhui yako.',
+                        icon: 'success',
+                        background: '#111217',
+                        color: '#fff',
+                        confirmButtonColor: '#00ff80'
+                    });
+                } else {
+                    alert('Malipo yamethibitishwa kuwa yamekamilika!');
+                }
+            } else {
+                if (window.Swal) {
+                    await Swal.fire({
+                        title: 'Hali ya Muamala',
+                        text: `Muamala bado haujathibitishwa na mtandao wa malipo (Hali: ${data.status || 'Inasubiri'}). Ukishalipa kwenye simu yako, subiri sekunde chache kisha kagua tena.`,
+                        icon: 'info',
+                        background: '#111217',
+                        color: '#fff',
+                        confirmButtonColor: '#00ff80'
+                    });
+                } else {
+                    alert('Hali ya malipo: Bado inasubiri uthibitisho.');
+                }
+            }
+        } catch (e) {
+            alert('Hitilafu wakati wa kukagua muamala. Tafadhali jaribu tena.');
+        }
+        this.showMyList();
     }
 
     async showReferral() {
