@@ -2427,9 +2427,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                                 confirmButtonColor: '#3b82f6'
                             });
                         } else {
-                            alert('AI Imeji-upgrade Kikamilifu!
-
-' + (res.data?.summary || 'Uelewa umeboreshwa.'));
+                            alert('AI Imeji-upgrade Kikamilifu!\n\n' + (res.data?.summary || 'Uelewa umeboreshwa.'));
                         }
                     } else {
                         alert(res.message || res.error || 'Uchambuzi umeshindikana. Hakikisha kuna maongezi ya wateja.');
