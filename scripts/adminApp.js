@@ -275,9 +275,6 @@ if (viewId === 'ai-support') this.loadAISupport();
 
                 // Reuse the single payments fetch for the chart
                 this.loadRevenueChart('7days', payments);
-
-                const txnEl = document.getElementById('stat-total-txns');
-                if (txnEl) txnEl.textContent = `${completed.length} malipo yaliyokamilika`;
             },
 
             // --- CONTENT (Combined Logic) ---
@@ -2041,16 +2038,33 @@ if (viewId === 'ai-support') this.loadAISupport();
 
                     const fmt = n => 'Tsh ' + Number(n).toLocaleString();
 
-                    // Lifetime total
+                    // Lifetime total (used for chart summary)
                     const totalRevenue = completed.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
-                    // Update stat card
-                    document.getElementById('stat-total-revenue').textContent = fmt(totalRevenue);
-                    document.getElementById('stat-total-txns').textContent =
-                        `${completed.length} malipo yaliyokamilika`;
+                    // ── Calculate Month Revenue for Top Stat Card ─────────────────
+                    const now = new Date();
+                    const currentYear = now.getFullYear();
+                    const currentMonth = now.getMonth();
+                    const monthPayments = completed.filter(p => {
+                        const ts = p.timestamp || p.createdAt || p.created_at || '';
+                        if (!ts) return false;
+                        const d = new Date(ts);
+                        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+                    });
+                    const monthRevenue = monthPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+                    // Update Top Stat Card with Month Revenue
+                    const statMonthRevEl = document.getElementById('stat-total-revenue');
+                    if (statMonthRevEl) statMonthRevEl.textContent = fmt(monthRevenue);
+
+                    const statMonthTxnsEl = document.getElementById('stat-total-txns');
+                    if (statMonthTxnsEl) statMonthTxnsEl.textContent = `${monthPayments.length} malipo mwezi huu`;
+
+                    const monthNamesSw = ['Januari', 'Februari', 'Machi', 'Aprili', 'Mei', 'Juni', 'Julai', 'Agosti', 'Septemba', 'Oktoba', 'Novemba', 'Desemba'];
+                    const monthBadge = document.getElementById('stat-month-badge');
+                    if (monthBadge) monthBadge.textContent = `${monthNamesSw[currentMonth]} ${currentYear}`;
 
                     // ── Build period buckets ──────────────────────────────────
-                    const now = new Date();
                     let buckets = {}; // key → total amount
                     let filteredPayments = [];
                     let labelFn; // key → display label
