@@ -974,6 +974,122 @@ class ApiService {
         return { success: false, error: 'Imeshindikana kuhifadhi. Tafadhali jaribu tena.' };
     }
 
+    async getAIStats() {
+        // 1. Try server endpoint first
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/stats`, {
+                headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success) return data;
+            }
+        } catch (e) {
+            console.warn('Server getAIStats notice:', e);
+        }
+
+        // 2. Client-side Firestore fallback
+        try {
+            if (db) {
+                const q = query(collection(db, 'ai_chat_logs'), orderBy('timestamp', 'desc'), limit(1000));
+                const snap = await getDocs(q);
+                const logs = [];
+                snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+                if (logs.length > 0) {
+                    return this._calculateAIStatsFromLogs(logs);
+                }
+            }
+        } catch (fsErr) {
+            console.warn('Client Firestore getAIStats fallback notice:', fsErr);
+        }
+
+        return {
+            success: true,
+            today: { people: 0, messages: 0 },
+            yesterday: { people: 0, messages: 0 },
+            last7Days: { people: 0, messages: 0 },
+            thisMonth: { people: 0, messages: 0 },
+            allTime: { people: 0, messages: 0 },
+            recentLogs: []
+        };
+    }
+
+    _calculateAIStatsFromLogs(logs) {
+        const now = new Date();
+        const eatNow = new Date(now.getTime() + (3 * 3600000));
+        const curYear = eatNow.getUTCFullYear();
+        const curMonth = eatNow.getUTCMonth();
+        const curDate = eatNow.getUTCDate();
+
+        const startOfTodayMs = Date.UTC(curYear, curMonth, curDate) - (3 * 3600000);
+        const startOfYesterdayMs = startOfTodayMs - (24 * 3600000);
+        const startOf7DaysMs = startOfTodayMs - (6 * 24 * 3600000);
+        const startOfMonthMs = Date.UTC(curYear, curMonth, 1) - (3 * 3600000);
+
+        function getPersonKey(log) {
+            if (log.userId && log.userId !== 'anonymous' && log.userId !== 'guest') return 'uid_' + log.userId;
+            if (log.userPhone && String(log.userPhone).length >= 7) return 'phone_' + log.userPhone;
+            if (log.sessionId && !String(log.sessionId).startsWith('undefined')) return 'session_' + log.sessionId;
+            if (log.ip && log.ip !== 'local' && log.ip !== '::1') return 'ip_' + log.ip;
+            return 'log_' + (log.id || Math.random());
+        }
+
+        const todayUsers = new Set();
+        let todayMessages = 0;
+        const yesterdayUsers = new Set();
+        let yesterdayMessages = 0;
+        const last7DaysUsers = new Set();
+        let last7DaysMessages = 0;
+        const thisMonthUsers = new Set();
+        let thisMonthMessages = 0;
+        const allTimeUsers = new Set();
+        let allTimeMessages = 0;
+
+        for (const log of logs) {
+            const rawTs = log.timestamp || log.createdAt;
+            const ts = rawTs ? new Date(rawTs).getTime() : 0;
+            if (!ts || isNaN(ts)) continue;
+
+            const pKey = getPersonKey(log);
+            allTimeUsers.add(pKey);
+            allTimeMessages++;
+
+            if (ts >= startOfTodayMs) {
+                todayUsers.add(pKey);
+                todayMessages++;
+            }
+            if (ts >= startOfYesterdayMs && ts < startOfTodayMs) {
+                yesterdayUsers.add(pKey);
+                yesterdayMessages++;
+            }
+            if (ts >= startOf7DaysMs) {
+                last7DaysUsers.add(pKey);
+                last7DaysMessages++;
+            }
+            if (ts >= startOfMonthMs) {
+                thisMonthUsers.add(pKey);
+                thisMonthMessages++;
+            }
+        }
+
+        return {
+            success: true,
+            today: { people: todayUsers.size, messages: todayMessages },
+            yesterday: { people: yesterdayUsers.size, messages: yesterdayMessages },
+            last7Days: { people: last7DaysUsers.size, messages: last7DaysMessages },
+            thisMonth: { people: thisMonthUsers.size, messages: thisMonthMessages },
+            allTime: { people: allTimeUsers.size, messages: allTimeMessages },
+            recentLogs: logs.slice(0, 100)
+        };
+    }
+
     async getAIChatLogs() {
         try {
             const res = await fetch(`${this.baseUrl}/api/admin/ai-chat-logs`, {

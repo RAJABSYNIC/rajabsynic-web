@@ -2059,6 +2059,8 @@ ${catalogSummary}
         const logEntry = {
             id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             sessionId: sessionId || ('guest_' + Date.now()),
+            userId: userId || null,
+            userPhone: userPhone || null,
             userMessage: userMsg,
             botResponse: aiReply,
             timestamp: new Date().toISOString(),
@@ -2168,6 +2170,120 @@ app.post('/api/admin/ai-knowledge', requireAdmin, async (req, res) => {
         res.json({ success: true, message: 'Maelekezo ya AI yamehifadhiwa kikamilifu!' });
     } catch (e) {
         console.error('Error saving AI knowledge:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Get AI Analytics & Stats (Leo, Jana, Siku 7, Mwezi, Jumla)
+app.get('/api/admin/ai/stats', requireAdmin, async (req, res) => {
+    try {
+        let logs = [];
+        if (fsdb) {
+            try {
+                const snap = await fsdb.collection('ai_chat_logs').orderBy('timestamp', 'desc').limit(3000).get();
+                snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+            } catch (fsErr) {
+                console.warn('Firestore ai_chat_logs fetch notice:', fsErr.message);
+            }
+        }
+        if (logs.length === 0) {
+            logs = getAIChatLogs();
+        }
+
+        // East Africa Time (UTC+3) calendar boundaries
+        const now = new Date();
+        const eatNow = new Date(now.getTime() + (3 * 3600000));
+        const curYear = eatNow.getUTCFullYear();
+        const curMonth = eatNow.getUTCMonth();
+        const curDate = eatNow.getUTCDate();
+
+        // Start of today in UTC ms
+        const startOfTodayMs = Date.UTC(curYear, curMonth, curDate) - (3 * 3600000);
+        const startOfYesterdayMs = startOfTodayMs - (24 * 3600000);
+        const startOf7DaysMs = startOfTodayMs - (6 * 24 * 3600000);
+        const startOfMonthMs = Date.UTC(curYear, curMonth, 1) - (3 * 3600000);
+
+        function getPersonKey(log) {
+            if (log.userId && log.userId !== 'anonymous' && log.userId !== 'guest') return 'uid_' + log.userId;
+            if (log.userPhone && String(log.userPhone).length >= 7) return 'phone_' + log.userPhone;
+            if (log.sessionId && !String(log.sessionId).startsWith('undefined')) return 'session_' + log.sessionId;
+            if (log.ip && log.ip !== 'local' && log.ip !== '::1') return 'ip_' + log.ip;
+            return 'log_' + (log.id || Math.random());
+        }
+
+        const todayUsers = new Set();
+        let todayMessages = 0;
+
+        const yesterdayUsers = new Set();
+        let yesterdayMessages = 0;
+
+        const last7DaysUsers = new Set();
+        let last7DaysMessages = 0;
+
+        const thisMonthUsers = new Set();
+        let thisMonthMessages = 0;
+
+        const allTimeUsers = new Set();
+        let allTimeMessages = 0;
+
+        for (const log of logs) {
+            const rawTs = log.timestamp || log.createdAt;
+            const ts = rawTs ? new Date(rawTs).getTime() : 0;
+            if (!ts || isNaN(ts)) continue;
+
+            const pKey = getPersonKey(log);
+
+            // All time
+            allTimeUsers.add(pKey);
+            allTimeMessages++;
+
+            // Today
+            if (ts >= startOfTodayMs) {
+                todayUsers.add(pKey);
+                todayMessages++;
+            }
+
+            // Yesterday
+            if (ts >= startOfYesterdayMs && ts < startOfTodayMs) {
+                yesterdayUsers.add(pKey);
+                yesterdayMessages++;
+            }
+
+            // Last 7 days
+            if (ts >= startOf7DaysMs) {
+                last7DaysUsers.add(pKey);
+                last7DaysMessages++;
+            }
+
+            // This month
+            if (ts >= startOfMonthMs) {
+                thisMonthUsers.add(pKey);
+                thisMonthMessages++;
+            }
+        }
+
+        const recentLogs = logs.slice(0, 100).map(l => ({
+            id: l.id || Math.random().toString(),
+            timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
+            sessionId: l.sessionId || '-',
+            userId: l.userId || null,
+            userPhone: l.userPhone || null,
+            userMessage: l.userMessage || '',
+            botResponse: l.botResponse || '',
+            isPaymentAction: !!l.isPaymentAction
+        }));
+
+        res.json({
+            success: true,
+            today: { people: todayUsers.size, messages: todayMessages },
+            yesterday: { people: yesterdayUsers.size, messages: yesterdayMessages },
+            last7Days: { people: last7DaysUsers.size, messages: last7DaysMessages },
+            thisMonth: { people: thisMonthUsers.size, messages: thisMonthMessages },
+            allTime: { people: allTimeUsers.size, messages: allTimeMessages },
+            recentLogs
+        });
+    } catch (e) {
+        console.error('Error generating AI stats:', e);
         res.status(500).json({ success: false, error: e.message });
     }
 });

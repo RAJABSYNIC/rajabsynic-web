@@ -2333,6 +2333,99 @@ if (viewId === 'ai-support') this.loadAISupport();
                     // ─── AI CUSTOMER SUPPORT MANAGEMENT ───────────────────────────
         Object.assign(adminApp, {
             _cachedAIKnowledge: null,
+            _cachedAIStats: null,
+            _cachedAILogs: [],
+
+            loadAIStats: async function (isManual = false) {
+                const refreshIcon = document.getElementById('ai-stats-refresh-icon');
+                const updatedTimeEl = document.getElementById('ai-stats-updated-time');
+                if (refreshIcon && isManual) {
+                    refreshIcon.style.animation = 'spin 1s linear infinite';
+                }
+                if (updatedTimeEl) updatedTimeEl.textContent = 'Inasasisha takwimu...';
+
+                try {
+                    const stats = await api.getAIStats();
+                    if (stats && stats.success) {
+                        this._cachedAIStats = stats;
+                        this._cachedAILogs = stats.recentLogs || [];
+
+                        // Populate numbers
+                        const setCard = (id, people, msgs) => {
+                            const pEl = document.getElementById(id);
+                            const mEl = document.getElementById(id + '-msgs');
+                            if (pEl) pEl.innerHTML = (people || 0).toLocaleString() + ' <span style="font-size:0.82rem; font-weight:600; color:inherit;">watu</span>';
+                            if (mEl) mEl.textContent = (msgs || 0).toLocaleString() + ' maswali yaliyojibiwa';
+                        };
+
+                        setCard('ai-stat-today', stats.today?.people, stats.today?.messages);
+                        setCard('ai-stat-yesterday', stats.yesterday?.people, stats.yesterday?.messages);
+                        setCard('ai-stat-7days', stats.last7Days?.people, stats.last7Days?.messages);
+                        setCard('ai-stat-month', stats.thisMonth?.people, stats.thisMonth?.messages);
+                        setCard('ai-stat-alltime', stats.allTime?.people, stats.allTime?.messages);
+
+                        if (updatedTimeEl) {
+                            const nowStr = new Date().toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                            updatedTimeEl.textContent = 'Imeboreshwa: ' + nowStr;
+                        }
+
+                        this.renderAIChatLogs(this._cachedAILogs);
+                    }
+                } catch (err) {
+                    console.error('Error loading AI stats in admin:', err);
+                    if (updatedTimeEl) updatedTimeEl.textContent = 'Hitilafu ya kupakia';
+                } finally {
+                    if (refreshIcon) refreshIcon.style.animation = '';
+                }
+            },
+
+            renderAIChatLogs: function(logs) {
+                const tbody = document.getElementById('ai-logs-tbody');
+                const countBadge = document.getElementById('ai-logs-count');
+                if (!tbody) return;
+
+                if (countBadge) countBadge.textContent = logs ? logs.length : 0;
+
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#6b7280; font-size:0.85rem;">Hakuna mazungumzo yaliyorekodiwa bado.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => {
+                    const dateObj = l.timestamp ? new Date(l.timestamp) : new Date();
+                    const dateStr = dateObj.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' }) + ' ' + dateObj.toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' });
+                    
+                    let clientLabel = 'Mgeni (Guest)';
+                    if (l.userPhone) clientLabel = l.userPhone;
+                    else if (l.userId) clientLabel = 'Mteja: ' + String(l.userId).slice(0, 8) + '...';
+                    else if (l.sessionId) clientLabel = 'Kipindi: ' + String(l.sessionId).slice(-6);
+
+                    const q = (l.userMessage || '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const a = (l.botResponse || '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const shortA = a.length > 120 ? a.substring(0, 120) + '...' : a;
+
+                    return `
+                        <tr style="border-bottom:1px solid #1f2937; font-size:0.84rem;">
+                            <td style="padding:10px 14px; color:#9ca3af; white-space:nowrap; vertical-align:top;">${dateStr}</td>
+                            <td style="padding:10px 14px; color:#00ff80; font-weight:600; white-space:nowrap; vertical-align:top;">${clientLabel}</td>
+                            <td style="padding:10px 14px; color:#fff; vertical-align:top; max-width:240px; word-break:break-word;">${q}</td>
+                            <td style="padding:10px 14px; color:#d1d5db; vertical-align:top; max-width:320px; word-break:break-word;" title="${a}">${shortA}</td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            filterAIChatLogs: function() {
+                const search = (document.getElementById('ai-logs-search')?.value || '').toLowerCase().trim();
+                const filtered = (this._cachedAILogs || []).filter(l => {
+                    const msg = (l.userMessage || '').toLowerCase();
+                    const resp = (l.botResponse || '').toLowerCase();
+                    const phone = (l.userPhone || '').toLowerCase();
+                    const session = (l.sessionId || '').toLowerCase();
+                    return msg.includes(search) || resp.includes(search) || phone.includes(search) || session.includes(search);
+                });
+                this.renderAIChatLogs(filtered);
+            },
             _aiExpanded: false,
 
             toggleAITrainingExpand: function() {
@@ -2415,6 +2508,7 @@ if (viewId === 'ai-support') this.loadAISupport();
             },
 
             loadAISupport: async function() {
+                this.loadAIStats();
                 try {
                     if (auth && auth.currentUser) {
                         try {

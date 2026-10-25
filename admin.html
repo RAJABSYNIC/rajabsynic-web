@@ -613,6 +613,80 @@
 
         <!-- AI TRAINING STUDIO (INPUT ON TOP + SAVED TRAININGS BELOW) -->
         <div id="view-ai-support" class="view-section">
+
+            <!-- AI Customer Support Analytics Cards (Leo, Jana, Siku 7, Mwezi, Jumla) -->
+            <div style="margin-bottom: 22px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <ion-icon name="people" style="color:#00ff80; font-size:1.35rem;"></ion-icon>
+                        <h2 style="margin:0; font-size:1.2rem; font-weight:800; color:#fff;">Takwimu za Wateja Waliojibiwa na AI</h2>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="ai-stats-updated-time" style="color:#9ca3af; font-size:0.78rem;">Inapakia takwimu...</span>
+                        <button type="button" onclick="adminApp.loadAIStats(true)" style="background:rgba(255,255,255,0.06); border:1px solid #374151; color:#d1d5db; border-radius:8px; padding:6px 12px; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" onmouseover="this.style.background='rgba(0,255,128,0.1)'; this.style.borderColor='#00ff80'; this.style.color='#00ff80';" onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='#374151'; this.style.color='#d1d5db';">
+                            <ion-icon name="refresh-outline" id="ai-stats-refresh-icon" style="font-size:1rem;"></ion-icon> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px;">
+                    <!-- LEO -->
+                    <div class="stat-card" style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:#00ff80;"></div>
+                        <div style="color:#9ca3af; font-size:0.73rem; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span>LEO (TODAY)</span>
+                            <ion-icon name="today" style="color:#00ff80; font-size:1.2rem;"></ion-icon>
+                        </div>
+                        <div id="ai-stat-today" style="color:#fff; font-size:1.55rem; font-weight:900; line-height:1.2;">0 <span style="font-size:0.82rem; font-weight:600; color:#00ff80;">watu</span></div>
+                        <div id="ai-stat-today-msgs" style="color:#6b7280; font-size:0.75rem; margin-top:4px;">0 maswali yaliyojibiwa</div>
+                    </div>
+
+                    <!-- JANA -->
+                    <div class="stat-card" style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:#14b8a6;"></div>
+                        <div style="color:#9ca3af; font-size:0.73rem; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span>JANA (YESTERDAY)</span>
+                            <ion-icon name="time" style="color:#14b8a6; font-size:1.2rem;"></ion-icon>
+                        </div>
+                        <div id="ai-stat-yesterday" style="color:#fff; font-size:1.55rem; font-weight:900; line-height:1.2;">0 <span style="font-size:0.82rem; font-weight:600; color:#14b8a6;">watu</span></div>
+                        <div id="ai-stat-yesterday-msgs" style="color:#6b7280; font-size:0.75rem; margin-top:4px;">0 maswali yaliyojibiwa</div>
+                    </div>
+
+                    <!-- SIKU 7 -->
+                    <div class="stat-card" style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:#f97316;"></div>
+                        <div style="color:#9ca3af; font-size:0.73rem; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span>SIKU 7 (LAST 7 DAYS)</span>
+                            <ion-icon name="calendar-outline" style="color:#f97316; font-size:1.2rem;"></ion-icon>
+                        </div>
+                        <div id="ai-stat-7days" style="color:#fff; font-size:1.55rem; font-weight:900; line-height:1.2;">0 <span style="font-size:0.82rem; font-weight:600; color:#f97316;">watu</span></div>
+                        <div id="ai-stat-7days-msgs" style="color:#6b7280; font-size:0.75rem; margin-top:4px;">0 maswali yaliyojibiwa</div>
+                    </div>
+
+                    <!-- MWEZI HUU -->
+                    <div class="stat-card" style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:#3b82f6;"></div>
+                        <div style="color:#9ca3af; font-size:0.73rem; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span>MWEZI HUU (THIS MONTH)</span>
+                            <ion-icon name="calendar" style="color:#3b82f6; font-size:1.2rem;"></ion-icon>
+                        </div>
+                        <div id="ai-stat-month" style="color:#fff; font-size:1.55rem; font-weight:900; line-height:1.2;">0 <span style="font-size:0.82rem; font-weight:600; color:#3b82f6;">watu</span></div>
+                        <div id="ai-stat-month-msgs" style="color:#6b7280; font-size:0.75rem; margin-top:4px;">0 maswali yaliyojibiwa</div>
+                    </div>
+
+                    <!-- JUMLA (ALL TIME) -->
+                    <div class="stat-card" style="background:#111827; border:1px solid #1f2937; border-radius:12px; padding:16px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:#a855f7;"></div>
+                        <div style="color:#9ca3af; font-size:0.73rem; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span>JUMLA (ALL TIME)</span>
+                            <ion-icon name="infinite" style="color:#a855f7; font-size:1.2rem;"></ion-icon>
+                        </div>
+                        <div id="ai-stat-alltime" style="color:#fff; font-size:1.55rem; font-weight:900; line-height:1.2;">0 <span style="font-size:0.82rem; font-weight:600; color:#a855f7;">watu</span></div>
+                        <div id="ai-stat-alltime-msgs" style="color:#6b7280; font-size:0.75rem; margin-top:4px;">0 maswali yaliyojibiwa</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Box to type new training -->
             <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; margin-bottom:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px;">
@@ -656,6 +730,36 @@
 
                 <div id="ai-trainings-list" style="display:flex; flex-direction:column; gap:12px;">
                     <div style="text-align:center; padding:30px; color:#6b7280; font-size:0.9rem;">Inapakia mafunzo yaliyohifadhiwa...</div>
+                </div>
+            </div>
+
+            <!-- LIVE AI CHAT LOGS TABLE -->
+            <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; margin-top:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="color:#fff; font-weight:800; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+                        <ion-icon name="chatbubbles" style="font-size:1.3rem; color:#00ff80;"></ion-icon>
+                        <span>Mazungumzo ya Hivi Karibuni na AI</span>
+                        <span id="ai-logs-count" style="background:rgba(255,255,255,0.08); color:#9ca3af; border:1px solid #374151; padding:2px 8px; border-radius:12px; font-size:0.78rem; font-weight:700;">0</span>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="text" id="ai-logs-search" placeholder="Tafuta swali au mteja..." oninput="adminApp.filterAIChatLogs()" style="background:#0b0f19; border:1px solid #374151; color:#fff; padding:7px 12px; border-radius:6px; font-size:0.82rem; width:220px; outline:none;">
+                    </div>
+                </div>
+
+                <div class="data-table-container" style="max-height: 420px; overflow-y: auto;">
+                    <table class="data-table" style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:#0b0f19;">
+                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Muda (Date/Time)</th>
+                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Mteja (User / Session)</th>
+                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Swali la Mteja</th>
+                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Jibu la AI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ai-logs-tbody">
+                            <tr><td colspan="4" style="text-align:center; padding:25px; color:#6b7280; font-size:0.85rem;">Inapakia kumbukumbu za maongezi...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1048,7 +1152,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=15"></script>
+<script type="module" src="/scripts/adminApp.js?v=16"></script>
 </body>
 
 </html>
