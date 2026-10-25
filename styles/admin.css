@@ -315,7 +315,8 @@
             background: var(--sidebar-bg);
             border-radius: 16px;
             border: 1px solid var(--border-color);
-            overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .table-header {

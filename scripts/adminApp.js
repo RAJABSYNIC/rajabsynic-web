@@ -1402,16 +1402,26 @@ if (viewId === 'ai-support') this.loadAISupport();
                     const status = (p.status || 'pending').toLowerCase();
                     const isCompleted = status === 'completed' || status === 'success' || status === 'complete';
                     const isFailed = status === 'failed' || status === 'error' || status === 'cancelled';
-                    let statusColor = '#f59e0b'; let statusIcon = '<ion-icon name="time-outline" style="vertical-align: text-bottom;"></ion-icon>';
-                    if (isCompleted) { statusColor = '#10b981'; statusIcon = '<ion-icon name="checkmark-circle-outline" style="vertical-align: text-bottom;"></ion-icon>'; }
-                    if (isFailed) { statusColor = '#ef4444'; statusIcon = '<ion-icon name="close-circle-outline" style="vertical-align: text-bottom;"></ion-icon>'; }
+                    
+                    let statusBadge = '';
+                    let canonicalStatus = 'pending';
+                    if (isCompleted) {
+                        canonicalStatus = 'completed';
+                        statusBadge = '<span style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.35);padding:4px 10px;border-radius:20px;font-weight:700;font-size:0.75rem;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;"></span> Complete</span>';
+                    } else if (isFailed) {
+                        canonicalStatus = 'failed';
+                        statusBadge = '<span style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.35);padding:4px 10px;border-radius:20px;font-weight:700;font-size:0.75rem;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444;"></span> Failed</span>';
+                    } else {
+                        canonicalStatus = 'pending';
+                        statusBadge = '<span style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.35);padding:4px 10px;border-radius:20px;font-weight:700;font-size:0.75rem;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px #f59e0b;"></span> Pending</span>';
+                    }
+
                     const tsRaw = p.timestamp || p.createdAt || p.created_at || '';
                     const dateObj = tsRaw ? new Date(tsRaw) : new Date();
                     const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString();
                     
                     const orderId = p.orderId || p.reference || p.order_id || p.id || '-';
                     let gateway = (p.gateway || '').toLowerCase();
-                    const oid = String(orderId).toLowerCase();
                     if (gateway.includes('presso')) gateway = 'PressoPay';
                     else if (gateway.includes('haraka')) gateway = 'HarakaPay';
                     else if (gateway.includes('tigo')) gateway = 'Tigo Pesa';
@@ -1419,17 +1429,17 @@ if (viewId === 'ai-support') this.loadAISupport();
                     else if (gateway.includes('airtel')) gateway = 'Airtel';
                     else if (gateway.includes('test')) gateway = 'Test';
                     else if (p.method === 'manual_admin_grant' || (p.status || '').toLowerCase() === 'manual') gateway = 'Bure (Admin)';
-                    else gateway = 'PressoPay'; // Default — all new payments via PressoPay
+                    else gateway = 'PressoPay';
                     
-                    html += '<tr data-status="' + status + '">' +
-                            '<td style="font-family: monospace; color: #9ca3af; font-size: 0.85rem;">' + orderId + '</td>' +
-                            '<td>' + (p.username || p.userId || 'Unknown') + '</td>' +
-                            '<td>' + (p.phone || '-') + '</td>' +
-                            '<td><span style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">' + gateway + '</span></td>' +
-                            '<td>' + (p.contentTitle || p.contentId || '-') + '</td>' +
-                            '<td>' + (p.amount ? parseInt(p.amount).toLocaleString() : '0') + '</td>' +
-                            '<td><span style="color:' + statusColor + ';font-weight:600;display:inline-flex;align-items:center;gap:4px;">' + statusIcon + ' ' + status + '</span></td>' +
-                            '<td>' + dateStr + '</td>' +
+                    html += '<tr data-status="' + canonicalStatus + '">' +
+                            '<td style="font-family: monospace; color: #9ca3af; font-size: 0.82rem;"><span title="' + orderId + '" style="max-width: 140px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;">' + orderId + '</span></td>' +
+                            '<td style="font-weight: 600; color: #fff;">' + (p.username || p.userId || 'Guest') + '</td>' +
+                            '<td style="color: #9ca3af; font-family: monospace;">' + (p.phone || '-') + '</td>' +
+                            '<td style="font-weight: 700; color: #00ff80;">Tsh ' + (p.amount ? parseInt(p.amount).toLocaleString() : '0') + '</td>' +
+                            '<td>' + statusBadge + '</td>' +
+                            '<td style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="' + (p.contentTitle || p.contentId || '-') + '">' + (p.contentTitle || p.contentId || '-') + '</td>' +
+                            '<td><span style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #9ca3af;">' + gateway + '</span></td>' +
+                            '<td style="color: #9ca3af; font-size: 0.8rem; white-space: nowrap;">' + dateStr + '</td>' +
                             '</tr>';
                 });
                 tbody.innerHTML = html;
