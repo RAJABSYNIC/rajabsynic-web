@@ -1090,6 +1090,73 @@ class ApiService {
         };
     }
 
+    async getAISelfLearning() {
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/self-learn`, {
+                headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
+            });
+            if (res.ok) return await res.json();
+        } catch (e) {
+            console.warn('getAISelfLearning error:', e);
+        }
+        return {
+            success: true,
+            summary: 'AI inachambua maongezi ya wateja na kujiongeza uelewa kiotomatiki.',
+            topicsIdentified: [],
+            activeInsights: [],
+            history: []
+        };
+    }
+
+    async runAISelfLearning() {
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/self-learn`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': tok ? ('Bearer ' + tok) : ''
+                }
+            });
+            return await res.json();
+        } catch (e) {
+            console.error('runAISelfLearning error:', e);
+            return { success: false, error: e.message };
+        }
+    }
+
+    async deleteAILearnedInsight(id) {
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/self-learn/${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
+            });
+            return await res.json();
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    }
+
     async getAIChatLogs() {
         try {
             const res = await fetch(`${this.baseUrl}/api/admin/ai-chat-logs`, {

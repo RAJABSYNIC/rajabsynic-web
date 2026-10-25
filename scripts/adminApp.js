@@ -2336,6 +2336,126 @@ if (viewId === 'ai-support') this.loadAISupport();
             _cachedAIStats: null,
             _cachedAILogs: [],
 
+            _cachedAISelfLearning: null,
+
+            loadAISelfLearning: async function () {
+                const summaryText = document.getElementById('ai-self-learning-summary-text');
+                const lastRunEl = document.getElementById('ai-self-learning-last-run');
+                const topicsContainer = document.getElementById('ai-self-learning-topics');
+                const listContainer = document.getElementById('ai-learned-insights-list');
+                const countBadge = document.getElementById('ai-learned-insights-count');
+
+                try {
+                    const res = await api.getAISelfLearning();
+                    if (!res) return;
+                    this._cachedAISelfLearning = res;
+
+                    const lastRun = res.lastRun ? new Date(res.lastRun).toLocaleString('sw-TZ', { dateStyle: 'medium', timeStyle: 'short' }) : 'Bado haijaanza mzunguko';
+                    if (lastRunEl) lastRunEl.textContent = 'Mzunguko wa Mwisho: ' + lastRun;
+
+                    if (summaryText) {
+                        summaryText.textContent = res.summary || 'AI inachambua maongezi ya wateja na kujiongeza maarifa mapya.';
+                    }
+
+                    if (topicsContainer) {
+                        const topics = res.topicsIdentified || [];
+                        if (topics.length > 0) {
+                            topicsContainer.innerHTML = topics.map(top => `<span style="background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;"># ${top}</span>`).join('');
+                        } else {
+                            topicsContainer.innerHTML = '';
+                        }
+                    }
+
+                    const insights = res.activeInsights || [];
+                    if (countBadge) countBadge.textContent = insights.length;
+
+                    if (listContainer) {
+                        if (insights.length === 0) {
+                            listContainer.innerHTML = '<div style="text-align:center; padding:18px; color:#6b7280; font-size:0.85rem; background:#0b0f19; border:1px dashed #374151; border-radius:8px;">Bado hakuna mafunzo ya kiotomatiki yaliyozalishwa. Bonyeza kitufe cha <strong>"Boresha Akili Sasa"</strong> hapo juu kuanzisha mzunguko wa kwanza!</div>';
+                        } else {
+                            listContainer.innerHTML = insights.map(ins => {
+                                const dStr = ins.createdAt ? new Date(ins.createdAt).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' }) : '';
+                                return `
+                                    <div style="background:#0b0f19; border:1px solid #1f2937; border-left:4px solid #3b82f6; border-radius:8px; padding:12px 16px; transition:border-color 0.2s;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+                                            <div style="color:#60a5fa; font-weight:700; font-size:0.88rem; display:flex; align-items:center; gap:6px;">
+                                                <ion-icon name="sparkles" style="color:#60a5fa; font-size:0.95rem;"></ion-icon>
+                                                <span>${ins.topic || 'Uelewa wa Ziada'}</span>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:8px;">
+                                                <span style="color:#6b7280; font-size:0.75rem;">${dStr}</span>
+                                                <button type="button" onclick="adminApp.deleteLearnedInsight('${ins.id}')" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:0.75rem; padding:2px 6px; border-radius:4px;" title="Futa Funzo Hili">
+                                                    <ion-icon name="trash-outline"></ion-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div style="color:#e5e7eb; font-size:0.88rem; line-height:1.55;">${ins.instruction}</div>
+                                        ${ins.exampleQuery ? `<div style="margin-top:6px; color:#9ca3af; font-size:0.78rem; font-style:italic;">Mfano wa swali la mteja: "${ins.exampleQuery}"</div>` : ''}
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error loading AI self learning:', err);
+                }
+            },
+
+            runSelfLearning: async function () {
+                const btn = document.getElementById('ai-run-self-learn-btn');
+                const icon = document.getElementById('ai-self-learn-icon');
+                const text = document.getElementById('ai-self-learn-text');
+
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.75';
+                }
+                if (icon) icon.style.animation = 'spin 1s linear infinite';
+                if (text) text.textContent = 'Inachambua maongezi & kuboresha akili...';
+
+                try {
+                    const res = await api.runAISelfLearning();
+                    if (res && res.success) {
+                        await this.loadAISelfLearning();
+                        if (window.Swal) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'AI Imeji-upgrade Kikamilifu! 🚀',
+                                text: res.data?.summary || 'AI imejifunza maarifa mapya kutokana na maswali halisi ya wateja.',
+                                background: '#111827',
+                                color: '#fff',
+                                confirmButtonColor: '#3b82f6'
+                            });
+                        } else {
+                            alert('AI Imeji-upgrade Kikamilifu!
+
+' + (res.data?.summary || 'Uelewa umeboreshwa.'));
+                        }
+                    } else {
+                        alert(res.message || res.error || 'Uchambuzi umeshindikana. Hakikisha kuna maongezi ya wateja.');
+                    }
+                } catch (e) {
+                    alert('Hitilafu: ' + e.message);
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                    if (icon) icon.style.animation = '';
+                    if (text) text.textContent = 'Boresha Akili Sasa (Run Upgrade)';
+                }
+            },
+
+            deleteLearnedInsight: async function (id) {
+                if (!confirm('Una uhakika unataka kufuta funzo hili la kiotomatiki?')) return;
+                const res = await api.deleteAILearnedInsight(id);
+                if (res && res.success) {
+                    this.loadAISelfLearning();
+                } else {
+                    alert('Imeshindwa kufuta: ' + (res.error || 'Hitilafu'));
+                }
+            },
+
             loadAIStats: async function () {
                 try {
                     const stats = await api.getAIStats();

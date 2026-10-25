@@ -711,6 +711,59 @@
                 </div>
             </div>
 
+            <!-- AUTONOMOUS SELF-LEARNING SYSTEM -->
+            <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; margin-bottom:20px; position:relative; overflow:hidden;">
+                <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #00ff80, #3b82f6, #a855f7);"></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <ion-icon name="hardware-chip" style="color:#00ff80; font-size:1.35rem;"></ion-icon>
+                            <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#fff;">Mfumo wa Kuji-upgrade Kiotomatiki (Autonomous Self-Learning)</h3>
+                            <span style="background:rgba(0,255,128,0.12); color:#00ff80; border:1px solid rgba(0,255,128,0.3); padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+                                <span style="width:6px; height:6px; border-radius:50%; background:#00ff80; box-shadow:0 0 6px #00ff80;"></span> Imewashwa (Active)
+                            </span>
+                        </div>
+                        <p style="margin:4px 0 0; color:#9ca3af; font-size:0.83rem;">
+                            AI inachambua maongezi ya wateja na kujiongeza maarifa na mbinu mpya za kiufundi kiotomatiki kila siku.
+                        </p>
+                    </div>
+
+                    <button type="button" id="ai-run-self-learn-btn" onclick="adminApp.runSelfLearning()" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8); color:#fff; border:none; padding:9px 18px; border-radius:8px; font-size:0.85rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 15px rgba(59,130,246,0.3); transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <ion-icon name="flash" id="ai-self-learn-icon" style="font-size:1.1rem;"></ion-icon>
+                        <span id="ai-self-learn-text">Boresha Akili Sasa (Run Upgrade)</span>
+                    </button>
+                </div>
+
+                <!-- Latest Self-Learning Summary Box -->
+                <div id="ai-self-learning-summary-box" style="background:#0b0f19; border:1px solid #1f2937; border-radius:10px; padding:16px; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                        <div style="color:#60a5fa; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                            <ion-icon name="bulb-outline" style="font-size:1rem;"></ion-icon>
+                            <span>Hali ya Mwisho ya Kujifunza</span>
+                        </div>
+                        <span id="ai-self-learning-last-run" style="color:#6b7280; font-size:0.78rem;">Inapakia...</span>
+                    </div>
+                    <div id="ai-self-learning-summary-text" style="color:#d1d5db; font-size:0.9rem; line-height:1.6;">
+                        Inapakia taarifa za uelewa wa AI...
+                    </div>
+                    <div id="ai-self-learning-topics" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+                        <!-- Topic chips injected here -->
+                    </div>
+                </div>
+
+                <!-- Learned Insights Accordion / List -->
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="color:#9ca3af; font-size:0.82rem; font-weight:700; text-transform:uppercase;">
+                            Maarifa Mapya Yaliyoongezwa Kwenye Akili ya AI (<span id="ai-learned-insights-count">0</span>)
+                        </span>
+                    </div>
+                    <div id="ai-learned-insights-list" style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="text-align:center; padding:20px; color:#6b7280; font-size:0.85rem;">Inapakia maarifa ya kiotomatiki...</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- List of Saved Trainings Displayed Below -->
             <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
@@ -1146,7 +1199,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=18"></script>
+<script type="module" src="/scripts/adminApp.js?v=19"></script>
 </body>
 
 </html>

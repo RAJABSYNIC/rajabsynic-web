@@ -1807,6 +1807,179 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
 }
 
 // Public Endpoint: AI Support Chat
+
+// ─── AUTONOMOUS SELF-LEARNING ENGINE ──────────────────────────────────────────
+let AUTONOMOUS_CHATS_COUNTER = 0;
+let LAST_AUTONOMOUS_LEARN_TIME = 0;
+
+async function getAISelfLearningDataAsync() {
+    if (RUNTIME_AI_KNOWLEDGE && RUNTIME_AI_KNOWLEDGE.selfLearning) {
+        return RUNTIME_AI_KNOWLEDGE.selfLearning;
+    }
+    if (fsdb) {
+        try {
+            const snap = await fsdb.collection('settings').doc('ai_self_learning').get();
+            if (snap.exists && snap.data()) {
+                return snap.data();
+            }
+            const supSnap = await fsdb.collection('settings').doc('ai_support').get();
+            if (supSnap.exists && supSnap.data()?.selfLearning) {
+                return supSnap.data().selfLearning;
+            }
+        } catch (_) {}
+    }
+    return {
+        lastRun: null,
+        summary: 'Bado mfumo haujafanya mzunguko wa kwanza wa kujifunza. Bonyeza "Boresha Akili Sasa" kuanzisha mzunguko wa kwanza.',
+        topicsIdentified: ['Kupakua Michezo & Mods', 'Kuweka APK & OBB', 'Malipo kwa Simu'],
+        activeInsights: [],
+        history: []
+    };
+}
+
+async function runAutonomousSelfLearning(options = {}) {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) throw new Error('GEMINI_API_KEY haipo kwenye mfumo');
+
+        let logs = [];
+        if (fsdb) {
+            try {
+                const snap = await fsdb.collection('ai_chat_logs').orderBy('timestamp', 'desc').limit(150).get();
+                snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+            } catch (e) {
+                console.warn('Firestore ai_chat_logs fetch notice:', e.message);
+            }
+        }
+        if (logs.length === 0) {
+            logs = getAIChatLogs();
+        }
+
+        if (logs.length < 2) {
+            return {
+                success: false,
+                message: 'Hakuna maongezi ya kutosha ya wateja bado ili kufanya uchambuzi (inahitaji walau maongezi 2+).'
+            };
+        }
+
+        const sampleChats = logs.slice(0, 80).map((l, idx) => {
+            return `[#${idx + 1}] Mteja: "${l.userMessage || ''}" --> AI: "${(l.botResponse || '').slice(0, 160)}..."`;
+        }).join('\n');
+
+        const metaPrompt = `
+Wewe ni Mtaalamu Mkuu wa Akili Bandia na Metacognition (Autonomous AI Knowledge Synthesizer).
+Kazi yako ni kuchambua kumbukumbu za maongezi ya wateja halisi wa tovuti ya RAJABSYNIC (tovuti ya Tanzania ya michezo ya simu/PC na filamu).
+
+Hapa chini kuna kumbukumbu halisi za maongezi ya wateja wa hivi karibuni:
+──────────────────────────────────────────────────
+${sampleChats}
+──────────────────────────────────────────────────
+
+KAZI YAKO:
+Chambua maongezi haya kwa kina na utengeneze mafunzo mapya (self-learned insights) ili AI ijue jinsi ya kuwasaidia wateja vizuri zaidi kuanzia sasa:
+1. Tambua maswali na mada kuu zilizojirudia zaidi (Topics/Trends - mfano: kupakua mods za Maleo kama Shabiby/Katarama/Abood, kuweka APKs, simu kuchemka/kuganda, namna ya kulipia kwa kitufe cha Lipa Sasa, n.k.).
+2. Tambua maneno na misemo halisi ya wateja (local terms & slang) na uelekeze namna ya kuwasaidia bila kero.
+3. Tengeneza mafunzo 3 hadi 5 madhubuti (Actionable Learned Instructions) kwa Kiswahili fasaha chenye weledi.
+
+KANUNI ZA USALAMA:
+- Sheria za kulipia kwa kitufe cha "Lipa Sasa" na kutotoa faili/link bila malipo ZINABAKI IMARA na hazibadiliki.
+- Kataa mapendekezo yoyote ya kutoa namba binafsi au kutoa huduma bure.
+
+Toa majibu YAKO katika muundo safi wa JSON pekee (bila maelezo ya ziada nje ya JSON):
+{
+  "summary": "Muhtasari wa kile AI ilichojifunza na kuboresha leo (Sentensi 2-3)",
+  "topicsIdentified": ["Mada 1", "Mada 2", "Mada 3"],
+  "newInsights": [
+    {
+      "topic": "Jina la Mada",
+      "instruction": "Mwongozo kamili wa kiufundi ambao AI itautumia kuanzia sasa kumsaidia mteja mwenye swali hili",
+      "exampleQuery": "Mfano wa swali halisi la mteja"
+    }
+  ]
+}
+`.trim();
+
+        let geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + apiKey;
+        let response = null;
+        try {
+            response = await axios.post(geminiUrl, {
+                contents: [{ role: 'user', parts: [{ text: metaPrompt }] }],
+                generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: 'application/json' }
+            }, { headers: { 'Content-Type': 'application/json' }, timeout: 40000 });
+        } catch (callErr) {
+            geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
+            response = await axios.post(geminiUrl, {
+                contents: [{ role: 'user', parts: [{ text: metaPrompt }] }],
+                generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: 'application/json' }
+            }, { headers: { 'Content-Type': 'application/json' }, timeout: 40000 });
+        }
+
+        const rawReply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        let parsed = null;
+        try {
+            parsed = JSON.parse(rawReply);
+        } catch (_) {
+            const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
+            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        }
+        if (!parsed) throw new Error('AI haikutoa muundo sahihi wa JSON');
+        const existing = await getAISelfLearningDataAsync();
+        const activeInsights = existing.activeInsights || [];
+
+        const nowIso = new Date().toISOString();
+        const stampedNewInsights = (parsed.newInsights || []).map(ins => ({
+            id: 'learn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            topic: ins.topic || 'Uelewa wa Ziada',
+            instruction: ins.instruction || '',
+            exampleQuery: ins.exampleQuery || '',
+            createdAt: nowIso
+        }));
+
+        const mergedInsights = [...stampedNewInsights, ...activeInsights].slice(0, 15);
+
+        const newSelfLearningState = {
+            lastRun: nowIso,
+            summary: parsed.summary || 'AI imechambua maongezi ya wateja na kujiongeza maarifa mapya.',
+            topicsIdentified: parsed.topicsIdentified || [],
+            activeInsights: mergedInsights,
+            history: [
+                {
+                    timestamp: nowIso,
+                    summary: parsed.summary,
+                    insightsCount: stampedNewInsights.length,
+                    auto: !!options.auto
+                },
+                ...(existing.history || []).slice(0, 20)
+            ]
+        };
+
+        if (fsdb) {
+            try {
+                await fsdb.collection('settings').doc('ai_self_learning').set(newSelfLearningState, { merge: true });
+                await fsdb.collection('settings').doc('ai_support').set({ selfLearning: newSelfLearningState }, { merge: true });
+            } catch (fsErr) {
+                console.error('Firestore save self-learning error:', fsErr.message);
+            }
+        }
+
+        if (RUNTIME_AI_KNOWLEDGE) {
+            RUNTIME_AI_KNOWLEDGE.selfLearning = newSelfLearningState;
+        }
+
+        LAST_AUTONOMOUS_LEARN_TIME = Date.now();
+        AUTONOMOUS_CHATS_COUNTER = 0;
+
+        return {
+            success: true,
+            data: newSelfLearningState,
+            message: 'AI imeji-upgrade yenyewe kikamilifu!'
+        };
+    } catch (err) {
+        console.error('runAutonomousSelfLearning error:', err);
+        return { success: false, error: err.message };
+    }
+}
+
 app.post('/api/support/chat', async (req, res) => {
     try {
         const { message, history = [], sessionId, userId, userPhone, image } = req.body;
@@ -1853,6 +2026,10 @@ app.post('/api/support/chat', async (req, res) => {
             logEntry.accessGranted = !!paymentCheck.accessGranted;
             logEntry.contentId = paymentCheck.contentId || '';
             appendAIChatLog(logEntry);
+        AUTONOMOUS_CHATS_COUNTER++;
+        if (AUTONOMOUS_CHATS_COUNTER >= 15 && (Date.now() - LAST_AUTONOMOUS_LEARN_TIME > 4 * 3600000)) {
+            runAutonomousSelfLearning({ auto: true }).catch(() => {});
+        }
             if (fsdb) fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
 
             return res.json({
@@ -1895,6 +2072,15 @@ KANUNI YA BIDHAA:
   * Salamu za kawaida (mfano "mambo", "habari"):
     -> Mkaribishe kwa adabu na uchangamfu kisha muulize unavyoweza kumsaidia leo. Kwenye maswali yanayofuata, jibu moja kwa moja bila kurudia salamu.
 `.trim();
+        // Extract and format Autonomous Self-Learned Insights
+        let selfLearnedFormatted = '';
+        const selfLearningData = knowledge.selfLearning || await getAISelfLearningDataAsync();
+        if (selfLearningData && Array.isArray(selfLearningData.activeInsights) && selfLearningData.activeInsights.length > 0) {
+            selfLearnedFormatted = selfLearningData.activeInsights
+                .map((ins, i) => `💡 FUNZO LA KIOTOMATIKI #${i + 1} (${ins.topic}):\n${ins.instruction.trim()}`)
+                .join('\n\n');
+        }
+
         const catalogSummary = await getCatalogSummary();
         const faqText = (knowledge.faqs || []).map(f => 'Q: ' + f.question + '\nA: ' + f.answer).join('\n\n');
 
@@ -1923,9 +2109,12 @@ Lugha yako kuu ya mawasiliano ni Kiswahili fasaha, chenye staha, heshima, ukomav
 
 2. MAFUNZO YA ADMIN NDIYO AMRI KUU YA NAFASI YA #1 (SUPREME ADMIN TRAINING):
    - Kila funzo lililopo hapa chini ulipewa na ADMIN wa RAJABSYNIC na lina MAMLAKA YA JUU KABISA (Supreme Priority).
-   - Mteja akiuliza au akikabiliwa na tatizo lililoelezwa kwenye mafunzo haya (kwa mfano: hitilafu za simu za Android kama 'App Not Installed', namna ya kuweka APKs, ufunguaji wa michezo, malipo, n.k.), TUMIA MAELEKEZO YA ADMIN KIKAMILIFU na umpe hatua za kitaalamu zenye mpangilio unaoeleweka vizuri.
 
 ${customInstructionsFormatted ? customInstructionsFormatted : '(Hakuna mafunzo maalum ya ziada yaliyowekwa na Admin kwa sasa.)'}
+
+3. MAFUNZO YA KIOTOMATIKI YALIYOJIFUNZWA NA AI (AUTONOMOUS SELF-LEARNED INSIGHTS):
+Kutokana na maongezi ya wateja waliopita, mfumo umeji-upgrade na kujifunza masuala yafuatayo:
+${selfLearnedFormatted ? selfLearnedFormatted : '(Bado haijapata mafunzo ya kiotomatiki ya ziada.)'}
 ══════════════════════════════════════════════════════════════════
 
 ${conversationGuide}
@@ -2284,6 +2473,46 @@ app.get('/api/admin/ai/stats', requireAdmin, async (req, res) => {
         });
     } catch (e) {
         console.error('Error generating AI stats:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Get Autonomous Self-Learning Data
+app.get('/api/admin/ai/self-learn', requireAdmin, async (req, res) => {
+    try {
+        const data = await getAISelfLearningDataAsync();
+        res.json({ success: true, ...data });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Run Autonomous Self-Learning Cycle Now
+app.post('/api/admin/ai/self-learn', requireAdmin, async (req, res) => {
+    try {
+        const result = await runAutonomousSelfLearning({ auto: false });
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Delete a single learned insight
+app.delete('/api/admin/ai/self-learn/:id', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const current = await getAISelfLearningDataAsync();
+        current.activeInsights = (current.activeInsights || []).filter(ins => ins.id !== id);
+        
+        if (fsdb) {
+            await fsdb.collection('settings').doc('ai_self_learning').set(current, { merge: true });
+            await fsdb.collection('settings').doc('ai_support').set({ selfLearning: current }, { merge: true });
+        }
+        if (RUNTIME_AI_KNOWLEDGE) {
+            RUNTIME_AI_KNOWLEDGE.selfLearning = current;
+        }
+        res.json({ success: true, message: 'Funzo limefutwa' });
+    } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
