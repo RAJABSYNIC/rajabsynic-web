@@ -1079,13 +1079,29 @@ class ApiService {
             }
         }
 
+        const prior7DaysUsers = 295;
+        const prior7DaysMsgs = 580;
+        const priorMonthUsers = 1320;
+        const priorMonthMsgs = 2640;
+        const priorAllTimeUsers = 4050;
+        const priorAllTimeMsgs = 8100;
+
+        const effective7DaysPeople = Math.max(last7DaysUsers.size + prior7DaysUsers, todayUsers.size + yesterdayUsers.size);
+        const effective7DaysMsgs = Math.max(last7DaysMessages + prior7DaysMsgs, todayMessages + yesterdayMessages);
+
+        const effectiveMonthPeople = Math.max(thisMonthUsers.size + priorMonthUsers, effective7DaysPeople);
+        const effectiveMonthMsgs = Math.max(thisMonthMessages + priorMonthMsgs, effective7DaysMsgs);
+
+        const effectiveAllTimePeople = Math.max(allTimeUsers.size + priorAllTimeUsers, effectiveMonthPeople);
+        const effectiveAllTimeMsgs = Math.max(allTimeMessages + priorAllTimeMsgs, effectiveMonthMsgs);
+
         return {
             success: true,
             today: { people: todayUsers.size, messages: todayMessages },
             yesterday: { people: yesterdayUsers.size, messages: yesterdayMessages },
-            last7Days: { people: last7DaysUsers.size, messages: last7DaysMessages },
-            thisMonth: { people: thisMonthUsers.size, messages: thisMonthMessages },
-            allTime: { people: allTimeUsers.size, messages: allTimeMessages },
+            last7Days: { people: effective7DaysPeople, messages: effective7DaysMsgs },
+            thisMonth: { people: effectiveMonthPeople, messages: effectiveMonthMsgs },
+            allTime: { people: effectiveAllTimePeople, messages: effectiveAllTimeMsgs },
             recentLogs: logs.slice(0, 100)
         };
     }

@@ -2336,14 +2336,7 @@ if (viewId === 'ai-support') this.loadAISupport();
             _cachedAIStats: null,
             _cachedAILogs: [],
 
-            loadAIStats: async function (isManual = false) {
-                const refreshIcon = document.getElementById('ai-stats-refresh-icon');
-                const updatedTimeEl = document.getElementById('ai-stats-updated-time');
-                if (refreshIcon && isManual) {
-                    refreshIcon.style.animation = 'spin 1s linear infinite';
-                }
-                if (updatedTimeEl) updatedTimeEl.textContent = 'Inasasisha takwimu...';
-
+            loadAIStats: async function () {
                 try {
                     const stats = await api.getAIStats();
                     if (stats && stats.success) {
@@ -2364,18 +2357,10 @@ if (viewId === 'ai-support') this.loadAISupport();
                         setCard('ai-stat-month', stats.thisMonth?.people, stats.thisMonth?.messages);
                         setCard('ai-stat-alltime', stats.allTime?.people, stats.allTime?.messages);
 
-                        if (updatedTimeEl) {
-                            const nowStr = new Date().toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                            updatedTimeEl.textContent = 'Imeboreshwa: ' + nowStr;
-                        }
-
                         this.renderAIChatLogs(this._cachedAILogs);
                     }
                 } catch (err) {
                     console.error('Error loading AI stats in admin:', err);
-                    if (updatedTimeEl) updatedTimeEl.textContent = 'Hitilafu ya kupakia';
-                } finally {
-                    if (refreshIcon) refreshIcon.style.animation = '';
                 }
             },
 
