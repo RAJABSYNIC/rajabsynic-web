@@ -1980,6 +1980,27 @@ Toa majibu YAKO katika muundo safi wa JSON pekee (bila maelezo ya ziada nje ya J
     }
 }
 
+// Background automatic learner trigger (completely automatic behind the scenes)
+function triggerAutonomousLearningCheck() {
+    AUTONOMOUS_CHATS_COUNTER++;
+    const timeSinceLast = Date.now() - LAST_AUTONOMOUS_LEARN_TIME;
+    if ((AUTONOMOUS_CHATS_COUNTER >= 10 && timeSinceLast > 4 * 3600000) ||
+        (AUTONOMOUS_CHATS_COUNTER >= 3 && timeSinceLast > 12 * 3600000)) {
+        runAutonomousSelfLearning({ auto: true }).catch(() => {});
+    }
+}
+
+// Periodic background check every 6 hours
+setInterval(async () => {
+    try {
+        const data = await getAISelfLearningDataAsync();
+        const lastRunTime = data.lastRun ? new Date(data.lastRun).getTime() : 0;
+        if (!lastRunTime || (Date.now() - lastRunTime > 12 * 3600000)) {
+            runAutonomousSelfLearning({ auto: true }).catch(() => {});
+        }
+    } catch (_) {}
+}, 6 * 3600000);
+
 app.post('/api/support/chat', async (req, res) => {
     try {
         const { message, history = [], sessionId, userId, userPhone, image } = req.body;
@@ -2026,10 +2047,7 @@ app.post('/api/support/chat', async (req, res) => {
             logEntry.accessGranted = !!paymentCheck.accessGranted;
             logEntry.contentId = paymentCheck.contentId || '';
             appendAIChatLog(logEntry);
-        AUTONOMOUS_CHATS_COUNTER++;
-        if (AUTONOMOUS_CHATS_COUNTER >= 15 && (Date.now() - LAST_AUTONOMOUS_LEARN_TIME > 4 * 3600000)) {
-            runAutonomousSelfLearning({ auto: true }).catch(() => {});
-        }
+            triggerAutonomousLearningCheck();
             if (fsdb) fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
 
             return res.json({
@@ -2256,6 +2274,7 @@ ${catalogSummary}
             ip: req.ip || req.headers['x-forwarded-for'] || 'local'
         };
         appendAIChatLog(logEntry);
+        triggerAutonomousLearningCheck();
 
         // Also save to Firestore if available
         if (fsdb) {
