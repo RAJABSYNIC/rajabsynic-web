@@ -1029,9 +1029,9 @@ if (viewId === 'ai-support') this.loadAISupport();
                         }
                     });
 
-                    // Sort by itemCount (vitengo vilivyonunuliwa zaidi) DESC, then totalSpent DESC
+                    // Sort primarily by totalSpent (aliyetumia pesa nyingi zaidi) DESC, then itemCount DESC
                     const topSpenders = Object.values(map)
-                        .sort((a, b) => (b.itemCount - a.itemCount) || (b.totalSpent - a.totalSpent))
+                        .sort((a, b) => (b.totalSpent - a.totalSpent) || (b.itemCount - a.itemCount))
                         .slice(0, 10);
 
                     const getMedalBadge = (rank) => {
@@ -1072,14 +1072,14 @@ if (viewId === 'ai-support') this.loadAISupport();
                                         ${s.phone}
                                     </span>
                                 </td>
+                                <td style="padding:16px; font-weight:800; color:#00ff80; font-size:1rem;">
+                                    ${amountFormatted}
+                                </td>
                                 <td style="padding:16px; text-align:center;">
                                     <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,255,128,0.1); border:1px solid rgba(0,255,128,0.3); color:#00ff80; font-weight:800; font-size:0.82rem; padding:4px 12px; border-radius:20px;">
                                         <ion-icon name="bag-check-outline"></ion-icon>
                                         ${s.itemCount} ${s.itemCount === 1 ? 'kitu' : 'vitu'}
                                     </span>
-                                </td>
-                                <td style="padding:16px; font-weight:800; color:#00ff80; font-size:0.95rem;">
-                                    ${amountFormatted}
                                 </td>
                                 <td style="padding:16px; color:#9ca3af; font-size:0.82rem; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${s.lastItem}">
                                     <div style="color:#e5e7eb; font-weight:600; text-overflow:ellipsis; overflow:hidden;">${s.lastItem}</div>
