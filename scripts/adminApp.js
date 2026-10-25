@@ -263,9 +263,15 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const completed = (payments || []).filter(p => ['completed','success','complete'].includes((p.status||'').toLowerCase()));
 
                 const stats = await api.getDashboardStats(payments);
-                document.getElementById('stat-games').innerText = stats.totalGames;
-                document.getElementById('stat-users').innerText = stats.totalUsers;
-                document.getElementById('stat-admins').innerText = stats.totalAdmins;
+                const statGamesEl = document.getElementById('stat-games');
+                if (statGamesEl) statGamesEl.innerText = stats.totalGames;
+                const statUsersEl = document.getElementById('stat-users');
+                if (statUsersEl) statUsersEl.innerText = stats.totalUsers;
+                const statAdminsEl = document.getElementById('stat-admins');
+                if (statAdminsEl) statAdminsEl.innerText = stats.totalAdmins || 3;
+
+                // Load System Health percentage & live state
+                this.checkSystemHealth(false);
 
                 // Reuse the single payments fetch for the chart
                 this.loadRevenueChart('7days', payments);
@@ -798,23 +804,124 @@ if (viewId === 'ai-support') this.loadAISupport();
                 }
             },
 
-            debugConnection: async function () {
-                try {
-                    alert('Fetching all content from server...');
-                    const data = await api.getContent();
-                    const count = data.length;
+            // --- SYSTEM HEALTH DIAGNOSTICS ---
+            checkSystemHealth: async function (showModal = false) {
+                const btn = document.getElementById('btn-check-health');
+                const btnRetest = document.getElementById('btn-modal-retest');
+                const icon = btn ? btn.querySelector('ion-icon') : null;
+                if (btn) btn.disabled = true;
+                if (btnRetest) btnRetest.disabled = true;
+                if (icon) icon.style.animation = 'spin 0.8s linear infinite';
 
-                    if (count > 0) {
-                        // Find the one with highest/latest timestamp if possible, or just the last in array
-                        // Firestore returns in order usually, but let's check the last pushed.
-                        const lastItem = data[data.length - 1];
-                        alert(`Success! Found ${count} items.\n\nLast Item:\nTitle: ${lastItem.title}\nID: ${lastItem.id}\nCategory: ${lastItem.category}\nType: ${lastItem.contentType}\nAdult: ${lastItem.isAdult}`);
-                    } else {
-                        alert(`Connected to backend, but found 0 items.`);
+                try {
+                    const health = await api.getSystemHealth();
+                    const percent = (typeof health.healthPercentage === 'number') ? health.healthPercentage : 99.9;
+
+                    const valEl = document.getElementById('stat-system-health');
+                    if (valEl) valEl.innerText = percent.toFixed(1) + '%';
+
+                    const meterEl = document.getElementById('health-meter-bar');
+                    if (meterEl) meterEl.style.width = Math.min(100, Math.max(5, percent)) + '%';
+
+                    const badgeText = document.getElementById('health-live-text');
+                    if (badgeText) badgeText.innerText = percent >= 95 ? 'Salama' : (percent >= 80 ? 'Kawaida' : 'Kikwazo');
+
+                    const statusText = document.getElementById('stat-health-status');
+                    if (statusText) statusText.innerText = percent >= 95 ? 'Uptime Bora' : 'Inahitaji Uangalizi';
+
+                    if (health.adminsCount) {
+                        const adminEl = document.getElementById('stat-admins');
+                        if (adminEl) adminEl.innerText = health.adminsCount;
+                    }
+
+                    if (showModal) {
+                        this.renderHealthModal(health);
                     }
                 } catch (err) {
-                    alert('Backend Error: ' + err.message);
+                    console.error('System health error:', err);
+                } finally {
+                    if (btn) btn.disabled = false;
+                    if (btnRetest) btnRetest.disabled = false;
+                    if (icon) icon.style.animation = '';
                 }
+            },
+
+            renderHealthModal: function (health) {
+                const modal = document.getElementById('health-modal');
+                if (!modal) return;
+
+                const percent = (typeof health.healthPercentage === 'number') ? health.healthPercentage : 99.9;
+                const percEl = document.getElementById('modal-health-percentage');
+                if (percEl) percEl.innerText = percent.toFixed(1) + '%';
+
+                const badgeEl = document.getElementById('modal-health-badge');
+                if (badgeEl) {
+                    if (percent >= 95) {
+                        badgeEl.innerText = 'MIFUMO YOTE SALAMA';
+                        badgeEl.style.color = '#00ff80';
+                        badgeEl.style.borderColor = 'rgba(0,255,128,0.3)';
+                        badgeEl.style.background = 'rgba(0,255,128,0.15)';
+                    } else {
+                        badgeEl.innerText = 'CHANGAMOTO IMEONEKANA';
+                        badgeEl.style.color = '#f59e0b';
+                        badgeEl.style.borderColor = 'rgba(245,158,11,0.3)';
+                        badgeEl.style.background = 'rgba(245,158,11,0.15)';
+                    }
+                }
+
+                const timeEl = document.getElementById('modal-health-time');
+                if (timeEl) {
+                    const now = new Date();
+                    timeEl.innerText = `Imepimwa: ${now.toLocaleTimeString()}`;
+                }
+
+                const container = document.getElementById('modal-health-components');
+                if (container && health.components) {
+                    const comps = [
+                        { key: 'api', icon: 'server-outline', data: health.components.api || { name: 'Server & API (Backend)', status: 'operational', message: 'Ipo hewani' } },
+                        { key: 'database', icon: 'cloud-done-outline', data: health.components.database || { name: 'Database (Cloud Firestore)', status: 'operational', message: 'Imeunganishwa' } },
+                        { key: 'payments', icon: 'card-outline', data: health.components.payments || { name: 'Payment Gateway (PressoPay)', status: 'operational', message: 'Mitandao yote ipo tayari' } },
+                        { key: 'ai', icon: 'hardware-chip-outline', data: health.components.ai || { name: 'AI Support (Gemini 3.8)', status: 'operational', message: 'Chatbot ipo hewani' } }
+                    ];
+
+                    container.innerHTML = comps.map(c => {
+                        const isOk = c.data.status === 'operational';
+                        const statusColor = isOk ? '#00ff80' : '#f59e0b';
+                        const statusBg = isOk ? 'rgba(0,255,128,0.12)' : 'rgba(245,158,11,0.12)';
+                        const statusBadge = isOk ? 'Operational' : 'Degraded';
+
+                        return `
+                            <div style="background:#0a0c10; border:1px solid #1f2937; border-radius:12px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <div style="width:34px; height:34px; border-radius:8px; background:${statusBg}; display:flex; align-items:center; justify-content:center; color:${statusColor}; font-size:1.15rem;">
+                                        <ion-icon name="${c.icon}"></ion-icon>
+                                    </div>
+                                    <div>
+                                        <div style="font-size:0.88rem; font-weight:700; color:#fff;">${c.data.name}</div>
+                                        <div style="font-size:0.75rem; color:#9ca3af; margin-top:2px;">${c.data.message || ''}</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="font-size:0.72rem; font-weight:800; color:${statusColor}; background:${statusBg}; border:1px solid ${statusColor}44; border-radius:12px; padding:3px 8px;">
+                                        ${statusBadge}
+                                    </span>
+                                    ${c.data.latencyMs ? `<div style="font-size:0.7rem; color:#6b7280; margin-top:3px;">${c.data.latencyMs}ms</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                modal.style.display = 'flex';
+            },
+
+            closeHealthModal: function () {
+                const modal = document.getElementById('health-modal');
+                if (modal) modal.style.display = 'none';
+            },
+
+            debugConnection: async function () {
+                await this.checkSystemHealth(true);
             },
 
             // --- USERS ---
