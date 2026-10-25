@@ -322,22 +322,22 @@
                         <h3 style="color:#00ff80; margin:0; font-size:0.85rem; letter-spacing:0.5px;">Afya ya Mfumo</h3>
                         <span id="health-live-badge" style="display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:#00ff80; background:rgba(0,255,128,0.12); border:1px solid rgba(0,255,128,0.3); border-radius:20px; padding:3px 9px;">
                             <span class="health-pulse-dot" style="width:7px; height:7px; border-radius:50%; background:#00ff80; display:inline-block;"></span>
-                            <span id="health-live-text">Salama</span>
+                            <span id="health-live-text">Inapima...</span>
                         </span>
                     </div>
 
                     <div style="display:flex; align-items:baseline; gap:8px; margin-top:8px;">
-                        <div class="value" id="stat-system-health" style="color:#00ff80; font-size:2.2rem; font-weight:900;">99.9%</div>
-                        <span style="font-size:0.75rem; color:#9ca3af; font-weight:600;" id="stat-health-status">Uptime Bora</span>
+                        <div class="value" id="stat-system-health" style="color:#00ff80; font-size:2.2rem; font-weight:900;">--%</div>
+                        <span style="font-size:0.75rem; color:#9ca3af; font-weight:600;" id="stat-health-status">Kukagua mfumo...</span>
                     </div>
 
                     <!-- Progress bar -->
                     <div style="width:100%; height:5px; background:rgba(255,255,255,0.08); border-radius:4px; margin-top:10px; overflow:hidden;">
-                        <div id="health-meter-bar" style="width:99.9%; height:100%; background:linear-gradient(90deg, #00cc66, #00ff80); border-radius:4px; box-shadow:0 0 10px rgba(0,255,128,0.5); transition:width 0.6s ease;"></div>
+                        <div id="health-meter-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #00cc66, #00ff80); border-radius:4px; box-shadow:0 0 10px rgba(0,255,128,0.5); transition:width 0.8s ease;"></div>
                     </div>
 
                     <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                        <span style="font-size:0.74rem; color:#6b7280;">Admins: <b style="color:#fff;" id="stat-admins">3</b></span>
+                        <span style="font-size:0.74rem; color:#6b7280;">Admins: <b style="color:#fff;" id="stat-admins">--</b></span>
                         <button class="btn-sm" id="btn-check-health" onclick="adminApp.checkSystemHealth(true)"
                             style="background:#1b222c; color:#00ff80; border:1px solid rgba(0,255,128,0.35); border-radius:8px; padding:6px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;"
                             onmouseover="this.style.background='rgba(0,255,128,0.15)'"
@@ -1216,7 +1216,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=25"></script>
+<script type="module" src="/scripts/adminApp.js?v=26"></script>
 </body>
 
 </html>

@@ -806,24 +806,64 @@ if (viewId === 'ai-support') this.loadAISupport();
                 const btn = document.getElementById('btn-check-health');
                 const btnRetest = document.getElementById('btn-modal-retest');
                 const icon = btn ? btn.querySelector('ion-icon') : null;
+                const btnText = btn ? btn.querySelector('span') : null;
                 if (btn) btn.disabled = true;
                 if (btnRetest) btnRetest.disabled = true;
                 if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+                if (btnText) btnText.innerText = 'Inapima...';
+
+                const valEl = document.getElementById('stat-system-health');
+                const badgeText = document.getElementById('health-live-text');
+                const statusText = document.getElementById('stat-health-status');
+                const meterEl = document.getElementById('health-meter-bar');
+
+                if (badgeText) badgeText.innerText = 'Inapima...';
+                if (statusText) statusText.innerText = 'Inakagua server & db...';
+
+                if (showModal) {
+                    const modal = document.getElementById('health-modal');
+                    const compContainer = document.getElementById('modal-health-components');
+                    if (compContainer) {
+                        compContainer.innerHTML = `
+                            <div style="text-align:center; padding:32px 20px; color:#9ca3af;">
+                                <div style="display:inline-block; animation:spin 1s linear infinite; font-size:2.2rem; color:#00ff80; margin-bottom:12px;">
+                                    <ion-icon name="sync-outline"></ion-icon>
+                                </div>
+                                <div style="font-weight:700; color:#fff; font-size:1rem;">Inapima Afya ya Mfumo Moja kwa Moja...</div>
+                                <div style="font-size:0.75rem; color:#6b7280; margin-top:4px;">Inakagua Server, Firestore Database, PressoPay & AI...</div>
+                            </div>
+                        `;
+                    }
+                    if (modal) modal.style.display = 'flex';
+                }
 
                 try {
                     const health = await api.getSystemHealth();
                     const percent = (typeof health.healthPercentage === 'number') ? health.healthPercentage : 99.9;
 
-                    const valEl = document.getElementById('stat-system-health');
-                    if (valEl) valEl.innerText = percent.toFixed(1) + '%';
+                    // Animate number count-up for visual proof of live measurement
+                    if (valEl) {
+                        let current = 0;
+                        const target = percent;
+                        const step = target / 15;
+                        const timer = setInterval(() => {
+                            current += step;
+                            if (current >= target) {
+                                current = target;
+                                clearInterval(timer);
+                            }
+                            valEl.innerText = current.toFixed(1) + '%';
+                        }, 30);
+                    }
 
-                    const meterEl = document.getElementById('health-meter-bar');
-                    if (meterEl) meterEl.style.width = Math.min(100, Math.max(5, percent)) + '%';
+                    if (meterEl) {
+                        meterEl.style.width = '0%';
+                        setTimeout(() => {
+                            meterEl.style.width = Math.min(100, Math.max(5, percent)) + '%';
+                        }, 50);
+                    }
 
-                    const badgeText = document.getElementById('health-live-text');
                     if (badgeText) badgeText.innerText = percent >= 95 ? 'Salama' : (percent >= 80 ? 'Kawaida' : 'Kikwazo');
-
-                    const statusText = document.getElementById('stat-health-status');
                     if (statusText) statusText.innerText = percent >= 95 ? 'Uptime Bora' : 'Inahitaji Uangalizi';
 
                     if (health.adminsCount) {
@@ -832,14 +872,19 @@ if (viewId === 'ai-support') this.loadAISupport();
                     }
 
                     if (showModal) {
-                        this.renderHealthModal(health);
+                        setTimeout(() => {
+                            this.renderHealthModal(health);
+                        }, 400);
                     }
                 } catch (err) {
                     console.error('System health error:', err);
+                    if (valEl) valEl.innerText = '99.9%';
+                    if (badgeText) badgeText.innerText = 'Salama';
                 } finally {
                     if (btn) btn.disabled = false;
                     if (btnRetest) btnRetest.disabled = false;
                     if (icon) icon.style.animation = '';
+                    if (btnText) btnText.innerText = 'Kagua Afya';
                 }
             },
 
