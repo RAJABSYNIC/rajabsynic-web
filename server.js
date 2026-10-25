@@ -201,13 +201,13 @@ app.get('/api/payments', requireAdmin, async (req, res) => {
 // ─── Access / Subscription helpers ────────────────────────────────────────────
 // Resolve subscription duration (days) for a given content, from settings.
 function getDurationDays(db, contentId) {
-    const settings = deepMerge(DEFAULT_SETTINGS, (db && db.settings) || {});
-    if (contentId === 'adult-section-access') return (settings.adultSubscription && settings.adultSubscription.durationDays) || 30;
-    if (contentId === 'live-tv-access')       return (settings.liveSubscription && settings.liveSubscription.durationDays) || 30;
-    if (contentId === 'movies-package-mikumi')     return 1;
-    if (contentId === 'movies-package-ngorongoro') return 7;
-    if (contentId === 'movies-package-serengeti')  return 30;
-    if (contentId === 'movies-access')             return 30;
+    if (!contentId) return 14;
+    const cId = String(contentId).trim();
+    if (cId === 'movies-package-mikumi')     return 1;
+    if (cId === 'movies-package-ngorongoro') return 7;
+    if (cId === 'movies-package-serengeti' || cId === 'movies-access')  return 30;
+    if (cId === 'adult-section-access')      return 5;
+    if (cId === 'live-tv-access')            return 30;
     return 14; // default for individual content
 }
 
@@ -270,8 +270,10 @@ async function grantAccessForPayment(payment) {
         if (!existing.empty) return true;
 
         const durationDays = getDurationDays(null, contentId); // defaults
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + durationDays);
+        const rawTime = payment.createdAt || payment.timestamp || payment.created_at || payment.date;
+        const paymentTime = (rawTime && !isNaN(new Date(rawTime).getTime())) ? new Date(rawTime).getTime() : Date.now();
+        const expiresAt = new Date(paymentTime + (durationDays * 86400000));
+        const isExpired = Date.now() > expiresAt.getTime();
 
         const subData = {
             id: 'SUB-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
@@ -280,7 +282,7 @@ async function grantAccessForPayment(payment) {
             orderId,
             contentTitle: payment.contentTitle || '',
             durationDays,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(paymentTime).toISOString(),
             expiresAt: expiresAt.toISOString()
         };
         await fsdb.collection('subscriptions').doc(subData.id).set(subData);
@@ -295,14 +297,14 @@ async function grantAccessForPayment(payment) {
                 orderId,
                 contentTitle: 'Upatikanaji wa Movies (VIP Pass)',
                 durationDays,
-                createdAt: new Date().toISOString(),
+                createdAt: new Date(paymentTime).toISOString(),
                 expiresAt: expiresAt.toISOString()
             };
             await fsdb.collection('subscriptions').doc(movieAccessSub.id).set(movieAccessSub).catch(() => {});
         }
 
-        console.log(`🔓 Access granted: user=${userId} content=${contentId} until ${expiresAt.toISOString().slice(0, 10)}`);
-        return true;
+        console.log(`🔓 Access recorded: user=${userId} content=${contentId} until ${expiresAt.toISOString().slice(0, 10)} (active=${!isExpired})`);
+        return !isExpired;
     }
     return false;
 }
@@ -1596,7 +1598,16 @@ async function getCatalogSummary() {
     }).join('\n');
 }
 
-// Helper: Verify Payment and Grant Access Automatically (Zero-prompt AI Verification)
+// Helper: Format date in Swahili
+function formatSwahiliDate(dateInput) {
+    if (!dateInput) return '';
+    const months = ['Januari', 'Februari', 'Machi', 'Aprili', 'Mei', 'Juni', 'Julai', 'Agosti', 'Septemba', 'Oktoba', 'Novemba', 'Desemba'];
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// Helper: Verify Payment and Grant Access Automatically (Zero-prompt AI Verification with Strict Expiration Enforcement)
 async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = '', history = [] }) {
     if (!userMsg) return null;
     const msg = userMsg.trim();
@@ -1696,96 +1707,222 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     payments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     if (payments.length > 0) {
-        const p = payments[0];
-        let status = String(p.status || '').toLowerCase();
-        const contentName = p.contentTitle || 'mchezo/filamu yako';
-        const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
-        const searchPhone = p.phone || extractedPhone || userPhone;
-
-        // If status in record was pending, do a live check in case webhook just arrived
-        if (status === 'pending' && p.id && fsdb) {
-            const pDoc = await fsdb.collection('payments').doc(p.id).get();
-            if (pDoc.exists && ['completed', 'success'].includes((pDoc.data()?.status || '').toLowerCase())) {
-                status = 'completed';
+        // Live-verify any pending payments in Firestore in case webhook just arrived
+        for (const p of payments) {
+            let status = String(p.status || '').toLowerCase();
+            if (status === 'pending' && p.id && fsdb) {
+                try {
+                    const pDoc = await fsdb.collection('payments').doc(p.id).get();
+                    if (pDoc.exists) {
+                        const liveStatus = String(pDoc.data()?.status || '').toLowerCase();
+                        if (['completed', 'success', 'complete'].includes(liveStatus)) {
+                            p.status = 'completed';
+                        }
+                    }
+                } catch (_) {}
             }
         }
 
-        if (status === 'completed' || status === 'success' || status === 'complete') {
-            // GRANT ACCESS INSTANTLY!
-            try {
-                if (userId && !p.userId) p.userId = userId;
-                await grantAccessForPayment(p);
+        const completedPayments = payments.filter(p => ['completed', 'success', 'complete'].includes(String(p.status || '').toLowerCase()));
+        const pendingPayments = payments.filter(p => String(p.status || '').toLowerCase() === 'pending');
+        const failedPayments = payments.filter(p => ['failed', 'cancelled', 'canceled'].includes(String(p.status || '').toLowerCase()));
 
-                let durationDays = 30;
-                const cId = p.contentId || '';
-                if (cId === 'adult-section-access') durationDays = 5;
-                else if (cId === 'live-tv-access') durationDays = 30;
-                else if (cId === 'movies-package-mikumi') durationDays = 1;
-                else if (cId === 'movies-package-ngorongoro') durationDays = 7;
-                else if (cId === 'movies-package-serengeti' || cId === 'movies-access') durationDays = 30;
+        if (completedPayments.length > 0) {
+            // If user mentioned a specific item name or id, prioritize that payment
+            const msgLower = lower;
+            const matchingTargeted = completedPayments.filter(cp => {
+                const title = (cp.contentTitle || '').toLowerCase();
+                const cid = (cp.contentId || '').toLowerCase();
+                return (title && msgLower.includes(title)) || (cid && msgLower.includes(cid));
+            });
+            const paymentsToEvaluate = matchingTargeted.length > 0 ? matchingTargeted : completedPayments;
 
-                const targetUid = userId || p.userId || p.uid || searchPhone;
-                if (fsdb && targetUid) {
-                    const now = new Date();
-                    const expiresAt = new Date(Date.now() + durationDays * 86400000);
-                    const subId = 'SUB-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-                    await fsdb.collection('subscriptions').doc(subId).set({
-                        id: subId,
-                        userId: targetUid,
-                        contentId: cId,
-                        orderId: p.order_id || p.id || '',
-                        contentTitle: contentName,
-                        durationDays,
-                        createdAt: now.toISOString(),
-                        expiresAt: expiresAt.toISOString(),
-                        grantedByAI: true
-                    }).catch(() => {});
+            const now = new Date();
+            let activePayment = null;
+            let activeExpiresAt = null;
+            let latestExpiredPayment = null;
+            let latestExpiredDate = null;
 
-                    if (cId.startsWith('movies-package-') || cId === 'movies-access') {
-                        const mSubId = 'SUB-MOVIES-' + targetUid;
-                        await fsdb.collection('subscriptions').doc(mSubId).set({
-                            id: mSubId,
-                            userId: targetUid,
-                            contentId: 'movies-access',
-                            packageId: cId,
-                            orderId: p.order_id || p.id || '',
-                            createdAt: now.toISOString(),
-                            expiresAt: expiresAt.toISOString(),
-                            grantedByAI: true
-                        }, { merge: true }).catch(() => {});
+            for (const p of paymentsToEvaluate) {
+                const durationDays = getDurationDays(null, p.contentId);
+                let expiresAt = null;
+
+                // 1. Check if a subscription record already exists in Firestore for this order
+                if (fsdb && (p.order_id || p.id)) {
+                    try {
+                        const subSnap = await fsdb.collection('subscriptions')
+                            .where('orderId', '==', p.order_id || p.id)
+                            .limit(1)
+                            .get();
+                        if (!subSnap.empty) {
+                            const subData = subSnap.docs[0].data();
+                            if (subData.expiresAt) {
+                                const parsed = new Date(subData.expiresAt);
+                                if (!isNaN(parsed.getTime())) {
+                                    expiresAt = parsed;
+                                }
+                            }
+                        }
+                    } catch (_) {}
+                }
+
+                // 2. If no subscription record, calculate from payment creation time + durationDays
+                if (!expiresAt) {
+                    const rawTime = p.createdAt || p.timestamp || p.created_at || p.date || p.updatedAt;
+                    const paymentTime = (rawTime && !isNaN(new Date(rawTime).getTime())) ? new Date(rawTime).getTime() : 0;
+                    if (paymentTime > 0) {
+                        expiresAt = new Date(paymentTime + (durationDays * 86400000));
+                    } else {
+                        // Fallback if no timestamp: treat as newly paid
+                        expiresAt = new Date(now.getTime() + (durationDays * 86400000));
                     }
                 }
 
-                // Log this automated grant event
-                if (fsdb) {
-                    fsdb.collection('ai_access_grants').add({
-                        id: 'grant_' + Date.now(),
-                        phone: searchPhone,
-                        orderId: p.order_id || p.id || '',
-                        contentTitle: contentName,
-                        amount: p.amount || 0,
-                        userId: targetUid,
-                        timestamp: new Date().toISOString()
-                    }).catch(() => {});
+                if (now.getTime() <= expiresAt.getTime()) {
+                    // PAYMENT IS ACTIVE AND WITHIN USAGE DURATION!
+                    if (!activePayment || expiresAt.getTime() > activeExpiresAt.getTime()) {
+                        activePayment = p;
+                        activeExpiresAt = expiresAt;
+                    }
+                } else {
+                    // PAYMENT HAS EXPIRED (OUTSIDE USAGE DURATION)!
+                    if (!latestExpiredPayment || expiresAt.getTime() > latestExpiredDate.getTime()) {
+                        latestExpiredPayment = p;
+                        latestExpiredDate = expiresAt;
+                    }
                 }
-            } catch (grantErr) {
-                console.error('Error granting access by AI:', grantErr.message);
             }
 
+            // Case A: User has an ACTIVE payment within validity period
+            if (activePayment && activeExpiresAt) {
+                const p = activePayment;
+                const contentName = p.contentTitle || 'mchezo/filamu yako';
+                const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+                const searchPhone = p.phone || extractedPhone || userPhone;
+                const targetUid = userId || p.userId || p.uid || searchPhone;
+
+                try {
+                    if (userId && !p.userId) p.userId = userId;
+                    await grantAccessForPayment(p);
+
+                    if (fsdb && targetUid) {
+                        const durationDays = getDurationDays(null, p.contentId);
+                        const subId = 'SUB-' + (p.order_id || p.id || Date.now());
+                        await fsdb.collection('subscriptions').doc(subId).set({
+                            id: subId,
+                            userId: targetUid,
+                            contentId: p.contentId || '',
+                            orderId: p.order_id || p.id || '',
+                            contentTitle: contentName,
+                            durationDays,
+                            createdAt: p.createdAt || now.toISOString(),
+                            expiresAt: activeExpiresAt.toISOString(),
+                            grantedByAI: true
+                        }, { merge: true }).catch(() => {});
+
+                        if (String(p.contentId || '').startsWith('movies-package-') || p.contentId === 'movies-access') {
+                            const mSubId = 'SUB-MOVIES-' + targetUid;
+                            await fsdb.collection('subscriptions').doc(mSubId).set({
+                                id: mSubId,
+                                userId: targetUid,
+                                contentId: 'movies-access',
+                                packageId: p.contentId,
+                                orderId: p.order_id || p.id || '',
+                                createdAt: p.createdAt || now.toISOString(),
+                                expiresAt: activeExpiresAt.toISOString(),
+                                grantedByAI: true
+                            }, { merge: true }).catch(() => {});
+                        }
+                    }
+
+                    // Log this automated grant event
+                    if (fsdb) {
+                        fsdb.collection('ai_access_grants').add({
+                            id: 'grant_' + Date.now(),
+                            phone: searchPhone,
+                            orderId: p.order_id || p.id || '',
+                            contentTitle: contentName,
+                            amount: p.amount || 0,
+                            userId: targetUid,
+                            expiresAt: activeExpiresAt.toISOString(),
+                            timestamp: new Date().toISOString()
+                        }).catch(() => {});
+                    }
+                } catch (grantErr) {
+                    console.error('Error granting access by AI:', grantErr.message);
+                }
+
+                const remainingMs = activeExpiresAt.getTime() - now.getTime();
+                const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+                const remainingDays = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+                let remainingText = '';
+                if (remainingDays >= 1) {
+                    const extraHours = remainingHours % 24;
+                    remainingText = `siku ${remainingDays}${extraHours > 0 ? ` na masaa ${extraHours}` : ''}`;
+                } else {
+                    remainingText = `masaa ${Math.max(1, remainingHours)}`;
+                }
+
+                return {
+                    handled: true,
+                    accessGranted: true,
+                    expired: false,
+                    contentId: p.contentId,
+                    expiresAt: activeExpiresAt.toISOString(),
+                    reply: `✅ Nimehakiki malipo yako na yapo HAI!\n\nMalipo yako ya Tsh ${amountStr} kwa ajili ya "${contentName}" ni halali hadi tarehe ${formatSwahiliDate(activeExpiresAt)} (bado una muda wa ${remainingText}).\n\nSasa unaweza kufungua ukurasa wa "${contentName}" na kuanza kupakua au kutazama mara moja bila kizuizi chochote. Karibu sana!`
+                };
+            }
+
+            // Case B: Payment exists, BUT EXPIRED! Strict enforcement: DO NOT GRANT ACCESS!
+            if (latestExpiredPayment && latestExpiredDate) {
+                const p = latestExpiredPayment;
+                const contentName = p.contentTitle || 'mchezo/huduma uliyolipia';
+                const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+                const expiryDateStr = formatSwahiliDate(latestExpiredDate);
+
+                const expiredAgoMs = now.getTime() - latestExpiredDate.getTime();
+                const expiredAgoDays = Math.floor(expiredAgoMs / (1000 * 60 * 60 * 24));
+                const expiredAgoHours = Math.floor(expiredAgoMs / (1000 * 60 * 60));
+                let expiredAgoText = '';
+                if (expiredAgoDays >= 1) {
+                    expiredAgoText = `siku ${expiredAgoDays} zilizopita`;
+                } else if (expiredAgoHours >= 1) {
+                    expiredAgoText = `masaa ${expiredAgoHours} yaliyopita`;
+                } else {
+                    expiredAgoText = `muda mfupi uliopita`;
+                }
+
+                return {
+                    handled: true,
+                    accessGranted: false,
+                    expired: true,
+                    contentId: p.contentId,
+                    expiresAt: latestExpiredDate.toISOString(),
+                    reply: `⚠️ Muda wako wa matumizi umekwisha (Expired).\n\nNimeikuta kumbukumbu ya muamala wako wa awali wa Tsh ${amountStr} kwa ajili ya "${contentName}", lakini muda wake wa matumizi ulikwisha rasmi tarehe ${expiryDateStr} (${expiredAgoText}).\n\nKwa mujibu wa mfumo wa RAJABSYNIC, huduma hii inahitaji kifurushi kinachoendelea kuwa hai ili uweze kupakua au kutazama. Tafadhali fungua ukurasa wa "${contentName}" na ubonyeze kitufe cha "Lipa Sasa" ili kuhuisha (renew) kifurushi chako na kupata access mpya mara moja.`
+                };
+            }
+        }
+
+        // Case C: Pending payment exists
+        if (pendingPayments.length > 0) {
+            const p = pendingPayments[0];
+            const contentName = p.contentTitle || 'mchezo/filamu yako';
+            const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+            const searchPhone = p.phone || extractedPhone || userPhone;
             return {
                 handled: true,
-                accessGranted: true,
-                contentId: p.contentId,
-                reply: `✅ Nimehakiki malipo yako na tayari nimekupa access papo hapo!\n\nMalipo yako ya Tsh ${amountStr} kwa ajili ya "${contentName}" yamethibitishwa kikamilifu. Sasa unaweza kufungua ukurasa wa "${contentName}" na kuanza kupakua au kutazama mara moja bila kizuizi chochote. Karibu sana!`
-            };
-        } else if (status === 'pending') {
-            return {
-                handled: true,
+                accessGranted: false,
                 reply: `Hujakamilisha malipo. Muamala wako wa Tsh ${amountStr} kwa ajili ya "${contentName}" bado unangoja uthibitisho (PIN) kwenye simu yako (${searchPhone}). Tafadhali weka namba yako ya siri (PIN) ili ukamilishe muamala huo na upate huduma mara moja.`
             };
-        } else {
+        }
+
+        // Case D: Failed payment exists
+        if (failedPayments.length > 0) {
+            const p = failedPayments[0];
+            const contentName = p.contentTitle || 'mchezo/filamu yako';
             return {
                 handled: true,
+                accessGranted: false,
                 reply: `Hujakamilisha malipo. Mfumo unaonyesha muamala wako wa "${contentName}" haukufanikiwa au ulikataliwa kwenye mtandao wa simu. Tafadhali jaribu kulipia tena kwa kubonyeza "Lipa Sasa" au wasiliana nasi kwa usaidizi zaidi.`
             };
         }
@@ -1795,14 +1932,16 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     if (!extractedPhone && !extractedOrderId && !userId) {
         return {
             handled: true,
-            reply: `Hujakamilisha malipo au namba yako ya simu haijatambuliwa. Kama tayari umefanya malipo kwenye simu, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) nami nitakuhakikia na kukupa access papo hapo bila kuchelewa.`
+            accessGranted: false,
+            reply: `Hujakamilisha malipo au namba yako ya simu haijatambuliwa. Kama tayari umefanya malipo kwenye simu, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) nami nitakuhakikia mara moja.`
         };
     }
 
     // Payment not found for known user/phone
     return {
         handled: true,
-        reply: `Hujakamilisha malipo. Hakuna kumbukumbu ya malipo iliyopatikana kwenye akaunti yako. Tafadhali bonyeza "Lipa Sasa" kwenye maudhui au kifurushi unachotaka ili kukamilisha malipo na kupata access papo hapo.`
+        accessGranted: false,
+        reply: `Hakuna rekodi ya malipo yaliyokamilika iliyopatikana kwa namba ${extractedPhone || userPhone || 'yako'}${extractedOrderId ? ` au Order ID: ${extractedOrderId}` : ''}. Tafadhali hakikisha umeingiza namba sahihi uliyotumia kulipia au bonyeza "Lipa Sasa" kwenye ukurasa wa huduma husika.`
     };
 }
 
@@ -2054,6 +2193,8 @@ app.post('/api/support/chat', async (req, res) => {
                 success: true,
                 reply: paymentCheck.reply,
                 accessGranted: !!paymentCheck.accessGranted,
+                expired: !!paymentCheck.expired,
+                expiresAt: paymentCheck.expiresAt || null,
                 contentId: paymentCheck.contentId || '',
                 botName: knowledge.botName || 'rajabsynic ai agent'
             });
@@ -2145,10 +2286,19 @@ ${relevantCatalogSection}
    - Malipo yote yanafanyika kupitia mitandao ya simu ya Tanzania: M-Pesa, Tigo Pesa, Airtel Money, au Halopesa.
    - Baada ya mteja kuingiza namba yake ya simu na kuthibitisha kwa PIN ya mtandao wake, mfumo hufungua huduma au mchezo mara moja kiotomatiki bila kuhitaji kubonyeza kitufe cha uhakiki.
 
-2. UPATIKANAJI WA MAUDHUI (DOWNLOAD & ACCESS):
+2. UPATIKANAJI WA MAUDHUI NA UDHIBITI WA MUDA WA MATUMIZI (ACCESS & DURATION EXPIRATION):
    - Vitu visivyolipiwa viko LOCKED. Mara baada ya malipo ya kitufe cha "Lipa Sasa", kitufe cha "Pakua" (Download) kinafunguka papo hapo.
    - Michezo ya bure (Free Games) haihitaji malipo — mteja anabonyeza "Pakua" moja kwa moja.
-   - Chini ya hali yoyote ile, USITOE file, password au link ya kupakua kwa kitu kilichopo locked bila mteja kulipia.
+   - Chini ya hali yoyote ile, USITOE file, password au link ya kupakua kwa kitu kilichopo locked bila mteja kuwa na malipo halali yanayoendelea (Active).
+   - UZINGATIAJI MKALI WA MUDA WA MATUMIZI (SUBSCRIPTION VALIDITY & EXPIRATION):
+     Kila huduma na kifurushi kina muda maalum wa matumizi:
+     * Kifurushi cha Mikumi: Masaa 24 (Siku 1).
+     * Kifurushi cha Ngorongoro: Siku 7.
+     * Kifurushi cha Serengeti / Movies VIP Pass: Siku 30 (Mwezi 1).
+     * Adult Section: Siku 5.
+     * Live TV: Siku 30.
+     * Michezo/Modi binafsi: Siku 14.
+     KANUNI KUU YA USALAMA: Ikiwa muda wa matumizi wa mteja umepita (Expired), ACCESS INAJIFUNGA KIOTOMATIKI. Usikubali kumpa access ya bure wala kumwahidi access bila kulipia tena. Mteja ambaye muda wake umekwisha mwambie kwa heshima na upole kwamba muda wake uliisha na mwelekeze kubonyeza kitufe cha "Lipa Sasa" kwenye ukurasa wa huduma hiyo ili kuhuisha (renew) kifurushi chake na kupata access mpya papo hapo.
 
 3. KATAZO LA NAMBA YA SIMU AU WHATSAPP BINAFSI:
    - Chini ya hali yoyote ile, usitoe wala kutaja namba ya simu au kiungo cha WhatsApp binafsi. Mwelekeze kutumia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya tovuti.

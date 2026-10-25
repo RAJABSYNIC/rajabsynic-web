@@ -932,7 +932,7 @@ class AIChatWidget {
             this.isTyping = false;
 
             if (res && res.reply) {
-                // If AI verified payment and granted access, instantly update local storage
+                // If AI verified payment and granted access, instantly update local storage with valid expiry
                 if (res.accessGranted && res.contentId) {
                     try {
                         const paid = JSON.parse(localStorage.getItem('paid_items') || '[]');
@@ -946,7 +946,42 @@ class AIChatWidget {
                                 localStorage.setItem('paid_items', JSON.stringify(paid));
                             }
                         }
-                        console.log('✅ AI granted access synced to local storage:', res.contentId);
+
+                        // Save subscription expiry info into localStorage
+                        if (res.expiresAt) {
+                            const subscriptions = JSON.parse(localStorage.getItem('subscriptions') || '{}');
+                            subscriptions[res.contentId] = {
+                                expiresAt: res.expiresAt,
+                                grantedAt: new Date().toISOString()
+                            };
+                            if (res.contentId.startsWith('movies-package-') || res.contentId === 'movies-access') {
+                                subscriptions['movies-access'] = {
+                                    expiresAt: res.expiresAt,
+                                    packageId: res.contentId,
+                                    grantedAt: new Date().toISOString()
+                                };
+                            }
+                            localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
+                        }
+                        console.log('✅ AI verified active access synced to local storage:', res.contentId);
+                    } catch (_) {}
+                } else if (res.expired && res.contentId) {
+                    // Revoke local storage access if item is expired!
+                    try {
+                        let paid = JSON.parse(localStorage.getItem('paid_items') || '[]');
+                        paid = paid.filter(id => id !== res.contentId);
+                        if (res.contentId.startsWith('movies-package-') || res.contentId === 'movies-access') {
+                            paid = paid.filter(id => id !== 'movies-access' && !id.startsWith('movies-package-'));
+                        }
+                        localStorage.setItem('paid_items', JSON.stringify(paid));
+
+                        let subs = JSON.parse(localStorage.getItem('subscriptions') || '{}');
+                        delete subs[res.contentId];
+                        if (res.contentId.startsWith('movies-package-') || res.contentId === 'movies-access') {
+                            delete subs['movies-access'];
+                        }
+                        localStorage.setItem('subscriptions', JSON.stringify(subs));
+                        console.log('⚠️ Revoked expired item from local storage:', res.contentId);
                     } catch (_) {}
                 }
                 this.appendMessage('bot', res.reply, true);
