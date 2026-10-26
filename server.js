@@ -1476,10 +1476,10 @@ async function getAIKnowledgeAsync(forceRefresh = false) {
     }
 
     return {
-        botName: 'rajabsynic ai agent',
+        botName: 'MSAADA AI',
         supportPhone: '',
         whatsappLink: '',
-        systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC.',
+        systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC aitwaye MSAADA AI.',
         policies: {},
         faqs: []
     };
@@ -1498,10 +1498,10 @@ function getAIKnowledge() {
         }
     } catch (_) {}
     return BUNDLED_KNOWLEDGE || {
-        botName: 'rajabsynic ai agent',
+        botName: 'MSAADA AI',
         supportPhone: '',
         whatsappLink: '',
-        systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC.',
+        systemInstructions: 'Wewe ni msaidizi wa huduma kwa wateja wa RAJABSYNIC aitwaye MSAADA AI.',
         policies: {},
         faqs: []
     };
@@ -2379,7 +2379,7 @@ app.post('/api/support/chat', async (req, res) => {
                 expired: !!paymentCheck.expired,
                 expiresAt: paymentCheck.expiresAt || null,
                 contentId: paymentCheck.contentId || '',
-                botName: knowledge.botName || 'rajabsynic ai agent'
+                botName: knowledge.botName || 'MSAADA AI'
             });
         }
 
@@ -2437,7 +2437,7 @@ KANUNI YA BIDHAA:
         }
 
         const systemPrompt = `
-WEWE NI: "rajabsynic ai agent" — Msaidizi Mahiri na Mtaalamu Mkuu wa Akili Bandia (High-Intelligence AI Expert Assistant) wa tovuti ya RAJABSYNIC (https://www.rajabsynic.com).
+WEWE NI: "MSAADA AI" — Msaidizi Mahiri na Mtaalamu Mkuu wa Akili Bandia (High-Intelligence AI Expert Assistant) wa tovuti ya RAJABSYNIC (https://www.rajabsynic.com).
 Lugha yako kuu ya mawasiliano ni Kiswahili fasaha, chenye staha, heshima, ukomavu na weledi mkubwa. (Unaweza pia kujibu kwa Kiingereza kama mteja atauliza kwa Kiingereza).
 
 ══════════════════════════════════════════════════════════════════
@@ -2591,7 +2591,7 @@ ${catalogSummary}
             } else if (lower.includes('wasiliana') || lower.includes('namba') || lower.includes('admin') || lower.includes('msaada') || lower.includes('contact')) {
                 aiReply = 'Unaweza kupata msaada moja kwa moja kupitia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au kupitia ukurasa wako wa Akaunti.';
             } else {
-                aiReply = 'Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi. Je, nikusaidie nini leo? (Unaweza kuniuliza kuhusu mchezo au mod yoyote unayoitafuta kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ruti za ETS2, bei zake, au jinsi ya kulipa kwa kitufe cha "Lipa Sasa" na kupakua).';
+                aiReply = 'Habari! Karibu sana RAJABSYNIC. Naitwa MSAADA AI, msaidizi wako rasmi. Je, nikusaidie nini leo? (Unaweza kuniuliza kuhusu mchezo au mod yoyote unayoitafuta kama mods za mabasi ya Maleo ya Abood, Shabiby, Katarama, ruti za ETS2, bei zake, au jinsi ya kulipa kwa kitufe cha "Lipa Sasa" na kupakua).';
             }
         }
 
@@ -2617,7 +2617,7 @@ ${catalogSummary}
         res.json({
             success: true,
             reply: aiReply,
-            botName: knowledge.botName || 'rajabsynic ai agent'
+            botName: knowledge.botName || 'MSAADA AI'
         });
 
     } catch (err) {
