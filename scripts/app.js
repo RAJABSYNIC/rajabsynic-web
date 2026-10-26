@@ -958,10 +958,6 @@ class Router {
                         <button onclick="window.app.openItemAISupport('${item.id}')" class="btn" style="width:100%; background: linear-gradient(135deg, #00ff80 0%, #00cc66 100%); color:#000; font-weight:800; font-size:1rem; border:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; padding:15px; border-radius:12px; cursor:pointer; box-shadow: 0 4px 18px rgba(0,255,128,0.3); transition: transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
                              <ion-icon name="sparkles" style="font-size:1.25rem; color:#000;"></ion-icon> MSAADA AI
                         </button>
-                        ${item.whatsapp ? `
-                        <a href="https://wa.me/${item.whatsapp.replace(/[^0-9]/g, '')}${waMessage}" target="_blank" style="color:#9ca3af; font-size:0.82rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; opacity:0.85;">
-                             <ion-icon name="logo-whatsapp" style="color:#25D366;"></ion-icon> Wasiliana nasi kupitia WhatsApp
-                        </a>` : ''}
                     </div>
 
                 </div>
