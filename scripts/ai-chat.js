@@ -936,20 +936,26 @@ class AIChatWidget {
             // Call API backend proxy with complete user & payment context and attached image
             let userId = '';
             let userPhone = '';
+            let userName = '';
             try {
                 const uStr = localStorage.getItem('user') || localStorage.getItem('rajabsynic_user') || sessionStorage.getItem('rajabsynic_user');
                 if (uStr) {
                     const u = JSON.parse(uStr);
                     userId = u.id || u.uid || '';
                     userPhone = u.phone || '';
+                    userName = u.username || u.displayName || u.name || '';
                 }
                 if (!userPhone) {
                     const txnPhones = JSON.parse(localStorage.getItem('txn_phones') || '{}');
                     const vals = Object.values(txnPhones);
                     if (vals.length > 0) userPhone = vals[vals.length - 1];
                 }
+                if (!userName) {
+                    const savedU = localStorage.getItem('username') || localStorage.getItem('savedUsername') || '';
+                    if (savedU) userName = savedU;
+                }
             } catch (_) {}
-            const res = await api.sendSupportChat(text, this.history, this.sessionId, userId, userPhone, imageToSend);
+            const res = await api.sendSupportChat(text, this.history, this.sessionId, userId, userPhone, imageToSend, userName);
             this.hideTypingIndicator();
             this.isTyping = false;
 

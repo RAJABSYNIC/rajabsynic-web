@@ -2683,10 +2683,72 @@ if (viewId === 'ai-support') this.loadAISupport();
                     const dateObj = l.timestamp ? new Date(l.timestamp) : new Date();
                     const dateStr = dateObj.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' }) + ' ' + dateObj.toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' });
                     
-                    let clientLabel = 'Mgeni (Guest)';
-                    if (l.userPhone) clientLabel = l.userPhone;
-                    else if (l.userId) clientLabel = 'Mteja: ' + String(l.userId).slice(0, 8) + '...';
-                    else if (l.sessionId) clientLabel = 'Kipindi: ' + String(l.sessionId).slice(-6);
+                    let phone = (l.userPhone || '').trim();
+                    let username = (l.userName || l.username || '').trim();
+
+                    // If missing username, look up in client map
+                    if (!username && phone && this._userPhoneMap && this._userPhoneMap[phone]) {
+                        username = this._userPhoneMap[phone];
+                    }
+                    if (!username && phone) {
+                        const cleanD = phone.replace(/[^0-9]/g, '');
+                        if (cleanD.length >= 9 && this._userPhoneMap) {
+                            const last9 = cleanD.slice(-9);
+                            username = this._userPhoneMap['0' + last9] || this._userPhoneMap['255' + last9] || '';
+                        }
+                    }
+                    if (!username && l.userId && this._userIdMap && this._userIdMap[l.userId]) {
+                        username = this._userIdMap[l.userId];
+                    }
+
+                    let clientHtml = '';
+                    if (username && phone) {
+                        clientHtml = `
+                            <div style="display:flex; flex-direction:column; gap:3px;">
+                                <span style="color:#fff; font-weight:700; font-size:0.86rem; display:inline-flex; align-items:center; gap:5px;">
+                                    <ion-icon name="person" style="color:#00ff80; font-size:0.95rem;"></ion-icon>
+                                    ${username}
+                                </span>
+                                <span style="color:#00ff80; font-size:0.78rem; font-weight:600; font-family:monospace; display:inline-flex; align-items:center; gap:4px;">
+                                    <ion-icon name="call" style="font-size:0.8rem;"></ion-icon>
+                                    ${phone}
+                                </span>
+                            </div>
+                        `;
+                    } else if (phone) {
+                        clientHtml = `
+                            <div style="display:flex; flex-direction:column; gap:3px;">
+                                <span style="color:#00ff80; font-weight:700; font-size:0.84rem; font-family:monospace; display:inline-flex; align-items:center; gap:4px;">
+                                    <ion-icon name="call" style="font-size:0.85rem;"></ion-icon>
+                                    ${phone}
+                                </span>
+                                <span style="color:#6b7280; font-size:0.72rem;">Mteja (Bila Jina)</span>
+                            </div>
+                        `;
+                    } else if (username) {
+                        clientHtml = `
+                            <div style="display:flex; flex-direction:column; gap:3px;">
+                                <span style="color:#fff; font-weight:700; font-size:0.86rem; display:inline-flex; align-items:center; gap:5px;">
+                                    <ion-icon name="person" style="color:#00ff80; font-size:0.95rem;"></ion-icon>
+                                    ${username}
+                                </span>
+                                <span style="color:#6b7280; font-size:0.72rem;">Bila namba</span>
+                            </div>
+                        `;
+                    } else if (l.userId) {
+                        clientHtml = `
+                            <span style="color:#9ca3af; font-size:0.8rem; font-family:monospace;">
+                                Mteja: ${String(l.userId).slice(0, 8)}...
+                            </span>
+                        `;
+                    } else {
+                        clientHtml = `
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                                <span style="color:#6b7280; font-size:0.8rem;">Mgeni (Guest)</span>
+                                <span style="color:#4b5563; font-size:0.7rem; font-family:monospace;">${l.sessionId ? String(l.sessionId).slice(-6) : 'web'}</span>
+                            </div>
+                        `;
+                    }
 
                     const q = (l.userMessage || '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     const a = (l.botResponse || '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -2695,7 +2757,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                     return `
                         <tr style="border-bottom:1px solid #1f2937; font-size:0.84rem;">
                             <td style="padding:10px 14px; color:#9ca3af; white-space:nowrap; vertical-align:top;">${dateStr}</td>
-                            <td style="padding:10px 14px; color:#00ff80; font-weight:600; white-space:nowrap; vertical-align:top;">${clientLabel}</td>
+                            <td style="padding:10px 14px; vertical-align:top;">${clientHtml}</td>
                             <td style="padding:10px 14px; color:#fff; vertical-align:top; max-width:240px; word-break:break-word;">${q}</td>
                             <td style="padding:10px 14px; color:#d1d5db; vertical-align:top; max-width:320px; word-break:break-word;" title="${a}">${shortA}</td>
                         </tr>
@@ -2709,8 +2771,9 @@ if (viewId === 'ai-support') this.loadAISupport();
                     const msg = (l.userMessage || '').toLowerCase();
                     const resp = (l.botResponse || '').toLowerCase();
                     const phone = (l.userPhone || '').toLowerCase();
+                    const username = (l.userName || l.username || (this._userPhoneMap ? this._userPhoneMap[phone] : '') || '').toLowerCase();
                     const session = (l.sessionId || '').toLowerCase();
-                    return msg.includes(search) || resp.includes(search) || phone.includes(search) || session.includes(search);
+                    return msg.includes(search) || resp.includes(search) || phone.includes(search) || username.includes(search) || session.includes(search);
                 });
                 this.renderAIChatLogs(filtered);
             },
@@ -2904,6 +2967,32 @@ if (viewId === 'ai-support') this.loadAISupport();
 
             loadAISupport: async function() {
                 this.loadAIStats();
+                // Populate user lookup map in background for instant name/phone display
+                if (!this._userPhoneMap) {
+                    this._userPhoneMap = {};
+                    this._userIdMap = {};
+                    api.getUsers().then(users => {
+                        if (Array.isArray(users)) {
+                            users.forEach(u => {
+                                if (u.phone && u.username) {
+                                    this._userPhoneMap[u.phone] = u.username;
+                                    const cleanDigits = u.phone.replace(/[^0-9]/g, '');
+                                    if (cleanDigits.length >= 9) {
+                                        const last9 = cleanDigits.slice(-9);
+                                        this._userPhoneMap['0' + last9] = u.username;
+                                        this._userPhoneMap['255' + last9] = u.username;
+                                        this._userPhoneMap['+' + '255' + last9] = u.username;
+                                    }
+                                }
+                                if (u.id && u.username) this._userIdMap[u.id] = u.username;
+                                if (u.uid && u.username) this._userIdMap[u.uid] = u.username;
+                            });
+                            if (this._cachedAILogs && this._cachedAILogs.length > 0) {
+                                this.renderAIChatLogs(this._cachedAILogs);
+                            }
+                        }
+                    }).catch(() => {});
+                }
                 try {
                     if (auth && auth.currentUser) {
                         try {

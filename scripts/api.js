@@ -901,12 +901,12 @@ class ApiService {
     }
 
     // --- AI CUSTOMER SUPPORT ---
-    async sendSupportChat(message, history = [], sessionId = null, userId = null, userPhone = null, image = null) {
+    async sendSupportChat(message, history = [], sessionId = null, userId = null, userPhone = null, image = null, userName = null) {
         try {
             const res = await fetch(`${this.baseUrl}/api/support/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, history, sessionId, userId, userPhone, image })
+                body: JSON.stringify({ message, history, sessionId, userId, userPhone, image, userName })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();

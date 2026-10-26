@@ -2325,7 +2325,24 @@ setInterval(async () => {
 
 app.post('/api/support/chat', async (req, res) => {
     try {
-        const { message, history = [], sessionId, userId, userPhone, image } = req.body;
+        const { message, history = [], sessionId, userId, userPhone, userName, username, image } = req.body;
+        let resolvedUsername = (userName || username || '').trim();
+        if (!resolvedUsername && fsdb) {
+            try {
+                if (userPhone) {
+                    const uSnap = await fsdb.collection('users').where('phone', '==', userPhone).limit(1).get();
+                    if (!uSnap.empty) {
+                        resolvedUsername = uSnap.docs[0].data()?.username || '';
+                    }
+                }
+                if (!resolvedUsername && userId) {
+                    const uDoc = await fsdb.collection('users').doc(userId).get();
+                    if (uDoc.exists) {
+                        resolvedUsername = uDoc.data()?.username || '';
+                    }
+                }
+            } catch (_) {}
+        }
         const userMsg = (message && typeof message === 'string') ? message.trim() : '';
         if (!userMsg && !image) {
             return res.status(400).json({ success: false, error: 'Message or image is required' });
@@ -2368,6 +2385,8 @@ app.post('/api/support/chat', async (req, res) => {
             };
             logEntry.accessGranted = !!paymentCheck.accessGranted;
             logEntry.contentId = paymentCheck.contentId || '';
+            logEntry.userName = resolvedUsername || null;
+            logEntry.username = resolvedUsername || null;
             appendAIChatLog(logEntry);
             triggerAutonomousLearningCheck();
             if (fsdb) fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
@@ -2612,6 +2631,8 @@ ${catalogSummary}
             sessionId: sessionId || ('guest_' + Date.now()),
             userId: userId || null,
             userPhone: userPhone || null,
+            userName: resolvedUsername || null,
+            username: resolvedUsername || null,
             userMessage: userMsg,
             botResponse: aiReply,
             timestamp: new Date().toISOString(),
@@ -2882,15 +2903,42 @@ app.delete('/api/admin/ai/self-learn/:id', requireAdmin, async (req, res) => {
 
 // Admin Endpoint: Get AI Chat Logs
 app.get('/api/admin/ai-chat-logs', requireAdmin, async (req, res) => {
+    let logs = [];
     if (fsdb) {
         try {
             const snap = await fsdb.collection('ai_chat_logs').orderBy('timestamp', 'desc').limit(100).get();
-            const logs = [];
             snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
-            if (logs.length > 0) return res.json(logs);
         } catch (_) {}
     }
-    res.json(getAIChatLogs());
+    if (logs.length === 0) {
+        logs = getAIChatLogs();
+    }
+
+    // Auto-enrich username for any logs
+    if (logs.length > 0 && fsdb) {
+        try {
+            const phonesToLookup = [...new Set(logs.filter(l => !l.userName && !l.username && l.userPhone).map(l => l.userPhone))];
+            if (phonesToLookup.length > 0) {
+                const phoneMap = {};
+                for (const ph of phonesToLookup.slice(0, 30)) {
+                    const uSnap = await fsdb.collection('users').where('phone', '==', ph).limit(1).get();
+                    if (!uSnap.empty) {
+                        phoneMap[ph] = uSnap.docs[0].data()?.username || '';
+                    }
+                }
+                logs.forEach(l => {
+                    if ((!l.userName && !l.username) && l.userPhone && phoneMap[l.userPhone]) {
+                        l.userName = phoneMap[l.userPhone];
+                        l.username = phoneMap[l.userPhone];
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Username enrichment notice:', e.message);
+        }
+    }
+
+    res.json(logs);
 });
 
 // Admin Endpoint: Clear AI Chat Logs
