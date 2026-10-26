@@ -556,7 +556,7 @@ class AIChatWidget {
                 <ion-icon id="ai-btn-icon" name="chatbubbles"></ion-icon>
                 <div class="ai-btn-pulse"></div>
                 <div id="ai-btn-tooltip" class="ai-btn-tooltip">
-                    <span>💬 Msaada wa AI</span>
+                    <span>Msaada wa AI</span>
                 </div>
             </button>
 
@@ -588,12 +588,12 @@ class AIChatWidget {
 
                 <!-- Suggested Quick Question Chips -->
                 <div class="ai-quick-questions">
-                    <div class="ai-chip" data-q="Ni michezo gani inayovuma na bei zake?">🎮 Michezo & Bei</div>
-                    <div class="ai-chip" data-q="Nieleze kuhusu Maleo Bus Mods na Skins">🚌 Maleo Bus Mods</div>
-                    <div class="ai-chip" data-q="Jinsi ya kufanya malipo kwa simu (M-Pesa/Tigo Pesa)?">💳 Jinsi ya Kulipia</div>
-                    <div class="ai-chip" data-q="Nimelipa lakini sijapata access ya mchezo">⚡ Sijapata Access</div>
-                    <div class="ai-chip" data-q="Nimefanya malipo, ninawezaje kupakua (Download)?">📥 Msaada wa Kupakua</div>
-                    <div class="ai-chip" data-q="Ninawezaje kupata msaada zaidi?">🆘 Msaada wa Tovuti</div>
+                    <div class="ai-chip" data-q="Ni michezo gani inayovuma na bei zake?">Michezo na Bei</div>
+                    <div class="ai-chip" data-q="Nieleze kuhusu Maleo Bus Mods na Skins">Maleo Bus Mods</div>
+                    <div class="ai-chip" data-q="Jinsi ya kufanya malipo kwa simu (M-Pesa/Tigo Pesa)?">Jinsi ya Kulipia</div>
+                    <div class="ai-chip" data-q="Nimelipa lakini sijapata access ya mchezo">Sijapata Access</div>
+                    <div class="ai-chip" data-q="Nimefanya malipo, ninawezaje kupakua (Download)?">Msaada wa Kupakua</div>
+                    <div class="ai-chip" data-q="Ninawezaje kupata msaada zaidi?">Msaada wa Tovuti</div>
                 </div>
 
                 <!-- Messages Stream -->
@@ -739,7 +739,7 @@ class AIChatWidget {
     }
 
     sendWelcomeMessage() {
-        const welcomeText = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
+        const welcomeText = `Habari! Karibu **RAJABSYNIC**.\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
         this.appendMessage('bot', welcomeText, false);
     }
 
@@ -749,7 +749,7 @@ class AIChatWidget {
             if (saved) {
                 this.history = JSON.parse(saved);
                 if (this.history.length > 0 && this.history[0].role === 'bot' && this.history[0].text.includes('Unaweza kuniuliza kuhusu:')) {
-                    this.history[0].text = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
+                    this.history[0].text = `Habari! Karibu **RAJABSYNIC**.\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
                     sessionStorage.setItem('rajabsynic_ai_history', JSON.stringify(this.history));
                 }
                 this.history.forEach(item => {
