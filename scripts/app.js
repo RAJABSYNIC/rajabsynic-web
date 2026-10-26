@@ -3491,17 +3491,12 @@ const app = {
         }
     },
 
-    openItemAISupport: function (contentId) {
-        if (!window.aiChatWidget) {
+    openItemAISupport: function () {
+        if (window.aiChatWidget) {
+            window.aiChatWidget.openForContent();
+        } else {
             console.warn('AI Chat Widget is not initialized yet');
-            return;
         }
-        let item = null;
-        if (this.router && Array.isArray(this.router.cachedContent)) {
-            item = this.router.cachedContent.find(i => String(i.id) === String(contentId));
-        }
-        const title = item ? item.title : '';
-        window.aiChatWidget.openForContent({ id: contentId, title: title });
     }
 };
 

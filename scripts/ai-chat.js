@@ -730,43 +730,15 @@ class AIChatWidget {
         }, 200);
     }
 
-    openForContent(content = {}) {
+    openForContent() {
         this.openChat();
-        if (content && content.title) {
-            const promptText = `Nahitaji msaada kuhusu ${content.title}`;
-            setTimeout(() => {
-                const inputField = document.getElementById('ai-input-text');
-                if (inputField) {
-                    inputField.value = promptText;
-                    inputField.focus();
-                    if (typeof inputField.setSelectionRange === 'function') {
-                        inputField.setSelectionRange(0, inputField.value.length);
-                    }
-                }
-            }, 250);
-
-            const chipsContainer = document.querySelector('.ai-quick-questions');
-            if (chipsContainer) {
-                const existing = document.getElementById('ai-chip-content-specific');
-                if (existing) existing.remove();
-
-                const chip = document.createElement('div');
-                chip.id = 'ai-chip-content-specific';
-                chip.className = 'ai-chip active-chip';
-                chip.style.borderColor = '#00ff80';
-                chip.style.color = '#00ff80';
-                chip.style.fontWeight = '700';
-                chip.style.background = 'rgba(0, 255, 128, 0.12)';
-                chip.setAttribute('data-q', promptText);
-                chip.innerHTML = `✨ Msaada: ${content.title}`;
-                chip.onclick = () => {
-                    const inputField = document.getElementById('ai-input-text');
-                    if (inputField) inputField.value = promptText;
-                    this.handleSendMessage();
-                };
-                chipsContainer.prepend(chip);
+        setTimeout(() => {
+            const inputField = document.getElementById('ai-input-text');
+            if (inputField) {
+                inputField.value = '';
+                inputField.focus();
             }
-        }
+        }, 200);
     }
 
     closeChat() {
