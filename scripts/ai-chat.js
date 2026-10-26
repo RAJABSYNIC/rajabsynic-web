@@ -773,45 +773,58 @@ class AIChatWidget {
 
     formatMarkdown(text) {
         if (!text) return '';
-        // Escape basic HTML
-        let escaped = text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
 
-        // 1. Markdown Images: ![alt](url)
-        escaped = escaped.replace(/!\[(.*?)\]\((https?:\/\/[^\s\)]+)\)/g, (match, alt, url) => {
-            const cleanAlt = alt || 'Picha ya Msaada';
-            return `__IMG_TOKEN_START__${url}__IMG_TOKEN_MID__${cleanAlt}__IMG_TOKEN_END__`;
-        });
+        // Normalize newlines
+        let s = text.replace(/\r\n/g, '\n');
 
-        // 2. Bold: **text**
-        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // 1. Escape HTML
+        s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // 3. Regular Links: [text](url)
-        escaped = escaped.replace(/\[(.*?)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-
-        // 4. Naked URLs (ignoring image tokens)
-        escaped = escaped.replace(/(?<!href=")(https?:\/\/[^\s<]+)/g, (match, url) => {
-            if (url.includes('__IMG_TOKEN_')) return url;
-            if (/\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url) || url.includes('i.ibb.co/')) {
-                return `__IMG_TOKEN_START__${url}__IMG_TOKEN_MID__Picha ya Msaada__IMG_TOKEN_END__`;
+        // 2. Match ANY markdown image: ![alt](url) or ! [alt](url) or [alt](url) if URL is an image/ibb.co
+        s = s.replace(/!?\s*\[(.*?)\]\(\s*(https?:\/\/[^\s\)]+)\s*\)/g, (match, alt, url) => {
+            const isExclamation = match.trim().startsWith('!');
+            const isImgUrl = /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(url) || url.includes('i.ibb.co/') || url.includes('ibb.co/') || url.includes('images.unsplash.com') || url.includes('res.cloudinary.com');
+            
+            if (isExclamation || isImgUrl) {
+                const cleanAlt = alt.trim() || 'Kielelezo cha Mwongozo';
+                return `__IMG_TOKEN_START__${url.trim()}__IMG_TOKEN_MID__${cleanAlt}__IMG_TOKEN_END__`;
             }
-            return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+            return `<a href="${url.trim()}" target="_blank" rel="noopener">${alt}</a>`;
         });
 
-        // 5. Replace image tokens with styled image cards
-        escaped = escaped.replace(/__IMG_TOKEN_START__(.*?)__IMG_TOKEN_MID__(.*?)__IMG_TOKEN_END__/g, (m, url, alt) => {
-            return `<div class="ai-msg-image-wrap" style="margin: 10px 0;">
-                <img src="${url}" alt="${alt}" loading="lazy" style="max-width: 100%; max-height: 260px; border-radius: 10px; border: 1px solid rgba(0,255,128,0.25); display: block; cursor: pointer; background: #0b0f19; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" onclick="window.open(this.src, '_blank')">
-                <span style="display:block; font-size:0.75rem; color:#9ca3af; margin-top:5px; font-style:italic;">${alt} (Bofya kutazama kubwa)</span>
+        // 3. Bold: **text**
+        s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // 4. Naked image URLs or regular URLs
+        s = s.replace(/(?<!href=")(https?:\/\/[^\s<]+)/g, (match, url) => {
+            if (url.includes('__IMG_TOKEN_')) return url;
+            const cleanUrl = url.trim();
+            if (/\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(cleanUrl) || cleanUrl.includes('i.ibb.co/') || cleanUrl.includes('ibb.co/')) {
+                return `__IMG_TOKEN_START__${cleanUrl}__IMG_TOKEN_MID__Kielelezo cha Mwongozo__IMG_TOKEN_END__`;
+            }
+            return `<a href="${cleanUrl}" target="_blank" rel="noopener">${cleanUrl}</a>`;
+        });
+
+        // 5. Newlines to <br> (Happens BEFORE substituting image tokens so HTML isn't polluted by <br>)
+        s = s.replace(/\n/g, '<br>');
+
+        // 6. Substitute image tokens with clean, open, visible image elements
+        s = s.replace(/__IMG_TOKEN_START__(.*?)__IMG_TOKEN_MID__(.*?)__IMG_TOKEN_END__/g, (m, url, alt) => {
+            return `<div class="ai-msg-image-wrap" style="margin: 14px 0; width: 100%;">
+                <div style="background: #000; border: 2px solid #00ff80; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,255,128,0.25);">
+                    <img src="${url}" alt="${alt}" loading="eager" style="width: 100%; max-height: 420px; object-fit: contain; display: block; cursor: pointer; background: #070b12;" onclick="window.open(this.src, '_blank')" title="Bofya kutazama picha kubwa">
+                    <div style="padding: 8px 12px; background: rgba(0,255,128,0.1); display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(0,255,128,0.25);">
+                        <span style="font-size: 0.8rem; color: #00ff80; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00ff80; box-shadow:0 0 6px #00ff80;"></span>
+                            ${alt}
+                        </span>
+                        <span style="font-size: 0.72rem; color: #9ca3af; cursor: pointer;" onclick="window.open('${url}', '_blank')">(Bofya kufungua kubwa)</span>
+                    </div>
+                </div>
             </div>`;
         });
 
-        // 6. Newlines
-        escaped = escaped.replace(/\n/g, '<br>');
-
-        return escaped;
+        return s;
     }
 
     compressImage(file) {
@@ -858,8 +871,17 @@ class AIChatWidget {
         if (!animate) msgDiv.style.animation = 'none';
 
         const imageHtml = image ? `
-            <div class="ai-msg-image-wrap" style="margin-bottom: 8px;">
-                <img src="${image}" alt="Picha iliyoambatanishwa" style="max-width: 100%; max-height: 220px; border-radius: 10px; display: block; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;" onclick="window.open(this.src, '_blank')">
+            <div class="ai-msg-image-wrap" style="margin: 12px 0; width: 100%;">
+                <div style="background: #000; border: 2px solid #00ff80; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,255,128,0.25);">
+                    <img src="${image}" alt="Kielelezo cha Mwongozo" loading="eager" style="width: 100%; max-height: 420px; object-fit: contain; display: block; cursor: pointer; background: #070b12;" onclick="window.open(this.src, '_blank')" title="Bofya kutazama picha kubwa">
+                    <div style="padding: 8px 12px; background: rgba(0,255,128,0.1); display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(0,255,128,0.25);">
+                        <span style="font-size: 0.8rem; color: #00ff80; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00ff80; box-shadow:0 0 6px #00ff80;"></span>
+                            Kielelezo cha Mwongozo
+                        </span>
+                        <span style="font-size: 0.72rem; color: #9ca3af; cursor: pointer;" onclick="window.open('${image}', '_blank')">(Bofya kufungua kubwa)</span>
+                    </div>
+                </div>
             </div>
         ` : '';
 
@@ -1012,8 +1034,11 @@ class AIChatWidget {
                         console.log('⚠️ Revoked expired item from local storage:', res.contentId);
                     } catch (_) {}
                 }
-                const botImage = (res.image && !res.reply.includes(res.image)) ? res.image : null;
-                this.appendMessage('bot', res.reply, true, botImage);
+                let botReply = res.reply || '';
+                if (res.image && !botReply.includes(res.image)) {
+                    botReply += `\n\n![Kielelezo cha Mwongozo](${res.image})`;
+                }
+                this.appendMessage('bot', botReply, true);
             } else {
                 this.appendMessage(
                     'bot',
