@@ -2430,7 +2430,15 @@ KANUNI YA BIDHAA:
         let customInstructionsFormatted = '';
         if (knowledge.trainings && Array.isArray(knowledge.trainings) && knowledge.trainings.length > 0) {
             customInstructionsFormatted = knowledge.trainings
-                .map((t, idx) => `📌 FUNZO / MUONGOZO #${idx + 1}:\n${t.text.trim()}`)
+                .map((t, idx) => {
+                    let s = `📌 FUNZO / MUONGOZO #${idx + 1}:\n${(t.text || '').trim()}`;
+                    if (t.image && typeof t.image === 'string' && t.image.trim()) {
+                        const img = t.image.trim();
+                        s += `\n🖼️ PICHA YA KUAMBATISHA KWA MTEJA (TRAINING ATTACHMENT IMAGE): ${img}`;
+                        s += `\nKANUNI YA PICHA HII: Ikiwa mteja anauliza kuhusu mada au maelekezo ya funzo hili (au akiomba picha, muongozo wa hatua, au kielelezo cha hili), LAZIMA ujumuishe picha hii ndani ya jibu lako kwa muundo wa Markdown: ![Kielelezo cha Mwongozo](${img}) ili mtumiaji aione moja kwa moja kwenye dirisha la maongezi.`;
+                    }
+                    return s;
+                })
                 .join('\n\n──────────────────────────────\n\n');
         } else if (knowledge.systemInstructions || knowledge.customKnowledge) {
             customInstructionsFormatted = (knowledge.systemInstructions || knowledge.customKnowledge).trim();

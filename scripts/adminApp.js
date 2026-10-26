@@ -2715,37 +2715,111 @@ if (viewId === 'ai-support') this.loadAISupport();
                 this.renderAIChatLogs(filtered);
             },
             _aiExpanded: false,
+            _aiAttachedImage: null,
+            _cachedTrainings: [],
+            _editingTrainingId: null,
+
+            uploadAITrainingImage: async function(input) {
+                if (!input || !input.files || input.files.length === 0) return;
+                const file = input.files[0];
+                const statusEl = document.getElementById('ai-training-upload-status');
+                const labelEl = document.getElementById('ai-training-upload-label');
+                const saveBtn = document.getElementById('ai-save-btn');
+
+                if (statusEl) statusEl.innerHTML = '<span style="color:#00ff80;">Inapakia picha... Tafadhali subiri...</span>';
+                if (labelEl) labelEl.textContent = 'Inapakia picha...';
+                if (saveBtn) saveBtn.disabled = true;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    const res = await fetch('https://api.imgbb.com/1/upload?key=e4a54b1c8d8e2411273e5036b9f9bf12', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data && data.success && data.data && data.data.url) {
+                        this._aiAttachedImage = data.data.url;
+                        const urlInput = document.getElementById('ai-training-image-url');
+                        if (urlInput) urlInput.value = data.data.url;
+
+                        const previewWrap = document.getElementById('ai-training-image-preview-wrap');
+                        const previewImg = document.getElementById('ai-training-preview-img');
+                        const previewLink = document.getElementById('ai-training-preview-link');
+                        if (previewWrap && previewImg) {
+                            previewImg.src = data.data.url;
+                            if (previewLink) previewLink.textContent = data.data.url;
+                            previewWrap.style.display = 'flex';
+                        }
+                        if (statusEl) statusEl.innerHTML = '<span style="color:#00ff80;">Picha imepakiwa kikamilifu!</span>';
+                    } else {
+                        const errMsg = (data && data.error && data.error.message) ? data.error.message : 'Kosa limejitokeza';
+                        if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">Imeshindwa: ' + errMsg + '</span>';
+                        alert('Imeshindwa kupakia picha: ' + errMsg);
+                    }
+                } catch (err) {
+                    console.error('AI Training Image upload error:', err);
+                    if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">Hitilafu ya mtandao wakati wa kupakia.</span>';
+                    alert('Hitilafu ya mtandao wakati wa kupakia picha.');
+                } finally {
+                    if (labelEl) labelEl.textContent = 'Ambatisha Picha ya Kufundishia (Upload Image)';
+                    if (saveBtn) saveBtn.disabled = false;
+                }
+            },
+
+            onAITrainingImageUrlChange: function(val) {
+                const clean = (val || '').trim();
+                const previewWrap = document.getElementById('ai-training-image-preview-wrap');
+                const previewImg = document.getElementById('ai-training-preview-img');
+                const previewLink = document.getElementById('ai-training-preview-link');
+                const statusEl = document.getElementById('ai-training-upload-status');
+
+                if (clean.startsWith('http://') || clean.startsWith('https://')) {
+                    this._aiAttachedImage = clean;
+                    if (previewWrap && previewImg) {
+                        previewImg.src = clean;
+                        if (previewLink) previewLink.textContent = clean;
+                        previewWrap.style.display = 'flex';
+                    }
+                    if (statusEl) statusEl.innerHTML = '<span style="color:#00ff80;">Link ya picha imeingizwa</span>';
+                } else if (!clean) {
+                    this._aiAttachedImage = null;
+                    if (previewWrap) previewWrap.style.display = 'none';
+                    if (statusEl) statusEl.textContent = '';
+                }
+            },
+
+            removeAITrainingImage: function() {
+                this._aiAttachedImage = null;
+                const fileInput = document.getElementById('ai-training-image-file');
+                if (fileInput) fileInput.value = '';
+                const urlInput = document.getElementById('ai-training-image-url');
+                if (urlInput) urlInput.value = '';
+                const previewWrap = document.getElementById('ai-training-image-preview-wrap');
+                if (previewWrap) previewWrap.style.display = 'none';
+                const statusEl = document.getElementById('ai-training-upload-status');
+                if (statusEl) statusEl.textContent = '';
+            },
 
             toggleAITrainingExpand: function() {
-                const textarea = document.getElementById('ai-cfg-instructions');
+                const listSection = document.getElementById('ai-trainings-list-section');
                 const btnText = document.getElementById('ai-expand-text');
                 const btnIcon = document.getElementById('ai-expand-icon');
-                const modeLabel = document.getElementById('ai-box-mode-label');
-                if (!textarea) return;
+                if (!listSection) return;
 
                 this._aiExpanded = !this._aiExpanded;
 
                 if (this._aiExpanded) {
-                    textarea.style.maxHeight = '80vh';
-                    textarea.style.height = '500px';
-                    if (btnText) btnText.textContent = 'Punguza Ukubwa (Tazama Kidogo)';
-                    if (btnIcon) btnIcon.setAttribute('name', 'contract-outline');
-                    if (modeLabel) {
-                        modeLabel.innerHTML = '<ion-icon name="information-circle-outline" style="font-size:1rem; color:#00ff80;"></ion-icon> <span>Muonekano: <strong style="color:#00ff80;">Kamili (Full View)</strong> — unaona maelezo yote</span>';
-                    }
+                    listSection.style.display = 'block';
+                    if (btnText) btnText.textContent = 'Ficha Orodha ya Mafunzo';
+                    if (btnIcon) btnIcon.setAttribute('name', 'chevron-up-outline');
+                    this.renderAITrainings();
                 } else {
-                    textarea.style.maxHeight = '140px';
-                    textarea.style.height = '120px';
-                    if (btnText) btnText.textContent = 'Tazama Zaidi (Full View)';
-                    if (btnIcon) btnIcon.setAttribute('name', 'expand-outline');
-                    if (modeLabel) {
-                        modeLabel.innerHTML = '<ion-icon name="information-circle-outline" style="font-size:1rem; color:#9ca3af;"></ion-icon> <span>Muonekano: <strong style="color:#d1d5db;">Kawaida (Kidogo)</strong> — bonyeza kitufe kutazama maelezo yote</span>';
-                    }
+                    listSection.style.display = 'none';
+                    if (btnText) btnText.textContent = 'Tazama Orodha ya Mafunzo (Full View)';
+                    if (btnIcon) btnIcon.setAttribute('name', 'list-outline');
                 }
             },
-
-            _cachedTrainings: [],
-            _editingTrainingId: null,
 
             renderAITrainings: function() {
                 const countBadge = document.getElementById('ai-trainings-count-label');
@@ -2753,6 +2827,79 @@ if (viewId === 'ai-support') this.loadAISupport();
                 if (countBadge) {
                     countBadge.textContent = trainings.length > 0 ? (trainings.length + ' Mafunzo Yamejumuishwa (Live)') : 'Bado Hakuna Mafunzo';
                 }
+                const listCount = document.getElementById('ai-trainings-list-count');
+                if (listCount) {
+                    listCount.textContent = trainings.length + ' mafunzo';
+                }
+
+                const listContainer = document.getElementById('ai-trainings-list-items');
+                if (!listContainer) return;
+
+                if (trainings.length === 0) {
+                    listContainer.innerHTML = '<div style="color:#6b7280; font-size:0.83rem; text-align:center; padding:20px;">Hakuna mafunzo maalum yaliyohifadhiwa bado. Andika maelekezo na uambatishe picha hapo juu kisha bofya Hifadhi & Jumuisha.</div>';
+                    return;
+                }
+
+                let html = '';
+                trainings.forEach((t, idx) => {
+                    const timeStr = t.createdAt ? new Date(t.createdAt).toLocaleString('sw-TZ', { dateStyle:'medium', timeStyle:'short' }) : '';
+                    const hasImg = Boolean(t.image);
+                    const cleanText = (t.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+
+                    html += '<div style="background:#0b0f19; border:1px solid #1f2937; border-radius:10px; padding:12px 14px; display:flex; gap:12px; align-items:flex-start; justify-content:space-between;">' +
+                        '<div style="display:flex; gap:12px; flex:1; min-width:0;">' +
+                            (hasImg ?
+                            '<div style="flex-shrink:0;">' +
+                                '<img src="' + t.image + '" alt="Training Image" style="width:65px; height:65px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,255,128,0.4); cursor:pointer;" onclick="window.open(\'' + t.image + '\', \'_blank\')" title="Bofya kutazama kubwa">' +
+                                '<span style="display:block; font-size:0.68rem; color:#00ff80; text-align:center; margin-top:3px; font-weight:700;">Ina Picha</span>' +
+                            '</div>' :
+                            '<div style="width:36px; height:36px; border-radius:8px; background:#1f2937; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.85rem; font-weight:800; flex-shrink:0;">#' + (idx + 1) + '</div>') +
+                            '<div style="flex:1; min-width:0;">' +
+                                '<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">' +
+                                    '<span style="color:#00ff80; font-size:0.8rem; font-weight:700;">Funzo #' + (idx + 1) + '</span>' +
+                                    (timeStr ? '<span style="color:#6b7280; font-size:0.72rem;">' + timeStr + '</span>' : '') +
+                                '</div>' +
+                                '<div style="color:#e5e7eb; font-size:0.85rem; line-height:1.5; word-break:break-word;">' + cleanText + '</div>' +
+                                (hasImg ?
+                                '<div style="margin-top:6px;">' +
+                                    '<a href="' + t.image + '" target="_blank" rel="noopener" style="color:#00ff80; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">' +
+                                        '<ion-icon name="open-outline"></ion-icon> Fungua picha: ' + (t.image.length > 40 ? t.image.substring(0, 40) + '...' : t.image) +
+                                    '</a>' +
+                                '</div>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<button type="button" onclick="adminApp.deleteSingleTraining(\'' + (t.id || idx) + '\')" style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#ef4444; padding:6px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="Futa funzo hili pekee">' +
+                            '<ion-icon name="trash-outline"></ion-icon>' +
+                        '</button>' +
+                    '</div>';
+                });
+                listContainer.innerHTML = html;
+            },
+
+            deleteSingleTraining: async function(targetId) {
+                if (!confirm('Je, una uhakika unataka kufuta funzo hili kwenye akili ya AI?')) return;
+                this._cachedTrainings = (this._cachedTrainings || []).filter((t, i) => {
+                    if (t.id && t.id === targetId) return false;
+                    if (String(i) === String(targetId)) return false;
+                    return true;
+                });
+                this.renderAITrainings();
+
+                const combinedText = this._cachedTrainings.map(t => {
+                    let str = t.text || '';
+                    if (t.image) str += '\n[Picha: ' + t.image + ']';
+                    return str;
+                }).join('\n\n---\n\n');
+
+                const payload = {
+                    botName: 'rajabsynic ai agent',
+                    systemInstructions: combinedText,
+                    customKnowledge: combinedText,
+                    trainings: this._cachedTrainings,
+                    supportPhone: '',
+                    whatsappLink: ''
+                };
+                await api.saveAIKnowledge(payload);
             },
 
             loadAISupport: async function() {
@@ -2778,6 +2925,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                             this._cachedTrainings = [{
                                 id: 'tr_' + Date.now(),
                                 text: legacyText,
+                                image: null,
                                 createdAt: data.lastUpdated || new Date().toISOString()
                             }];
                         } else {
@@ -2787,12 +2935,13 @@ if (viewId === 'ai-support') this.loadAISupport();
                         this._cachedTrainings = [];
                     }
 
-                    // Update live indicator
+                    // Update live indicator and list
                     this.renderAITrainings();
 
                     // Leave top box empty and clean for new training
                     const textarea = document.getElementById('ai-cfg-instructions');
                     if (textarea) textarea.value = '';
+                    this.removeAITrainingImage();
                 } catch (e) {
                     console.error('Error loading AI support data:', e);
                 }
@@ -2801,6 +2950,7 @@ if (viewId === 'ai-support') this.loadAISupport();
             resetAITrainings: async function() {
                 if (!confirm('Je, una uhakika unataka kufuta mafunzo yote yaliyopo kwenye akili ya AI na kuanza upya?')) return;
                 this._cachedTrainings = [];
+                this.removeAITrainingImage();
                 this.renderAITrainings();
                 const payload = {
                     botName: 'rajabsynic ai agent',
@@ -2823,9 +2973,10 @@ if (viewId === 'ai-support') this.loadAISupport();
             saveAIKnowledge: async function() {
                 const textarea = document.getElementById('ai-cfg-instructions');
                 const text = textarea ? textarea.value.trim() : '';
+                const image = this._aiAttachedImage || document.getElementById('ai-training-image-url')?.value?.trim() || '';
 
-                if (!text) {
-                    alert('Tafadhali andika maelekezo ya kumfunza AI kwenye kisanduku kabla ya kuhifadhi.');
+                if (!text && !image) {
+                    alert('Tafadhali andika maelekezo au ambatisha picha ya kumfunza AI kabla ya kuhifadhi.');
                     return;
                 }
 
@@ -2842,11 +2993,17 @@ if (viewId === 'ai-support') this.loadAISupport();
                 this._cachedTrainings = this._cachedTrainings || [];
                 this._cachedTrainings.unshift({
                     id: 'tr_' + Date.now(),
-                    text: text,
+                    text: text || (image ? 'Kielelezo cha picha ya msaada kwa mteja' : ''),
+                    image: image || null,
                     createdAt: new Date().toISOString()
                 });
 
-                const combinedText = this._cachedTrainings.map(t => t.text).join('\n\n---\n\n');
+                const combinedText = this._cachedTrainings.map(t => {
+                    let str = t.text || '';
+                    if (t.image) str += '\n[Picha: ' + t.image + ']';
+                    return str;
+                }).join('\n\n---\n\n');
+
                 const payload = {
                     botName: 'rajabsynic ai agent',
                     systemInstructions: combinedText,
@@ -2861,15 +3018,16 @@ if (viewId === 'ai-support') this.loadAISupport();
                     if (res && res.success) {
                         this._cachedAIKnowledge = payload;
 
-                        // Clear textarea cleanly for the next instruction
+                        // Clear textarea and image cleanly for next instruction
                         if (textarea) textarea.value = '';
+                        this.removeAITrainingImage();
 
-                        // Update count badge
+                        // Update count badge & list
                         this.renderAITrainings();
 
                         if (feedbackEl) {
                             feedbackEl.style.display = 'inline-flex';
-                            feedbackEl.innerHTML = '<ion-icon name="checkmark-circle"></ion-icon> <span>Funzo jipya limehifadhiwa na kujumuishwa kikamilifu nyuma ya pazia!</span>';
+                            feedbackEl.innerHTML = '<ion-icon name="checkmark-circle"></ion-icon> <span>Funzo jipya ' + (image ? 'lenye picha ' : '') + 'limehifadhiwa na kujumuishwa kikamilifu nyuma ya pazia!</span>';
                             setTimeout(() => { feedbackEl.style.display = 'none'; }, 6000);
                         }
 
@@ -2890,7 +3048,7 @@ if (viewId === 'ai-support') this.loadAISupport();
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Imejumuishwa Kikamilifu! 🚀',
-                                text: 'Funzo jipya limeunganishwa moja kwa moja kwenye akili ya AI nyuma ya pazia.',
+                                text: 'Funzo jipya ' + (image ? 'lenye picha ' : '') + 'limeunganishwa moja kwa moja kwenye akili ya AI nyuma ya pazia.',
                                 background: '#111827',
                                 color: '#fff',
                                 confirmButtonColor: '#00ff80',

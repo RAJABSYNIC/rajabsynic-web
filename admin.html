@@ -773,22 +773,71 @@
                 </div>
 
                 <p style="color:#9ca3af; font-size:0.83rem; margin:0 0 10px 0;">
-                    Andika mwongozo au maelekezo mapya ya kumfundisha AI hapa. Ukibonyeza <strong>"Hifadhi & Jumuisha"</strong>, yataenda kujumuishwa moja kwa moja kwenye akili ya AI nyuma ya pazia bila kujaza skrini.
+                    Andika mwongozo au maelekezo mapya ya kumfundisha AI hapa, na unaweza kuambatanisha picha (screenshot au picha ya kielelezo) ambayo AI itamtumia mteja akouliza kuhusu jambo hilo. Ukibonyeza <strong>"Hifadhi & Jumuisha"</strong>, yataenda kujumuishwa mara moja.
                 </p>
 
-                <textarea id="ai-cfg-instructions" placeholder="Andika maelekezo mapya hapa... (Mfano: Kanuni mpya za mods, maelekezo ya michezo, utatuzi wa simu n.k.)"
-                    style="width:100%; height:125px; min-height:90px; max-height:260px; background:#0b0f19; border:1px solid #374151; border-radius:10px; padding:14px 16px; color:#fff; font-size:0.95rem; line-height:1.6; font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; resize:vertical; box-sizing:border-box; outline:none; transition:border-color 0.2s; overflow-y:auto;"
+                <textarea id="ai-cfg-instructions" placeholder="Andika maelekezo mapya hapa... (Mfano: Hatua za kuweka OBB, utatuzi wa simu kuganda, muongozo wa malipo au mchezo n.k.)"
+                    style="width:100%; height:120px; min-height:85px; max-height:260px; background:#0b0f19; border:1px solid #374151; border-radius:10px; padding:14px 16px; color:#fff; font-size:0.95rem; line-height:1.6; font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; resize:vertical; box-sizing:border-box; outline:none; transition:border-color 0.2s; overflow-y:auto;"
                     onfocus="this.style.borderColor='#00ff80'" onblur="this.style.borderColor='#374151'"></textarea>
 
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:10px;">
+                <!-- Image Attachment Area for Training -->
+                <div style="margin-top:12px; background:rgba(255,255,255,0.02); border:1px dashed #374151; border-radius:10px; padding:12px 14px; transition:border-color 0.2s;" id="ai-image-attach-box">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <label for="ai-training-image-file" style="background:#1f2937; border:1px solid rgba(0,255,128,0.4); color:#00ff80; padding:7px 14px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s;" title="Chagua picha kutoka kwenye simu au kompyuta">
+                                <ion-icon name="image" style="font-size:1.15rem;"></ion-icon>
+                                <span id="ai-training-upload-label">Ambatisha Picha ya Kufundishia (Upload Image)</span>
+                            </label>
+                            <input type="file" id="ai-training-image-file" accept="image/*" style="display:none;" onchange="adminApp.uploadAITrainingImage(this)">
+
+                            <span style="color:#6b7280; font-size:0.78rem;">au Weka Link ya Picha:</span>
+                            <input type="text" id="ai-training-image-url" placeholder="https://..." oninput="adminApp.onAITrainingImageUrlChange(this.value)" style="background:#0b0f19; border:1px solid #374151; color:#fff; padding:6px 10px; border-radius:6px; font-size:0.8rem; width:220px; outline:none;" onfocus="this.style.borderColor='#00ff80'" onblur="this.style.borderColor='#374151'">
+                        </div>
+
+                        <span id="ai-training-upload-status" style="font-size:0.8rem; color:#9ca3af; font-weight:600;"></span>
+                    </div>
+
+                    <!-- Image Preview Area -->
+                    <div id="ai-training-image-preview-wrap" style="display:none; align-items:center; gap:12px; background:#0b0f19; border:1px solid rgba(0,255,128,0.3); border-radius:8px; padding:10px 14px; margin-top:10px;">
+                        <img id="ai-training-preview-img" src="" alt="Preview" style="width:70px; height:70px; object-fit:cover; border-radius:6px; border:1px solid rgba(0,255,128,0.4); cursor:pointer;" onclick="window.open(this.src, '_blank')" title="Bonyeza kutazama picha kubwa">
+                        <div style="flex:1; min-width:0;">
+                            <div style="color:#00ff80; font-size:0.82rem; font-weight:700; display:flex; align-items:center; gap:5px;">
+                                <ion-icon name="checkmark-circle"></ion-icon> Picha Imeambatanishwa (Itatumwa kwa mteja anayeuliza)
+                            </div>
+                            <div style="color:#9ca3af; font-size:0.75rem; margin-top:2px;">
+                                AI itamtumia picha hii mtumiaji (user) pindi anapouliza kuhusu mada au maelekezo haya.
+                            </div>
+                            <div id="ai-training-preview-link" style="color:#6b7280; font-size:0.72rem; word-break:break-all; margin-top:2px;"></div>
+                        </div>
+                        <button type="button" onclick="adminApp.removeAITrainingImage()" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#ef4444; padding:6px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Futa picha hii">
+                            <ion-icon name="trash-outline"></ion-icon> <span>Ondoa</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:10px;">
                     <div id="ai-save-feedback" style="color:#10b981; font-size:0.82rem; font-weight:600; display:none; align-items:center; gap:5px;">
                         <ion-icon name="checkmark-circle"></ion-icon> <span>Funzo jipya limeunganishwa kwenye akili ya AI nyuma ya pazia!</span>
                     </div>
                     <button type="button" id="ai-toggle-expand-btn" onclick="adminApp.toggleAITrainingExpand()"
                         style="background:rgba(0,255,128,0.08); border:1px solid rgba(0,255,128,0.3); color:#00ff80; padding:7px 15px; border-radius:8px; font-size:0.83rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s; margin-left:auto;">
-                        <ion-icon id="ai-expand-icon" name="expand-outline" style="font-size:1.1rem;"></ion-icon>
-                        <span id="ai-expand-text">Tazama Zaidi (Full View)</span>
+                        <ion-icon id="ai-expand-icon" name="list-outline" style="font-size:1.1rem;"></ion-icon>
+                        <span id="ai-expand-text">Tazama Orodha ya Mafunzo (Full View)</span>
                     </button>
+                </div>
+
+                <!-- Expandable List of All Existing Trainings -->
+                <div id="ai-trainings-list-section" style="display:none; margin-top:16px; border-top:1px solid #1f2937; padding-top:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="color:#fff; font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:6px;">
+                            <ion-icon name="layers-outline" style="color:#00ff80;"></ion-icon>
+                            <span>Orodha ya Mafunzo Yote Yanayotumika Sasa</span>
+                        </div>
+                        <span id="ai-trainings-list-count" style="color:#9ca3af; font-size:0.78rem;">0 mafunzo</span>
+                    </div>
+                    <div id="ai-trainings-list-items" style="display:flex; flex-direction:column; gap:10px; max-height:480px; overflow-y:auto; padding-right:4px;">
+                        <!-- Rendered by JS -->
+                    </div>
                 </div>
             </div>
 
@@ -1257,7 +1306,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=28"></script>
+<script type="module" src="/scripts/adminApp.js?v=29"></script>
 </body>
 
 </html>

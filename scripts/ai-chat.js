@@ -753,7 +753,7 @@ class AIChatWidget {
                     sessionStorage.setItem('rajabsynic_ai_history', JSON.stringify(this.history));
                 }
                 this.history.forEach(item => {
-                    this.renderMessageBubble(item.role, item.text, item.time, false);
+                    this.renderMessageBubble(item.role, item.text, item.time, false, item.image || null);
                 });
             }
         } catch (_) {}
@@ -779,14 +779,36 @@ class AIChatWidget {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
 
-        // Bold: **text**
+        // 1. Markdown Images: ![alt](url)
+        escaped = escaped.replace(/!\[(.*?)\]\((https?:\/\/[^\s\)]+)\)/g, (match, alt, url) => {
+            const cleanAlt = alt || 'Picha ya Msaada';
+            return `__IMG_TOKEN_START__${url}__IMG_TOKEN_MID__${cleanAlt}__IMG_TOKEN_END__`;
+        });
+
+        // 2. Bold: **text**
         escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // Links: [text](url) or naked URLs
-        escaped = escaped.replace(/\[(.*?)\]\((https?:\/\/.*?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-        escaped = escaped.replace(/(?<!href=")(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+        // 3. Regular Links: [text](url)
+        escaped = escaped.replace(/\[(.*?)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 
-        // Newlines
+        // 4. Naked URLs (ignoring image tokens)
+        escaped = escaped.replace(/(?<!href=")(https?:\/\/[^\s<]+)/g, (match, url) => {
+            if (url.includes('__IMG_TOKEN_')) return url;
+            if (/\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url) || url.includes('i.ibb.co/')) {
+                return `__IMG_TOKEN_START__${url}__IMG_TOKEN_MID__Picha ya Msaada__IMG_TOKEN_END__`;
+            }
+            return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+        });
+
+        // 5. Replace image tokens with styled image cards
+        escaped = escaped.replace(/__IMG_TOKEN_START__(.*?)__IMG_TOKEN_MID__(.*?)__IMG_TOKEN_END__/g, (m, url, alt) => {
+            return `<div class="ai-msg-image-wrap" style="margin: 10px 0;">
+                <img src="${url}" alt="${alt}" loading="lazy" style="max-width: 100%; max-height: 260px; border-radius: 10px; border: 1px solid rgba(0,255,128,0.25); display: block; cursor: pointer; background: #0b0f19; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" onclick="window.open(this.src, '_blank')">
+                <span style="display:block; font-size:0.75rem; color:#9ca3af; margin-top:5px; font-style:italic;">${alt} (Bofya kutazama kubwa)</span>
+            </div>`;
+        });
+
+        // 6. Newlines
         escaped = escaped.replace(/\n/g, '<br>');
 
         return escaped;
@@ -858,7 +880,7 @@ class AIChatWidget {
         const time = this.formatTime();
         this.renderMessageBubble(role, text, time, true, image);
         if (shouldSave) {
-            this.history.push({ role, text, time, hasImage: !!image });
+            this.history.push({ role, text, time, hasImage: !!image, image: image || null });
             this.saveHistory();
         }
     }
@@ -984,7 +1006,8 @@ class AIChatWidget {
                         console.log('⚠️ Revoked expired item from local storage:', res.contentId);
                     } catch (_) {}
                 }
-                this.appendMessage('bot', res.reply, true);
+                const botImage = (res.image && !res.reply.includes(res.image)) ? res.image : null;
+                this.appendMessage('bot', res.reply, true, botImage);
             } else {
                 this.appendMessage(
                     'bot',
