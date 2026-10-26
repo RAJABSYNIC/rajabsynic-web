@@ -56,7 +56,7 @@ class AIChatWidget {
                 justify-content: center;
                 cursor: pointer;
                 box-shadow: 0 8px 24px rgba(0, 255, 128, 0.45), 0 0 0 1px rgba(0, 255, 128, 0.6);
-                z-index: 9995; /* Sits right above page content, below high modals */
+                z-index: 295; /* Sits right above page content, below high modals */
                 transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease;
                 outline: none;
                 border: none;
@@ -148,7 +148,7 @@ class AIChatWidget {
                 border: 1px solid rgba(0, 255, 128, 0.25);
                 border-radius: 20px;
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 255, 128, 0.08);
-                z-index: 10001;
+                z-index: 296;
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
@@ -556,7 +556,7 @@ class AIChatWidget {
                 <ion-icon id="ai-btn-icon" name="chatbubbles"></ion-icon>
                 <div class="ai-btn-pulse"></div>
                 <div id="ai-btn-tooltip" class="ai-btn-tooltip">
-                    <span>💬 MSAADA AI</span>
+                    <span>💬 Msaada wa AI</span>
                 </div>
             </button>
 
@@ -570,7 +570,7 @@ class AIChatWidget {
                             <div class="ai-status-dot"></div>
                         </div>
                         <div class="ai-title-wrap">
-                            <div class="ai-agent-name" id="ai-agent-title">MSAADA <span>AI</span></div>
+                            <div class="ai-agent-name">RAJAB<span>SYNIC</span> AI</div>
                             <div class="ai-status-text">
                                 <span class="green-txt">● Online</span> • Huduma kwa Wateja
                             </div>
@@ -730,17 +730,6 @@ class AIChatWidget {
         }, 200);
     }
 
-    openForContent() {
-        this.openChat();
-        setTimeout(() => {
-            const inputField = document.getElementById('ai-input-text');
-            if (inputField) {
-                inputField.value = '';
-                inputField.focus();
-            }
-        }, 200);
-    }
-
     closeChat() {
         const chatWin = document.getElementById('ai-chat-window');
         const icon = document.getElementById('ai-btn-icon');
@@ -750,7 +739,7 @@ class AIChatWidget {
     }
 
     sendWelcomeMessage() {
-        const welcomeText = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **MSAADA AI**, msaidizi wako rasmi wa huduma kwa wateja mtandaoni. Una swali gani nikusaidie sasa hivi?`;
+        const welcomeText = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
         this.appendMessage('bot', welcomeText, false);
     }
 
@@ -759,8 +748,8 @@ class AIChatWidget {
             const saved = sessionStorage.getItem('rajabsynic_ai_history');
             if (saved) {
                 this.history = JSON.parse(saved);
-                if (this.history.length > 0 && this.history[0].role === 'bot') {
-                    this.history[0].text = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **MSAADA AI**, msaidizi wako rasmi wa huduma kwa wateja mtandaoni. Una swali gani nikusaidie sasa hivi?`;
+                if (this.history.length > 0 && this.history[0].role === 'bot' && this.history[0].text.includes('Unaweza kuniuliza kuhusu:')) {
+                    this.history[0].text = `Habari! Karibu **RAJABSYNIC**. 👋\n\nMimi ni **rajabsynic ai agent**, msaidizi wako rasmi wa huduma kwa wateja.`;
                     sessionStorage.setItem('rajabsynic_ai_history', JSON.stringify(this.history));
                 }
                 this.history.forEach(item => {

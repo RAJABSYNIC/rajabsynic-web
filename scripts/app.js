@@ -951,14 +951,15 @@ class Router {
                         </div>
                     </div>` : ''}
 
-                    <!-- MSAADA AI Section -->
+                    <!-- WhatsApp Button -->
+                    ${item.whatsapp ? `
                     <div style="height:1px; background:#1f2937; margin:20px 0;"></div>
                     <div style="margin-top:20px;">
                         <p style="color:#9ca3af; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">MSAADA</p>
-                        <button onclick="window.app.openItemAISupport('${item.id}')" class="btn" style="width:100%; background: linear-gradient(135deg, #00ff80 0%, #00cc66 100%); color:#000; font-weight:800; font-size:1rem; border:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; padding:15px; border-radius:12px; cursor:pointer; box-shadow: 0 4px 18px rgba(0,255,128,0.3); transition: transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
-                             <ion-icon name="sparkles" style="font-size:1.25rem; color:#000;"></ion-icon> MSAADA AI
-                        </button>
-                    </div>
+                        <a href="https://wa.me/${item.whatsapp.replace(/[^0-9]/g, '')}${waMessage}" target="_blank" class="btn" style="width:100%; background:#25D366; color:white; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
+                             <ion-icon name="logo-whatsapp"></ion-icon> WhatsApp
+                        </a>
+                    </div>` : ''}
 
                 </div>
             </div>
@@ -3488,14 +3489,6 @@ const app = {
 
         if (amount) {
             this.showPaymentInstructions(contentId, contentTitle, Number(amount), fullPrice);
-        }
-    },
-
-    openItemAISupport: function () {
-        if (window.aiChatWidget) {
-            window.aiChatWidget.openForContent();
-        } else {
-            console.warn('AI Chat Widget is not initialized yet');
         }
     }
 };
