@@ -951,15 +951,7 @@ class Router {
                         </div>
                     </div>` : ''}
 
-                    <!-- WhatsApp Button -->
-                    ${item.whatsapp ? `
-                    <div style="height:1px; background:#1f2937; margin:20px 0;"></div>
-                    <div style="margin-top:20px;">
-                        <p style="color:#9ca3af; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">MSAADA</p>
-                        <a href="https://wa.me/${item.whatsapp.replace(/[^0-9]/g, '')}${waMessage}" target="_blank" class="btn" style="width:100%; background:#25D366; color:white; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
-                             <ion-icon name="logo-whatsapp"></ion-icon> WhatsApp
-                        </a>
-                    </div>` : ''}
+                    <!-- WhatsApp / Msaada Button (kimefichwa kwasasa) -->
 
                 </div>
             </div>
