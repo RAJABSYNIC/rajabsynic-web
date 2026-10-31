@@ -1803,7 +1803,7 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
         'haifunguki baada ya kulipa', 'hakiki malipo', 'thibitisha malipo', 'kagua malipo',
         'nimeshakatwa', 'nimekatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela',
         'nimeshatuma pesa', 'haina link', 'kifurushi hakijafunguka', 'sioni movies',
-        'sijapewa huduma', 'nimekwama baada ya kulipa', 'pesa imetoka', 'malipo yamepita',
+        'sijapewa huduma', 'sijapata huduma', 'nimelipia sijapata huduma', 'nimekwama baada ya kulipa', 'pesa imetoka', 'malipo yamepita',
         'nililipia', 'nililipa', 'nimefanya malipo', 'hakiki', 'thibitisha'
     ];
     const hasClaimedPaid = paymentClaimKeywords.some(kw => lower.includes(kw));
@@ -2116,7 +2116,7 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
         return {
             handled: true,
             accessGranted: false,
-            reply: `Hujakamilisha malipo au namba yako ya simu haijatambuliwa. Kama tayari umefanya malipo kwenye simu, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) nami nitakuhakikia mara moja.`
+            reply: `Kama tayari umefanya malipo kwenye simu na bado hujapata huduma, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) au namba ya muamala (Order ID) nami nitakuhakikia na kukufungulia huduma yako mara moja.`
         };
     }
 

@@ -591,7 +591,7 @@ class AIChatWidget {
                     <div class="ai-chip" data-q="Ni michezo gani inayovuma na bei zake?">Michezo na Bei</div>
                     <div class="ai-chip" data-q="Nieleze kuhusu Maleo Bus Mods na Skins">Maleo Bus Mods</div>
                     <div class="ai-chip" data-q="Jinsi ya kufanya malipo kwa simu (M-Pesa/Tigo Pesa)?">Jinsi ya Kulipia</div>
-                    <div class="ai-chip" data-q="Nimelipa lakini sijapata access ya mchezo">Sijapata Access</div>
+                    <div class="ai-chip" data-q="Nimelipia lakini sijapata huduma, nisaidie">Nimelipia Sijapata Huduma</div>
                     <div class="ai-chip" data-q="Nimefanya malipo, ninawezaje kupakua (Download)?">Msaada wa Kupakua</div>
                     <div class="ai-chip" data-q="Ninawezaje kupata msaada zaidi?">Msaada wa Tovuti</div>
                 </div>

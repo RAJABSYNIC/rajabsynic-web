@@ -1,5 +1,30 @@
 [
   {
+    "id": "log_1793479331886_x2kd8",
+    "sessionId": "user_1793479310499_dx8xr6",
+    "userMessage": "Nimelipia lakini sijapata huduma, nisaidie",
+    "botResponse": "⚠️ Muda wako wa matumizi umekwisha (Expired).\n\nNimeikuta kumbukumbu ya muamala wako wa awali wa Tsh 200 kwa ajili ya \"WTDS Mod ( Unlimited Money ) \", lakini muda wake wa matumizi ulikwisha rasmi tarehe 28 Mei 2026 (siku 156 zilizopita).\n\nKwa mujibu wa mfumo wa RAJABSYNIC, huduma hii inahitaji kifurushi kinachoendelea kuwa hai ili uweze kupakua au kutazama. Tafadhali fungua ukurasa wa \"WTDS Mod ( Unlimited Money ) \" na ubonyeze kitufe cha \"Lipa Sasa\" ili kuhuisha (renew) kifurushi chako na kupata access mpya mara moja.",
+    "timestamp": "2026-10-31T20:42:11.886Z",
+    "isPaymentAction": true,
+    "ip": "::1",
+    "accessGranted": false,
+    "contentId": "3LLuci0EuUMxnKSApbcN",
+    "userName": "roja",
+    "username": "roja"
+  },
+  {
+    "id": "log_1793479329704_xfair",
+    "sessionId": "user_1793479310499_dx8xr6",
+    "userId": "11z55bUq6peHgPb01Bvwj70ewgo2",
+    "userPhone": "0614094367",
+    "userName": "roja",
+    "username": "roja",
+    "userMessage": "Jinsi ya kufanya malipo kwa simu (M-Pesa/Tigo Pesa)?",
+    "botResponse": "Malipo yote yanafanyika kwa njia salama ya simu za Tanzania (M-Pesa, Tigo Pesa, Airtel Money, Halopesa). Bonyeza mchezo unaoutaka, bonyeza kitufe cha \"Lipa Sasa\", weka namba yako ya simu na uthibitishe kwa PIN. Kitufe cha kupakua (Download) kitafunguka papo hapo.",
+    "timestamp": "2026-10-31T20:42:09.704Z",
+    "ip": "::1"
+  },
+  {
     "id": "log_1792800599577_orabe",
     "sessionId": "guest_1792800599577",
     "userMessage": "Habari",
