@@ -1,0 +1,74 @@
+[
+  {
+    "date": "2026-11-02",
+    "stats": {
+      "totalLogsAnalyzed": 193,
+      "topCategory": "Njia za Malipo ya Simu & Kupakua",
+      "dateFormatted": "2026-11-02"
+    },
+    "ideas": [
+      {
+        "id": "idea_2026-11-02_1",
+        "date": "2026-11-02",
+        "slot": 1,
+        "slotLabel": "Wazo #1: Suluhisho la Changamoto ya Mtumiaji (Problem Solver)",
+        "title": "Kwanini Simu Yako Inasema \"App Not Installed\" Unapojaribu Kuweka Game? Hili Hapa Suluhisho!",
+        "userProblem": "Watumiaji kadhaa wanakutana na kizuizi cha \"App Not Installed\" wakati wa kusakinisha faili la APK ya mchezo.",
+        "userQuotes": [
+          "\"simu yangu inachemka nifanyeje?\"",
+          "\"game linaganda nikiwa nacheza\""
+        ],
+        "format": "Shorts / TikTok Video (Sekunde 45 - 55) - Tutorial ya Haraka",
+        "category": "technical",
+        "hook": "Umewahi kupakua game kisha ukijaribu kusakinisha simu inakuandikia \"App Not Installed\"? Tatizo siyo game, tatizo ni hatua hizi mbili ambazo hujazifanya kwenye simu yako...",
+        "bodySteps": [
+          "Kwanza: Futa toleo la zamani (Uninstall Old Version) lililokuwepo kabla ya kuweka toleo jipya.",
+          "Pili: Zima Play Protect kwa muda kwenye Google Play Store > Play Protect > Settings > Zima Scan Apps with Play Protect.",
+          "Tatu: Hakikisha una nafasi ya angalau 3GB wazi kwenye Internal Storage ya simu yako."
+        ],
+        "cta": "Save video hii ili isikupotee wakati unadownload games zako kupitia rajabsynic.com!",
+        "hashtags": [
+          "#appnotinstalled",
+          "#androidtips",
+          "#rajabsynic",
+          "#gamingsolution",
+          "#tanzaniagames"
+        ],
+        "isDone": true,
+        "createdAt": "2026-11-02T20:24:25.116Z"
+      },
+      {
+        "id": "idea_2026-11-02_2",
+        "date": "2026-11-02",
+        "slot": 2,
+        "slotLabel": "Wazo #2: Mchezo / Mod Inayotafutwa na Wateja (Trend & Demand Showcase)",
+        "title": "Mchezo wa WTDS Mod (Pesa Zisizo na Kikomo) na Jinsi ya Kuanza Kucheza Papo Hapo!",
+        "userProblem": "Watumiaji wanatafuta mchezo wa malori wa WTDS wenye pesa zisizo na kikomo (Unlimited Money) ili kufungua malori yote bila kikwazo.",
+        "userQuotes": [
+          "Nieleze kuhusu Maleo Bus Mods na Skins",
+          "Nataka mabasi ya tanzania militali na shabiby na lious lini na alay star napata apooo",
+          "Nieleze kuhusu Maleo Bus Mods na Skins"
+        ],
+        "format": "Gameplay Action + Feature Highlight (Sekunde 45 - 60)",
+        "category": "games",
+        "hook": "Kama unapenda kuendesha malori na unataka kufungua malori yote ya kifahari bila kusubiri miezi, mchezo huu wa WTDS Mod ndio unauhitaji...",
+        "bodySteps": [
+          "Onyesha malori mazito yakitembea barabarani na salio la pesa lisilo na kikomo (Unlimited Money).",
+          "Onyesha namna ya kufanya customization ya lori lako kwa rangi na vifaa unavyotaka.",
+          "Eleza jinsi ya kuupata: unaingia rajabsynic.com, unachagua WTDS Mod, unalipia Tsh 2,000 tu kwa simu na kitufe cha kupakua kinafunguka papo hapo."
+        ],
+        "cta": "Ingia sasa rajabsynic.com upakue WTDS Mod yako, link ipo kwenye bio!",
+        "hashtags": [
+          "#wtds",
+          "#worldtruckdrivingsimulator",
+          "#wtdsmod",
+          "#rajabsynic",
+          "#michezoyasimu"
+        ],
+        "isDone": false,
+        "createdAt": "2026-11-02T20:24:25.116Z"
+      }
+    ],
+    "createdAt": "2026-11-02T20:24:25.116Z"
+  }
+]

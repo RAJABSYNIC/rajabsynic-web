@@ -186,7 +186,7 @@
                 // are managed only in Firebase). Order: Dashboard, Users, Games,
                 // LiveTV, Adult, Payments, Settings, Withdrawals.
                 const menuMap = {
-'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'ai-support': 4, 'movies': 5
+                    'dashboard': 0, 'users': 1, 'games': 2, 'payments': 3, 'ai-support': 4, 'movies': 5, 'content-ideas': 6
                 };
 
                 const menuItems = document.querySelectorAll('.menu-item');
@@ -212,11 +212,12 @@
                 if (viewId === 'users') this.loadUsers();
 
                 if (viewId === 'movies') this.loadContent('movies');
+                if (viewId === 'content-ideas') this.loadContentIdeas();
                 if (viewId === 'games') this.loadContent('games');
                 if (viewId === 'adult') this.loadContent('adult');
                 if (viewId === 'livetv') this.loadContent('live');
                 if (viewId === 'payments') this.loadPayments();
-if (viewId === 'ai-support') this.loadAISupport();
+                if (viewId === 'ai-support') this.loadAISupport();
                 if (viewId === 'msaada') this.loadHelp();
 
                 if (viewId === 'withdrawals') {
@@ -3164,6 +3165,314 @@ if (viewId === 'ai-support') this.loadAISupport();
                         saveBtn.style.opacity = '1';
                     }
                     alert('Hitilafu: ' + saveErr.message);
+                }
+            },
+
+            // ─── CONTENT IDEAS (Daily 2 Ideas from Real User Pain Points) ────────
+            loadContentIdeas: async function (date = '') {
+                const container = document.getElementById('content-ideas-cards-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: #111827; border: 1px solid #1f2937; border-radius: 16px;">
+                            <div style="width: 44px; height: 44px; border: 3px solid rgba(0, 255, 128, 0.2); border-top-color: #00ff80; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;"></div>
+                            <div style="color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 6px;">Inachambua Maswali & Changamoto za Watumiaji...</div>
+                            <div style="color: #9ca3af; font-size: 0.88rem;">Mfumo unachambua maongezi ya AI, changamoto za simu, na maswali ya wateja ili kukupa mawazo 2 ya leo.</div>
+                        </div>
+                    `;
+                }
+
+                try {
+                    const data = await api.getContentIdeas(date);
+                    if (data && data.success && Array.isArray(data.ideas)) {
+                        this._cachedContentIdeas = data;
+                        this.renderContentIdeas(data);
+                    } else {
+                        if (container) {
+                            container.innerHTML = `
+                                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: #111827; border: 1px solid #1f2937; border-radius: 14px; color: #ef4444;">
+                                    Hitilafu ya kupakia mawazo ya maudhui. Tafadhali bonyeza kitufe cha "Zalisha Upya" kujaribu tena.
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error loading content ideas:', err);
+                    if (container) {
+                        container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: #ef4444;">Hitilafu: ${err.message}</div>`;
+                    }
+                }
+            },
+
+            renderContentIdeas: function (data) {
+                const ideas = data.ideas || [];
+                const stats = data.stats || {};
+                const history = data.history || [];
+                const dateKey = data.date || new Date().toISOString().split('T')[0];
+
+                const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+                // Update date badge
+                const dateBadge = document.getElementById('content-ideas-current-date');
+                if (dateBadge) {
+                    try {
+                        const d = new Date(dateKey + 'T00:00:00');
+                        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                        const dateFormatted = d.toLocaleDateString('sw-TZ', options);
+                        dateBadge.textContent = dateFormatted !== 'Invalid Date' ? dateFormatted : dateKey;
+                    } catch (_) {
+                        dateBadge.textContent = dateKey;
+                    }
+                }
+
+                // Update Stats
+                const statTotalLogs = document.getElementById('ci-stat-total-logs');
+                const statTopCategory = document.getElementById('ci-stat-top-category');
+                const statReadyIdeas = document.getElementById('ci-stat-ready');
+
+                if (statTotalLogs) statTotalLogs.textContent = (stats.totalLogsAnalyzed || 0) + ' Maswali Yaliyochambuliwa';
+                if (statTopCategory) statTopCategory.textContent = stats.topCategory || 'Simu Kuchemka & Maleo Bus Mods';
+                if (statReadyIdeas) {
+                    const doneCount = ideas.filter(i => i.isDone).length;
+                    statReadyIdeas.innerHTML = `${ideas.length} Tayari <span style="font-size:0.8rem; color:#9ca3af; font-weight:600;">(${doneCount} Zimesharekodiwa)</span>`;
+                }
+
+                // Render Today's 2 Cards
+                const container = document.getElementById('content-ideas-cards-container');
+                if (container) {
+                    if (ideas.length === 0) {
+                        container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #9ca3af;">Hakuna mawazo yaliyozalishwa. Bonyeza kitufe cha "Zalisha Upya".</div>`;
+                    } else {
+                        container.innerHTML = ideas.map((idea, idx) => {
+                            const isSlot1 = idea.slot === 1 || idx === 0;
+                            const slotAccent = isSlot1 ? '#00ff80' : '#38bdf8';
+                            const slotBorder = isSlot1 ? 'rgba(0, 255, 128, 0.25)' : 'rgba(56, 189, 248, 0.25)';
+                            const slotBadgeBg = isSlot1 ? 'rgba(0, 255, 128, 0.15)' : 'rgba(56, 189, 248, 0.15)';
+                            const slotBadgeColor = isSlot1 ? '#00ff80' : '#38bdf8';
+
+                            const doneBadge = idea.isDone 
+                                ? `<span style="background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #22c55e; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><ion-icon name="checkmark-circle"></ion-icon> Tayari Imerekodiwa</span>`
+                                : `<span style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><ion-icon name="time-outline"></ion-icon> Bado Kurekodiwa</span>`;
+
+                            const quotesHtml = Array.isArray(idea.userQuotes) && idea.userQuotes.length > 0
+                                ? `<div style="margin-top: 8px; font-size: 0.78rem; color: #9ca3af; font-style: italic;">Mifano ya maswali ya wateja: ${idea.userQuotes.map(q => `<span style="background:#0b0f19; padding:2px 8px; border-radius:4px; margin-right:4px; display:inline-block; border:1px solid #1f2937;">${esc(q)}</span>`).join('')}</div>`
+                                : '';
+
+                            const stepsHtml = Array.isArray(idea.bodySteps) 
+                                ? idea.bodySteps.map((step, sIdx) => `
+                                    <div style="display:flex; gap:10px; margin-bottom:8px; align-items:flex-start;">
+                                        <div style="background:${slotBadgeBg}; color:${slotBadgeColor}; border-radius:50%; width:22px; height:22px; min-width:22px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; margin-top:2px;">${sIdx + 1}</div>
+                                        <div style="color:#d1d5db; font-size:0.87rem; line-height:1.5;">${esc(step)}</div>
+                                    </div>
+                                `).join('')
+                                : '';
+
+                            const hashtagsHtml = Array.isArray(idea.hashtags)
+                                ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">${idea.hashtags.map(t => `<span style="background:rgba(255,255,255,0.06); color:#9ca3af; padding:3px 8px; border-radius:6px; font-size:0.75rem;">${esc(t)}</span>`).join('')}</div>`
+                                : '';
+
+                            return `
+                                <div class="content-idea-card" style="background:#111827; border:1px solid ${slotBorder}; border-radius:18px; padding:24px; position:relative; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 10px 25px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;">
+                                    <div style="position:absolute; top:0; left:0; right:0; height:4px; background:${slotAccent};"></div>
+                                    
+                                    <!-- Header Top: Slot & Status -->
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                                        <div style="background:${slotBadgeBg}; color:${slotBadgeColor}; padding:5px 12px; border-radius:8px; font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:6px;">
+                                            <ion-icon name="${isSlot1 ? 'build' : 'flame'}"></ion-icon>
+                                            <span>${esc(idea.slotLabel || (isSlot1 ? 'Wazo #1: Suluhisho la Shida' : 'Wazo #2: Mchezo / Mod Showcase'))}</span>
+                                        </div>
+                                        <div>${doneBadge}</div>
+                                    </div>
+
+                                    <!-- Main Title -->
+                                    <h3 style="color:#fff; font-size:1.22rem; font-weight:800; margin:0 0 14px 0; line-height:1.4;">
+                                        ${esc(idea.title)}
+                                    </h3>
+
+                                    <!-- Format Badge -->
+                                    <div style="display:inline-flex; align-items:center; gap:6px; background:#0b0f19; border:1px solid #1f2937; padding:6px 12px; border-radius:8px; color:#9ca3af; font-size:0.8rem; font-weight:600; margin-bottom:16px; width:fit-content;">
+                                        <ion-icon name="videocam-outline" style="color:${slotAccent}; font-size:1rem;"></ion-icon>
+                                        <span>${esc(idea.format || 'TikTok / Shorts / Reels (Sekunde 45 - 60)')}</span>
+                                    </div>
+
+                                    <!-- User Pain Point Box -->
+                                    <div style="background:rgba(0,0,0,0.25); border-left:3px solid ${slotAccent}; border-radius:0 10px 10px 0; padding:12px 14px; margin-bottom:16px;">
+                                        <div style="color:${slotAccent}; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+                                            <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+                                            <span>CHANZO / TATIZO HALISI LA WATUMIAJI:</span>
+                                        </div>
+                                        <div style="color:#e5e7eb; font-size:0.85rem; line-height:1.45;">${esc(idea.userProblem)}</div>
+                                        ${quotesHtml}
+                                    </div>
+
+                                    <!-- Script Breakdown -->
+                                    <div style="background:#0b0f19; border:1px solid #1f2937; border-radius:12px; padding:16px; margin-bottom:18px; flex:1;">
+                                        <!-- Hook -->
+                                        <div style="margin-bottom:14px;">
+                                            <div style="color:#fbbf24; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+                                                <ion-icon name="flash"></ion-icon>
+                                                <span>HOOK YA KUVUTIA (Sekunde 0 - 5):</span>
+                                            </div>
+                                            <div style="color:#fff; font-size:0.9rem; font-weight:600; line-height:1.45; background:rgba(251,191,36,0.06); padding:8px 12px; border-radius:6px; border:1px solid rgba(251,191,36,0.2);">
+                                                "${esc(idea.hook)}"
+                                            </div>
+                                        </div>
+
+                                        <!-- Body Steps -->
+                                        <div style="margin-bottom:14px;">
+                                            <div style="color:#9ca3af; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:flex; align-items:center; gap:4px;">
+                                                <ion-icon name="list-outline"></ion-icon>
+                                                <span>HATUA ZA MAUDHUI (Sekunde 5 - 45):</span>
+                                            </div>
+                                            ${stepsHtml}
+                                        </div>
+
+                                        <!-- Call to Action -->
+                                        <div>
+                                            <div style="color:#00ff80; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+                                                <ion-icon name="megaphone"></ion-icon>
+                                                <span>CALL TO ACTION / WITO WA KITENDO (Sekunde 45 - 60):</span>
+                                            </div>
+                                            <div style="color:#e5e7eb; font-size:0.86rem; line-height:1.45; background:rgba(0,255,128,0.06); padding:8px 12px; border-radius:6px; border:1px solid rgba(0,255,128,0.2);">
+                                                "${esc(idea.cta)}"
+                                            </div>
+                                        </div>
+
+                                        ${hashtagsHtml}
+                                    </div>
+
+                                    <!-- Bottom Action Buttons -->
+                                    <div style="display:flex; gap:10px; margin-top:auto;">
+                                        <button type="button" onclick="window.adminApp.copyContentIdeaScript(${idx})" style="flex:1; background:#1b222c; border:1px solid rgba(255,255,255,0.12); color:#fff; padding:10px 14px; border-radius:10px; font-weight:700; font-size:0.84rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='#232c38'" onmouseout="this.style.background='#1b222c'">
+                                            <ion-icon name="copy-outline" style="font-size:1.1rem; color:${slotAccent};"></ion-icon>
+                                            <span>Nakili Script</span>
+                                        </button>
+                                        <button type="button" onclick="window.adminApp.toggleContentIdeaDone('${idea.id}', ${!idea.isDone})" style="background:${idea.isDone ? 'rgba(34,197,94,0.15)' : 'rgba(0,255,128,0.12)'}; border:1px solid ${idea.isDone ? '#22c55e' : 'rgba(0,255,128,0.4)'}; color:${idea.isDone ? '#22c55e' : '#00ff80'}; padding:10px 14px; border-radius:10px; font-weight:700; font-size:0.84rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s;" title="Weka alama kama tayari umerekodi video hii">
+                                            <ion-icon name="${idea.isDone ? 'checkmark-circle' : 'checkmark-circle-outline'}" style="font-size:1.15rem;"></ion-icon>
+                                            <span>${idea.isDone ? 'Imerekodiwa' : 'Nimerekodi'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                // Render History Table / List
+                const historyTbody = document.getElementById('content-ideas-history-tbody');
+                if (historyTbody) {
+                    if (history.length === 0) {
+                        historyTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:25px; color:#6b7280; font-size:0.85rem;">Hakuna rekodi za siku zilizopita kwa sasa. Kila siku itahifadhiwa kiotomatiki hapa.</td></tr>`;
+                    } else {
+                        historyTbody.innerHTML = history.map(entry => {
+                            const eIdeas = entry.ideas || [];
+                            const idea1 = eIdeas[0] || {};
+                            const idea2 = eIdeas[1] || {};
+                            const doneCount = eIdeas.filter(i => i.isDone).length;
+                            return `
+                                <tr style="border-bottom:1px solid #1f2937;">
+                                    <td style="padding:12px 14px; color:#fff; font-weight:700; font-size:0.85rem;">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <ion-icon name="calendar-outline" style="color:#00ff80;"></ion-icon>
+                                            <span>${esc(entry.date)}</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding:12px 14px; color:#d1d5db; font-size:0.84rem;">
+                                        <div style="font-weight:600; color:#fff; margin-bottom:2px;">1. ${esc(idea1.title || 'Wazo 1')}</div>
+                                        <div style="font-size:0.75rem; color:#9ca3af;">2. ${esc(idea2.title || 'Wazo 2')}</div>
+                                    </td>
+                                    <td style="padding:12px 14px;">
+                                        <span style="background:${doneCount > 0 ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)'}; color:${doneCount > 0 ? '#22c55e' : '#9ca3af'}; border:1px solid ${doneCount > 0 ? 'rgba(34,197,94,0.3)' : '#374151'}; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700;">
+                                            ${doneCount} / ${eIdeas.length} Zimesharekodiwa
+                                        </span>
+                                    </td>
+                                    <td style="padding:12px 14px; text-align:right;">
+                                        <button type="button" onclick="window.adminApp.loadContentIdeas('${entry.date}')" style="background:#1b222c; border:1px solid #374151; color:#00ff80; padding:6px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;" onmouseover="this.style.background='#242e3b'" onmouseout="this.style.background='#1b222c'">
+                                            Tazama & Nakili
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+            },
+
+            regenerateContentIdeas: async function () {
+                const btn = document.getElementById('btn-regen-content-ideas');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<ion-icon name="sync" style="animation:spin 0.8s linear infinite;"></ion-icon> <span>Inazalisha...</span>';
+                }
+                try {
+                    const currentDate = this._cachedContentIdeas ? this._cachedContentIdeas.date : '';
+                    const data = await api.generateContentIdeas(true, currentDate);
+                    if (data && data.success) {
+                        this._cachedContentIdeas = data;
+                        this.renderContentIdeas(data);
+                    } else {
+                        alert('Hitilafu: ' + ((data && data.error) || 'Imeshindikana kuzalisha mawazo mapya.'));
+                    }
+                } catch (e) {
+                    alert('Hitilafu: ' + e.message);
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<ion-icon name="sync-outline"></ion-icon> <span>Zalisha Upya (Regenerate)</span>';
+                    }
+                }
+            },
+
+            copyContentIdeaScript: function (slotIndex) {
+                if (!this._cachedContentIdeas || !this._cachedContentIdeas.ideas) return;
+                const idea = this._cachedContentIdeas.ideas[slotIndex];
+                if (!idea) return;
+
+                const stepsText = Array.isArray(idea.bodySteps) 
+                    ? idea.bodySteps.map((s, idx) => `${idx + 1}. ${s}`).join('\n')
+                    : '';
+                const tagsText = Array.isArray(idea.hashtags) ? idea.hashtags.join(' ') : '';
+
+                const fullScript = `========================================
+WAZO LA MAUDHUI YA LEO: ${idea.title}
+AINA YA VIDEO: ${idea.format}
+========================================
+
+CHANZO / TATIZO HALISI LA WATUMIAJI:
+${idea.userProblem}
+
+[0:00 - 0:05] HOOK YA KUVUTIA (Kuanzia Sekunde ya Kwanza):
+"${idea.hook}"
+
+[0:05 - 0:45] HATUA ZA MAUDHUI (Mwili wa Video):
+${stepsText}
+
+[0:45 - 0:60] CALL TO ACTION / WITO WA KITENDO:
+"${idea.cta}"
+
+HASHTAGS ZINAZOPENDEKEZWA:
+${tagsText}
+`;
+
+                navigator.clipboard.writeText(fullScript).then(() => {
+                    alert(`Script ya "${idea.title}" imenakiliwa kikamilifu kwenye clipboard!\n\nUnaweza kuibandika kwenye Notes au Teleprompter yako.`);
+                }).catch(() => {
+                    prompt('Nakili script hii hapa:', fullScript);
+                });
+            },
+
+            toggleContentIdeaDone: async function (ideaId, isDone) {
+                try {
+                    const currentDate = this._cachedContentIdeas ? this._cachedContentIdeas.date : '';
+                    const res = await api.toggleContentIdeaDone(ideaId, isDone, currentDate);
+                    if (res && res.success) {
+                        if (this._cachedContentIdeas && this._cachedContentIdeas.ideas) {
+                            const found = this._cachedContentIdeas.ideas.find(i => i.id === ideaId);
+                            if (found) found.isDone = res.isDone;
+                            this.renderContentIdeas(this._cachedContentIdeas);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error toggling done state:', e);
                 }
             },
         });

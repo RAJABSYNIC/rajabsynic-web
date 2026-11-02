@@ -161,6 +161,13 @@
                     <span class="menu-desc">Manage movies and videos</span>
                 </div>
             </div>
+            <div class="menu-item" onclick="adminApp.navigate('content-ideas')">
+                <ion-icon name="bulb-outline"></ion-icon>
+                <div class="menu-text">
+                    <span class="menu-title">Content Ideas</span>
+                    <span class="menu-desc">Mawazo 2 ya maudhui kila siku</span>
+                </div>
+            </div>
         </div>
 
         <!-- Sidebar Footer: Pinned at the bottom-left -->
@@ -525,6 +532,116 @@
                     </thead>
                     <tbody id="movies-list"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- CONTENT IDEAS VIEW (Daily 2 Ideas from Real User Pain Points) -->
+        <div id="view-content-ideas" class="view-section">
+            <!-- Header Section -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                        <div style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                            <ion-icon name="bulb" style="color: #fbbf24; font-size: 1.5rem;"></ion-icon>
+                        </div>
+                        <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800; color: #fff;">Content Ideas Hub</h2>
+                        <span id="content-ideas-current-date" style="background: rgba(0, 255, 128, 0.12); border: 1px solid rgba(0, 255, 128, 0.3); color: #00ff80; padding: 4px 10px; border-radius: 20px; font-size: 0.76rem; font-weight: 700;">
+                            Leo
+                        </span>
+                    </div>
+                    <div style="color: #9ca3af; font-size: 0.88rem; max-width: 650px; line-height: 1.45;">
+                        Kipengele hiki kinachambua maswali, changamoto na matatizo halisi ya watumiaji kwenye maongezi ya AI, malipo na mfumo mzima ili kukupa <strong style="color: #00ff80;">mawazo 2 bora ya maudhui (TikTok / Shorts / Reels)</strong> kila siku.
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="btn-regen-content-ideas" type="button" class="btn btn-primary" onclick="adminApp.regenerateContentIdeas()" style="background: linear-gradient(135deg, #00ff80, #00cc66); color: #000; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 15px rgba(0,255,128,0.25);">
+                        <ion-icon name="sync-outline" style="font-size: 1.15rem;"></ion-icon>
+                        <span>Zalisha Upya (Regenerate)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Insights / Stats Row -->
+            <div id="content-ideas-stats-wrap" class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px;">
+                <!-- Stat 1 -->
+                <div class="stat-card" style="background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 18px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #00ff80;"></div>
+                    <div style="color: #9ca3af; font-size: 0.74rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span>UCHAMBUZI WA DATA ZA WATUMIAJI</span>
+                        <ion-icon name="analytics-outline" style="color: #00ff80; font-size: 1.25rem;"></ion-icon>
+                    </div>
+                    <div id="ci-stat-total-logs" style="color: #fff; font-size: 1.35rem; font-weight: 900; line-height: 1.2;">
+                        0 Maswali Yaliyochambuliwa
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.76rem; margin-top: 4px;">Kutoka kwenye kumbukumbu za maongezi ya wateja</div>
+                </div>
+
+                <!-- Stat 2 -->
+                <div class="stat-card" style="background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 18px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fbbf24;"></div>
+                    <div style="color: #9ca3af; font-size: 0.74rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span>MADA KUU YENYE CHANGAMOTO NYINGI</span>
+                        <ion-icon name="flame-outline" style="color: #fbbf24; font-size: 1.25rem;"></ion-icon>
+                    </div>
+                    <div id="ci-stat-top-category" style="color: #fbbf24; font-size: 1.2rem; font-weight: 900; line-height: 1.2;">
+                        Simu Kuchemka & Mods za Maleo
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.76rem; margin-top: 4px;">Mada inayoulizwa zaidi na watumiaji kwa sasa</div>
+                </div>
+
+                <!-- Stat 3 -->
+                <div class="stat-card" style="background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 18px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #38bdf8;"></div>
+                    <div style="color: #9ca3af; font-size: 0.74rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span>MAUDHUI YA LEO</span>
+                        <ion-icon name="videocam" style="color: #38bdf8; font-size: 1.25rem;"></ion-icon>
+                    </div>
+                    <div id="ci-stat-ready" style="color: #fff; font-size: 1.35rem; font-weight: 900; line-height: 1.2;">
+                        2 Mawazo Yako Tayari
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.76rem; margin-top: 4px;">1 la kiufundi (tatizo) + 1 la mod/mchezo (showcase)</div>
+                </div>
+            </div>
+
+            <!-- Two Daily Ideas Grid -->
+            <div id="content-ideas-cards-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <!-- Cards will be populated by adminApp.renderContentIdeas -->
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: #111827; border: 1px solid #1f2937; border-radius: 14px; color: #9ca3af;">
+                    Inapakia mawazo ya maudhui ya leo...
+                </div>
+            </div>
+
+            <!-- Past Days Archive / Siku Zilizopita -->
+            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <ion-icon name="time" style="color: #00ff80; font-size: 1.3rem;"></ion-icon>
+                        <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #fff;">Mawazo ya Siku Zilizopita (Ideas Archive)</h3>
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.8rem;">
+                        Rekodi za mawazo ya maudhui yaliyozalishwa siku zilizopita
+                    </div>
+                </div>
+
+                <div class="data-table-container" style="max-height: 350px; overflow-y: auto;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #0b0f19;">
+                                <th style="padding: 12px 14px; text-align: left; color: #9ca3af; font-size: 0.78rem; text-transform: uppercase;">Tarehe</th>
+                                <th style="padding: 12px 14px; text-align: left; color: #9ca3af; font-size: 0.78rem; text-transform: uppercase;">Mawazo 2 Yaliyotolewa</th>
+                                <th style="padding: 12px 14px; text-align: left; color: #9ca3af; font-size: 0.78rem; text-transform: uppercase;">Hali</th>
+                                <th style="padding: 12px 14px; text-align: right; color: #9ca3af; font-size: 0.78rem; text-transform: uppercase;">Hatua</th>
+                            </tr>
+                        </thead>
+                        <tbody id="content-ideas-history-tbody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 25px; color: #6b7280; font-size: 0.85rem;">
+                                    Inapakia rekodi za siku zilizopita...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1306,7 +1423,7 @@
         </div>
     </div>
 
-<script type="module" src="/scripts/adminApp.js?v=30"></script>
+<script type="module" src="/scripts/adminApp.js?v=31"></script>
 </body>
 
 </html>

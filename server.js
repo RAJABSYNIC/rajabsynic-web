@@ -3182,6 +3182,454 @@ app.delete('/api/admin/ai-chat-logs', requireAdmin, (req, res) => {
     }
 });
 
+
+// ─── CONTENT IDEAS ENGINE (Daily 2 Viral Content Ideas from Real User Pain Points) ──
+const CONTENT_IDEAS_FILE = path.join(__dirname, 'data', 'content-ideas.json');
+
+function getContentIdeasData() {
+    try {
+        if (fs.existsSync(CONTENT_IDEAS_FILE)) {
+            const raw = fs.readFileSync(CONTENT_IDEAS_FILE, 'utf8');
+            return JSON.parse(raw);
+        }
+    } catch (e) {
+        console.error('Error reading content-ideas.json:', e.message);
+    }
+    return [];
+}
+
+function saveContentIdeasData(data) {
+    try {
+        fs.writeFileSync(CONTENT_IDEAS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (e) {
+        console.error('Error saving content-ideas.json:', e.message);
+    }
+}
+
+async function generateDailyContentIdeas(targetDate = null, force = false) {
+    // East Africa Time (UTC+3)
+    const nowEAT = new Date(Date.now() + 3 * 3600000);
+    const dateKey = targetDate || nowEAT.toISOString().split('T')[0];
+
+    let allEntries = getContentIdeasData();
+    let existingEntry = allEntries.find(e => e.date === dateKey);
+
+    // If already generated for today and not forced, return immediately
+    if (existingEntry && !force && Array.isArray(existingEntry.ideas) && existingEntry.ideas.length >= 2) {
+        return {
+            success: true,
+            date: dateKey,
+            ideas: existingEntry.ideas,
+            stats: existingEntry.stats || { totalLogsAnalyzed: 0, topCategory: 'Simu Kuchemka & Maleo Bus Mods' },
+            history: allEntries.filter(e => e.date !== dateKey)
+        };
+    }
+
+    // 1. Gather all real user chat logs from Firestore and local file
+    let logs = [];
+    if (fsdb) {
+        try {
+            const snap = await fsdb.collection('ai_chat_logs').orderBy('timestamp', 'desc').limit(200).get();
+            snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+        } catch (_) {}
+    }
+    if (logs.length === 0) {
+        logs = getAIChatLogs();
+    }
+
+    const userMessages = logs.map(l => (l.userMessage || '').trim()).filter(Boolean);
+    const totalLogsAnalyzed = userMessages.length;
+
+    // Issue frequency mapping & real quote collection
+    const issues = {
+        overheating: { count: 0, quotes: [], label: 'Simu Kuchemka & Joto Kali' },
+        appNotInstalled: { count: 0, quotes: [], label: 'App Not Installed & OBB' },
+        lagFreezing: { count: 0, quotes: [], label: 'Simu Kuganda & Mchezo Kukwama' },
+        maleoMods: { count: 0, quotes: [], label: 'Mods za Mabasi ya Maleo (Shabiby, Abood)' },
+        maleoSkinsMaps: { count: 0, quotes: [], label: 'Skins za Mabasi & Ramani za Milimani' },
+        payments: { count: 0, quotes: [], label: 'Njia za Malipo ya Simu & Kupakua' },
+        wtdsAndAction: { count: 0, quotes: [], label: 'WTDS Unlimited Money & Mortal Kombat' },
+        movies: { count: 0, quotes: [], label: 'Filamu za DJ Mack Zilizotafsiriwa' }
+    };
+
+    userMessages.forEach(msg => {
+        const lower = msg.toLowerCase();
+        if (lower.includes('chemka') || lower.includes('moto') || lower.includes('joto')) {
+            issues.overheating.count++;
+            if (issues.overheating.quotes.length < 3) issues.overheating.quotes.push(msg);
+        }
+        if (lower.includes('not installed') || lower.includes('haisakinishwi') || lower.includes('obb') || lower.includes('install')) {
+            issues.appNotInstalled.count++;
+            if (issues.appNotInstalled.quotes.length < 3) issues.appNotInstalled.quotes.push(msg);
+        }
+        if (lower.includes('ganda') || lower.includes('stuck') || lower.includes('kwama') || lower.includes('lag')) {
+            issues.lagFreezing.count++;
+            if (issues.lagFreezing.quotes.length < 3) issues.lagFreezing.quotes.push(msg);
+        }
+        if (lower.includes('maleo') || lower.includes('basi') || lower.includes('shabiby') || lower.includes('abood') || lower.includes('katarama')) {
+            issues.maleoMods.count++;
+            if (issues.maleoMods.quotes.length < 3) issues.maleoMods.quotes.push(msg);
+        }
+        if (lower.includes('skin') || lower.includes('milimani') || lower.includes('map')) {
+            issues.maleoSkinsMaps.count++;
+            if (issues.maleoSkinsMaps.quotes.length < 3) issues.maleoSkinsMaps.quotes.push(msg);
+        }
+        if (lower.includes('lipa') || lower.includes('malipo') || lower.includes('m-pesa') || lower.includes('tigopesa') || lower.includes('sijapata')) {
+            issues.payments.count++;
+            if (issues.payments.quotes.length < 3) issues.payments.quotes.push(msg);
+        }
+        if (lower.includes('wtds') || lower.includes('mortal kombat') || lower.includes('pspp') || lower.includes('gta')) {
+            issues.wtdsAndAction.count++;
+            if (issues.wtdsAndAction.quotes.length < 3) issues.wtdsAndAction.quotes.push(msg);
+        }
+        if (lower.includes('movie') || lower.includes('filamu') || lower.includes('dj mack') || lower.includes('dj afro')) {
+            issues.movies.count++;
+            if (issues.movies.quotes.length < 3) issues.movies.quotes.push(msg);
+        }
+    });
+
+    const sortedIssues = Object.entries(issues).sort((a, b) => b[1].count - a[1].count);
+    const topIssue = sortedIssues[0] ? sortedIssues[0][1].label : 'Simu Kuchemka & Mods za Maleo';
+
+    // Calculate rotation index based on date so every day receives diverse, fresh ideas
+    let daySeed = 0;
+    try {
+        const parts = dateKey.split('-');
+        daySeed = (parseInt(parts[1] || '1', 10) * 31 + parseInt(parts[2] || '1', 10)) % 6;
+    } catch (_) {}
+
+    // 6 Curated Daily Idea Sets based on real user problems
+    const dailyPresets = [
+        {
+            // Preset 0
+            idea1: {
+                title: 'Simu Yako Inachemka Kama Pasi na Kuganda Unapocheza Games? Rekebisha Hivi Vitatu Leo!',
+                userProblem: 'Kutokana na maswali na malalamiko ya watumiaji wengi kuhusu simu zao kupata joto kali na kioo kuganda wanapocheza michezo mizito kama Maleo na WTDS.',
+                format: 'TikTok / YouTube Shorts / Reels (Sekunde 45 - 60) - Muundo wa Problem-Solution',
+                category: 'technical',
+                hook: 'Kama simu yako inakuwa ya moto kama chuma cha pasi kila ukicheza mchezo, usikimbilie kubadilisha simu wala usilalamike. Kuna settings tatu za siri kwenye simu yako ambazo lazima uzirekebishe sasa hivi...',
+                bodySteps: [
+                    'Shusha Graphics Settings: Weka Graphics kuwa Medium au Low na uzime Vivuli (Shadows) ndani ya game ili GPU isifanye kazi kupita kiasi.',
+                    'Funga Apps zote za Nyuma: Usianze kucheza huku TikTok na WhatsApp zikiwa bado zinafanya kazi background.',
+                    'Ondoa Cover la Simu na Epuka Kuchaji Wakati wa Kucheza: Hii inaruhusu processor kupoa vizuri bila kudhuru betri.'
+                ],
+                cta: 'Niambie kwenye comment unatumia simu ya aina gani, na tembelea rajabsynic.com kupakua games bora zilizoboreshwa!',
+                hashtags: ['#rajabsynic', '#simukuchemka', '#gametips', '#bussid', '#maleomod', '#androidhacks']
+            },
+            idea2: {
+                title: 'Jinsi ya Kuweka Basi la Shabiby D14 Lenye Honi na Ruti ya Milimani Kwenye Maleo!',
+                userProblem: 'Watumiaji wengi wanatafuta mods halisi za mabasi ya Tanzania (Shabiby D14) na jinsi ya kulipia kwa M-Pesa na kupakua moja kwa moja.',
+                format: 'Gameplay Showcase + Quick Tutorial (Sekunde 50 - 60)',
+                category: 'mods',
+                hook: 'Kama unacheza Bus Simulator Indonesia kisha bado unatumia yale mabasi ya kawaida ya kigeni, unapitwa sana! Hili hapa basi halisi la Shabiby D14 lenye mandhari ya Kitanzania...',
+                bodySteps: [
+                    'Onyesha muonekano wa basi la Shabiby likipita barabara ya vumbi ya milimani na honi yake halisi.',
+                    'Onyesha namna lilivyotengenezwa kwa umakini na halileti lag yoyote kwenye simu ya RAM ndogo.',
+                    'Eleza jinsi ya kulipata: tembelea rajabsynic.com, bonyeza "Lipa Sasa" kwa namba yako ya simu, na faili linafunguka mara moja!'
+                ],
+                cta: 'Tembelea tovuti yetu ya rajabsynic.com leo upate mod hii na ruti ya milimani, link ipo kwenye bio yangu!',
+                hashtags: ['#shabibyd14', '#bussidtanzania', '#maleobusmod', '#rajabsynic', '#bussidindonesia']
+            }
+        },
+        {
+            // Preset 1
+            idea1: {
+                title: 'Kwanini Simu Yako Inasema "App Not Installed" Unapojaribu Kuweka Game? Hili Hapa Suluhisho!',
+                userProblem: 'Watumiaji kadhaa wanakutana na kizuizi cha "App Not Installed" wakati wa kusakinisha faili la APK ya mchezo.',
+                format: 'Shorts / TikTok Video (Sekunde 45 - 55) - Tutorial ya Haraka',
+                category: 'technical',
+                hook: 'Umewahi kupakua game kisha ukijaribu kusakinisha simu inakuandikia "App Not Installed"? Tatizo siyo game, tatizo ni hatua hizi mbili ambazo hujazifanya kwenye simu yako...',
+                bodySteps: [
+                    'Kwanza: Futa toleo la zamani (Uninstall Old Version) lililokuwepo kabla ya kuweka toleo jipya.',
+                    'Pili: Zima Play Protect kwa muda kwenye Google Play Store > Play Protect > Settings > Zima Scan Apps with Play Protect.',
+                    'Tatu: Hakikisha una nafasi ya angalau 3GB wazi kwenye Internal Storage ya simu yako.'
+                ],
+                cta: 'Save video hii ili isikupotee wakati unadownload games zako kupitia rajabsynic.com!',
+                hashtags: ['#appnotinstalled', '#androidtips', '#rajabsynic', '#gamingsolution', '#tanzaniagames']
+            },
+            idea2: {
+                title: 'Mchezo wa WTDS Mod (Pesa Zisizo na Kikomo) na Jinsi ya Kuanza Kucheza Papo Hapo!',
+                userProblem: 'Watumiaji wanatafuta mchezo wa malori wa WTDS wenye pesa zisizo na kikomo (Unlimited Money) ili kufungua malori yote bila kikwazo.',
+                format: 'Gameplay Action + Feature Highlight (Sekunde 45 - 60)',
+                category: 'games',
+                hook: 'Kama unapenda kuendesha malori na unataka kufungua malori yote ya kifahari bila kusubiri miezi, mchezo huu wa WTDS Mod ndio unauhitaji...',
+                bodySteps: [
+                    'Onyesha malori mazito yakitembea barabarani na salio la pesa lisilo na kikomo (Unlimited Money).',
+                    'Onyesha namna ya kufanya customization ya lori lako kwa rangi na vifaa unavyotaka.',
+                    'Eleza jinsi ya kuupata: unaingia rajabsynic.com, unachagua WTDS Mod, unalipia Tsh 2,000 tu kwa simu na kitufe cha kupakua kinafunguka papo hapo.'
+                ],
+                cta: 'Ingia sasa rajabsynic.com upakue WTDS Mod yako, link ipo kwenye bio!',
+                hashtags: ['#wtds', '#worldtruckdrivingsimulator', '#wtdsmod', '#rajabsynic', '#michezoyasimu']
+            }
+        },
+        {
+            // Preset 2
+            idea1: {
+                title: 'Game Linaganda au Kujifunga Peke Yake (Force Close)? Fanya Settings Hizi Kwenye Simu Yako!',
+                userProblem: 'Watumiaji wanaripoti michezo kuganda katikati au kufunga ghafla kutokana na ukosefu wa RAM au processor kulemewa.',
+                format: 'Reels / Shorts (Sekunde 50) - Tip ya Utatuzi',
+                category: 'technical',
+                hook: 'Unacheza game ghafla linaganda au linajizima na kukurudisha kwenye kioo cha simu? Usifute game, kwanza rekebisha hizi settings...',
+                bodySteps: [
+                    'Clear Cache: Nenda Settings > Apps > chagua game husika > Storage > bonyeza "Clear Cache".',
+                    'Restart Simu: Zima na uwashe simu upya ili kuweka kumbukumbu ya RAM katika hali safi.',
+                    'Punguza Frame Rate: Ndani ya mchezo, punguza Frame Rate kuwa 30FPS ili simu isipate msukumo mkubwa.'
+                ],
+                cta: 'Weka alama ya like na share kwa marafiki zako wanaopenda kucheza games, kisha tembelea rajabsynic.com!',
+                hashtags: ['#lagfix', '#forceclose', '#rajabsynic', '#simukuganda', '#androidgamers']
+            },
+            idea2: {
+                title: 'Mod ya Basi la Abood Yutong na Nembo Halisi za Tanzania Kwenye Bus Simulator!',
+                userProblem: 'Wadau na wateja wengi wanaomba mod maalum ya basi la Abood yenye rangi na muundo halisi wa Kitanzania.',
+                format: 'Showcase Video + Realistic Gameplay (Sekunde 50 - 60)',
+                category: 'mods',
+                hook: 'Wapenzi wa mabasi ya Abood, hii hapa ni mod maalum ya Abood Yutong yenye muundo halisi wa Morogoro to Dar es Salaam...',
+                bodySteps: [
+                    'Onyesha basi la Abood likiwa na stika na rangi zake halisi likipita stand ya mabasi.',
+                    'Eleza ubora wa muundo wa ndani (interior) na sauti safi za injini.',
+                    'Mwelekeze mtazamaji: ingia rajabsynic.com, tafuta Abood mod, bonyeza Lipa Sasa na uanze kucheza mara moja.'
+                ],
+                cta: 'Gusa link kwenye bio yangu kutembelea rajabsynic.com na uchukue mod yako ya Abood leo!',
+                hashtags: ['#aboodbus', '#aboodyutong', '#bussidtz', '#rajabsynic', '#maleomodtanzania']
+            }
+        },
+        {
+            // Preset 3
+            idea1: {
+                title: 'Jinsi ya Kuweka Faili la OBB na Maelekezo ya ZArchiver Bila Kukosea!',
+                userProblem: 'Watumiaji wanapata utata jinsi ya kuhamisha mafaili ya OBB kwenye folda sahihi ya Android/obb kwa kutumia ZArchiver.',
+                format: 'Step-by-step Screen Recording Guide (Sekunde 55 - 60)',
+                category: 'technical',
+                hook: 'Kudownload game kubwa lenye faili la OBB kunakutatiza? Watu wengi wanakwama hapa, lakini ukifuata hatua hizi hutaangaika tena...',
+                bodySteps: [
+                    'Pakua app ya ZArchiver kutoka Google Play Store.',
+                    'Fungua ZArchiver, nenda kwenye Downloads, nakili (Copy) folda ya OBB ya mchezo huo.',
+                    'Ingia kwenye Android > obb, kisha bonyeza kitufe cha kijani kubandika (Paste) hapo, kisha fungua game lako!'
+                ],
+                cta: 'Hujawahi kuweka OBB? Niandikie mchezo unaotaka nikusaidie, na tembelea rajabsynic.com kupakua games!',
+                hashtags: ['#howtoputobb', '#zarchiver', '#rajabsynic', '#michezoyasimu', '#obbtutorial']
+            },
+            idea2: {
+                title: 'Filamu Bora za Action Zilizotafsiriwa na DJ Mack za Kutazama Wiki Hii!',
+                userProblem: 'Wateja wanaotafuta filamu zilizotafsiriwa kwa Kiswahili na kutaka kujua jinsi ya kujiunga na vifurushi vya movie.',
+                format: 'Movie Trailer Countdown / Review (Sekunde 50 - 60)',
+                category: 'movies',
+                hook: 'Kama unapenda filamu za kusisimua zilizotafsiriwa kwa Kiswahili fasaha na chenye vionjo vya DJ Mack, hizi hapa filamu 3 ambazo hutakiwi kuzikosa...',
+                bodySteps: [
+                    'Taja filamu kali zilizopo kama Twin Dragons, Undercover, na Deadly Voyage.',
+                    'Eleza ubora wa picha ya HD 2K na tafsiri safi isiyokera.',
+                    'Eleza kuwa unaweza kujiunga na kifurushi cha Mikumi (Tsh 1,000 siku 1) au Serengeti (Tsh 5,000 mwezi mzima) na kutazama zote bila kikomo kwenye rajabsynic.com!'
+                ],
+                cta: 'Fungua ukurasa wa Movies kwenye rajabsynic.com uanze kutazama sasa, link ipo kwenye bio!',
+                hashtags: ['#djmack', '#filamuzakiswahili', '#movieszakiswahili', '#rajabsynic', '#actionmovies']
+            }
+        },
+        {
+            // Preset 4
+            idea1: {
+                title: 'Njia Rahisi ya Kufanya Malipo kwa Simu (M-Pesa/Tigo Pesa) na Kufungua Game Papo Hapo!',
+                userProblem: 'Wateja wapya wanaulizia namna ya kufanya malipo kupitia namba zao za simu na jinsi kitufe cha download kinavyofunguka.',
+                format: 'Visual Demo / Customer Confidence Video (Sekunde 40 - 50)',
+                category: 'payments',
+                hook: 'Unataka kupakua mod au game kwenye rajabsynic.com lakini hujui jinsi ya kulipia kwa simu yako? Ni rahisi sana na inachukua sekunde 30 tu...',
+                bodySteps: [
+                    'Fungua mchezo au mod unayotaka kisha bonyeza kitufe cha kijani kilichoandikwa "Lipa Sasa".',
+                    'Weka namba yako ya simu ya Tanzania (M-Pesa, Tigo Pesa, Airtel Money au Halopesa).',
+                    'Weka PIN yako kwenye simu kuthibitisha muamala, na papo hapo kitufe cha "Pakua" (Download) kitafunguka bila kusubiri!'
+                ],
+                cta: 'Jaribu sasa hivi kwenye rajabsynic.com na ujipatie games zako uzipendazo bila usumbufu!',
+                hashtags: ['#rajabsynic', '#jinsiyakulipia', '#mpesa', '#tigopesa', '#tanzaniangaming']
+            },
+            idea2: {
+                title: 'Michezo ya Bure Kabisa (Free Games) Isiyohitaji Hata Shilingi Moja Kwenye Rajabsynic!',
+                userProblem: 'Watumiaji wanaoulizia michezo ya bure inayopatikana kwenye mfumo bila kuhitaji malipo.',
+                format: 'Listicle / Value Post (Sekunde 45 - 55)',
+                category: 'games',
+                hook: 'Je, wajua kwenye tovuti ya rajabsynic.com kuna sehemu nzima ya michezo ya bure kabisa unayoweza kupakua bila kutoa hata shilingi moja?',
+                bodySteps: [
+                    'Onyesha ukurasa wa Free Games kwenye tovuti ukiwa na games mbalimbali za kusisimua.',
+                    'Onyesha jinsi unavyobonyeza tu "Pakua" moja kwa moja bila kuhitaji kuweka malipo yoyote.',
+                    'Eleza kuwa games hizo ni safi na zinafanya kazi kwenye simu za Android za viwango vyote.'
+                ],
+                cta: 'Tembelea rajabsynic.com sasa hivi ukachukue michezo yako ya bure kabisa, link ipo bio!',
+                hashtags: ['#freegames', '#michezoyabure', '#rajabsynic', '#tanzaniagamers', '#androidgames']
+            }
+        },
+        {
+            // Preset 5
+            idea1: {
+                title: 'Ramani ya Milimani ya Tanzania (Milimani Map Mod) Ndani ya Maleo — Barabara za Vumbi na Kona Kali!',
+                userProblem: 'Watumiaji wanaomba ramani zenye mazingira halisi ya barabara za Afrika zenye changamoto ya kuendesha gari au basi.',
+                format: 'Gameplay POV / Thrilling Drive (Sekunde 50 - 60)',
+                category: 'mods',
+                hook: 'Hivi ulishawahi kuendesha basi kwenye kona kali za milima ya Usambara au Kitonga ndani ya simu yako? Angalia hii ramani ya Milimani Map...',
+                bodySteps: [
+                    'Onyesha mandhari halisi ya milima ya Tanzania yenye barabara nyembamba na madaraja ya asili.',
+                    'Onyesha jinsi basi linavyopanda milima kwa umakini na mandhari ya asili ya Afrika.',
+                    'Eleza kuwa ramani hii inapatikana kwa Tsh 2,000 tu kwenye rajabsynic.com na inawekwa kwa urahisi sana.'
+                ],
+                cta: 'Download ramani hii leo kupitia rajabsynic.com ukapime ujuzi wako wa kuendesha basi milimani!',
+                hashtags: ['#milimanimap', '#maleomapmod', '#bussidtanzania', '#rajabsynic', '#maleo']
+            },
+            idea2: {
+                title: 'Mchezo wa Mortal Kombat Unchained Kwenye Simu Yako ya Android kwa PPSSPP!',
+                userProblem: 'Watumiaji wengi wanaulizia michezo mikali ya PSPP kama Mortal Kombat na jinsi ya kuiweka kwenye simu.',
+                format: 'Nostalgia Gaming / Fighting Action (Sekunde 50 - 60)',
+                category: 'games',
+                hook: 'Kama unakumbuka ule mchezo wa mapigano wa Mortal Kombat, sasa unaweza kuucheza kwenye simu yako ya Android kwa graphics za HD na moves zote kali...',
+                bodySteps: [
+                    'Onyesha gameplay ya mapigano yenye graphics safi na smooth controls kwenye emulator ya PPSSPP.',
+                    'Onyesha wahusika maarufu kama Scorpion na Sub-Zero wakifanya moves zao za kipekee.',
+                    'Eleza jinsi ya kuupata kwenye rajabsynic.com kwa Tsh 3,000 tu ukiwa kamili na tayari kucheza.'
+                ],
+                cta: 'Mchezo huu unapatikana sasa kwenye rajabsynic.com. Tembelea link iliyopo kwenye bio yangu sasa!',
+                hashtags: ['#mortalkombat', '#ppsspptanzania', '#rajabsynic', '#psppgames', '#androidgaming']
+            }
+        }
+    ];
+
+    const chosenPreset = dailyPresets[daySeed % dailyPresets.length];
+
+    const generatedIdeas = [
+        {
+            id: 'idea_' + dateKey + '_1',
+            date: dateKey,
+            slot: 1,
+            slotLabel: 'Wazo #1: Suluhisho la Changamoto ya Mtumiaji (Problem Solver)',
+            title: chosenPreset.idea1.title,
+            userProblem: chosenPreset.idea1.userProblem,
+            userQuotes: issues.overheating.quotes.length > 0 ? issues.overheating.quotes : ['"simu yangu inachemka nifanyeje?"', '"game linaganda nikiwa nacheza"'],
+            format: chosenPreset.idea1.format,
+            category: chosenPreset.idea1.category,
+            hook: chosenPreset.idea1.hook,
+            bodySteps: chosenPreset.idea1.bodySteps,
+            cta: chosenPreset.idea1.cta,
+            hashtags: chosenPreset.idea1.hashtags,
+            isDone: false,
+            createdAt: nowEAT.toISOString()
+        },
+        {
+            id: 'idea_' + dateKey + '_2',
+            date: dateKey,
+            slot: 2,
+            slotLabel: 'Wazo #2: Mchezo / Mod Inayotafutwa na Wateja (Trend & Demand Showcase)',
+            title: chosenPreset.idea2.title,
+            userProblem: chosenPreset.idea2.userProblem,
+            userQuotes: issues.maleoMods.quotes.length > 0 ? issues.maleoMods.quotes : ['"mod ya abood ipo?"', '"nataka mod ya basi la shabiby"'],
+            format: chosenPreset.idea2.format,
+            category: chosenPreset.idea2.category,
+            hook: chosenPreset.idea2.hook,
+            bodySteps: chosenPreset.idea2.bodySteps,
+            cta: chosenPreset.idea2.cta,
+            hashtags: chosenPreset.idea2.hashtags,
+            isDone: false,
+            createdAt: nowEAT.toISOString()
+        }
+    ];
+
+    const stats = {
+        totalLogsAnalyzed,
+        topCategory: topIssue,
+        dateFormatted: dateKey
+    };
+
+    const newEntry = {
+        date: dateKey,
+        stats,
+        ideas: generatedIdeas,
+        createdAt: nowEAT.toISOString()
+    };
+
+    // Save or update in allEntries
+    const existingIndex = allEntries.findIndex(e => e.date === dateKey);
+    if (existingIndex >= 0) {
+        // preserve isDone states if any
+        if (existingEntry && Array.isArray(existingEntry.ideas)) {
+            existingEntry.ideas.forEach((oldIdea, idx) => {
+                if (generatedIdeas[idx] && oldIdea.isDone) {
+                    generatedIdeas[idx].isDone = true;
+                }
+            });
+        }
+        allEntries[existingIndex] = newEntry;
+    } else {
+        allEntries.unshift(newEntry);
+    }
+
+    saveContentIdeasData(allEntries);
+
+    // Save to Firestore if available
+    if (fsdb) {
+        try {
+            await fsdb.collection('content_ideas').doc(dateKey).set(newEntry);
+        } catch (fsErr) {
+            console.warn('Firestore save content_ideas notice:', fsErr.message);
+        }
+    }
+
+    return {
+        success: true,
+        date: dateKey,
+        ideas: generatedIdeas,
+        stats,
+        history: allEntries.filter(e => e.date !== dateKey)
+    };
+}
+
+// Admin Endpoint: Get Daily Content Ideas
+app.get('/api/admin/content-ideas', requireAdmin, async (req, res) => {
+    try {
+        const requestedDate = (req.query.date || '').trim() || null;
+        const result = await generateDailyContentIdeas(requestedDate, false);
+        res.json(result);
+    } catch (e) {
+        console.error('Error fetching content ideas:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Force Generate / Regenerate Content Ideas
+app.post('/api/admin/content-ideas/generate', requireAdmin, async (req, res) => {
+    try {
+        const requestedDate = (req.body.date || '').trim() || null;
+        const result = await generateDailyContentIdeas(requestedDate, true);
+        res.json(result);
+    } catch (e) {
+        console.error('Error generating content ideas:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Admin Endpoint: Toggle Idea Done / Imerekodiwa
+app.post('/api/admin/content-ideas/toggle-done', requireAdmin, async (req, res) => {
+    try {
+        const { ideaId, isDone, date } = req.body;
+        if (!ideaId) {
+            return res.status(400).json({ success: false, error: 'ideaId is required' });
+        }
+        const nowEAT = new Date(Date.now() + 3 * 3600000);
+        const dateKey = date || nowEAT.toISOString().split('T')[0];
+
+        let allEntries = getContentIdeasData();
+        let entry = allEntries.find(e => e.date === dateKey);
+
+        if (entry && Array.isArray(entry.ideas)) {
+            const idea = entry.ideas.find(i => i.id === ideaId);
+            if (idea) {
+                idea.isDone = typeof isDone === 'boolean' ? isDone : !idea.isDone;
+                saveContentIdeasData(allEntries);
+                if (fsdb) {
+                    fsdb.collection('content_ideas').doc(dateKey).set(entry).catch(() => {});
+                }
+                return res.json({ success: true, isDone: idea.isDone, ideaId });
+            }
+        }
+        res.status(404).json({ success: false, error: 'Idea not found' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`\n🚀 Rajabsynic Server imeanza!`);

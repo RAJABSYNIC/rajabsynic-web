@@ -1284,6 +1284,57 @@ class ApiService {
             return [];
         }
     }
+
+    // --- CONTENT IDEAS (Daily 2 Ideas from User Queries & Systematic Pain Points) ---
+    async getContentIdeas(date = '') {
+        try {
+            const url = date ? `${this.baseUrl}/api/admin/content-ideas?date=${encodeURIComponent(date)}` : `${this.baseUrl}/api/admin/content-ideas`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error fetching content ideas:', err);
+            return { success: false, ideas: [], history: [] };
+        }
+    }
+
+    async generateContentIdeas(force = false, date = '') {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/content-ideas/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                },
+                body: JSON.stringify({ force: !!force, date })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error generating content ideas:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    async toggleContentIdeaDone(ideaId, isDone, date = '') {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/admin/content-ideas/toggle-done`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                },
+                body: JSON.stringify({ ideaId, isDone, date })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Error toggling content idea done:', err);
+            return { success: false, error: err.message };
+        }
+    }
 }
 
 const api = new ApiService();
