@@ -1288,9 +1288,16 @@ class ApiService {
     // --- CONTENT IDEAS (Daily 2 Ideas from User Queries & Systematic Pain Points) ---
     async getContentIdeas(date = '') {
         try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
             const url = date ? `${this.baseUrl}/api/admin/content-ideas?date=${encodeURIComponent(date)}` : `${this.baseUrl}/api/admin/content-ideas`;
             const res = await fetch(url, {
-                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token') }
+                headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
@@ -1302,11 +1309,18 @@ class ApiService {
 
     async generateContentIdeas(force = false, date = '') {
         try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
             const res = await fetch(`${this.baseUrl}/api/admin/content-ideas/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                    'Authorization': tok ? ('Bearer ' + tok) : ''
                 },
                 body: JSON.stringify({ force: !!force, date })
             });
@@ -1320,11 +1334,18 @@ class ApiService {
 
     async toggleContentIdeaDone(ideaId, isDone, date = '') {
         try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
             const res = await fetch(`${this.baseUrl}/api/admin/content-ideas/toggle-done`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + sessionStorage.getItem('rajab_admin_token')
+                    'Authorization': tok ? ('Bearer ' + tok) : ''
                 },
                 body: JSON.stringify({ ideaId, isDone, date })
             });
