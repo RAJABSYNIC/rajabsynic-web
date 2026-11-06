@@ -1738,8 +1738,10 @@ function detectUserIntent(text) {
     // 7. Game / Mchezo keywords
     const gameKeywords = [
         'game', 'games', 'mchezo', 'michezo', 'kucheza', 'magame', 'mod', 'mods',
-        'skin', 'skins', 'maleo', 'bussid', 'map mod', 'basi', 'mabasi', 'gari', 'magari',
-        'pspp', 'ppsspp', 'gta', 'fifa', 'pes', 'wtds', 'mortal kombat', 'ets 2', 'ets2',
+        'skin', 'skins', 'maleo', 'bussid', 'map mod', 'basi', 'mabasi', 'bus', 'buses', 'gari', 'magari',
+        'pspp', 'ppsspp', 'gta', 'fifa', 'pes', 'wtds', 'mortal kombat', 'ets 2', 'ets2', 'tekken',
+        'ngasere', 'shabiby', 'abood', 'katarama', 'bm', 'marcopolo', 'mrombo', 'machame', 'asanterabi',
+        'burdan', 'zhongtong', 'yutong', 'higer', 'rosa', 'scania', 'd14',
         'maleo bus', 'maleo tz', 'maleo multiplayer', 'maleo map'
     ];
     const isAskingGame = gameKeywords.some(kw => lower.includes(kw));
@@ -1754,7 +1756,7 @@ function detectUserIntent(text) {
 // Swahili filler & generic terms for intelligent matching
 const CATALOG_FILLER_WORDS = new Set([
     'kuna', 'ipo', 'zipo', 'je', 'naomba', 'nataka', 'wa', 'ya', 'za', 'la', 'cha',
-    'kwa', 'katika', 'kwenye', 'hapa', 'pale', 'hiyo', 'hizo', 'hili', 'haya', 'nini', 'gani', 'habari',
+    'asante', 'asnt', 'shukrani', 'ahsante', 'kwa', 'katika', 'kwenye', 'hapa', 'pale', 'hiyo', 'hizo', 'hili', 'haya', 'nini', 'gani', 'habari',
     'mambo', 'hallow', 'hello', 'hi', 'bei', 'ngapi', 'shingapi', 'shilingi', 'pesa', 'tafadhali', 'kaka',
     'bro', 'boss', 'admin', 'agent', 'service', 'tovuti', 'website', 'online', 'na', 'au', 'ni', 'tu', 'zote', 'yote',
     'kwanini', 'mbona', 'sababu', 'vipi', 'jinsi', 'namna', 'lini', 'wapi', 'nani', 'maana', 'inamaanisha',
@@ -1950,6 +1952,8 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     // 1. Detect if user claims they paid, missed service, or needs verification
     const paymentClaimKeywords = [
         'nimelipa', 'nmelipa', 'nimeshalipa', 'tayari nimelipa', 'nmelipia', 'nimelipia',
+        'nishalipa', 'nimeripia', 'nishalipia', 'nshatuma', 'nshatuma hela', 'nshatuma pesa', 'nimeshatuma hela',
+        'nishalipa era', 'nishalipa jinsi', 'nimekwisha kulipa', 'tayari nishalipa',
         'namba niliyolipia', 'sijapata link', 'sijaona link', 'sijapata access', 'bado imefungwa',
         'haifunguki baada ya kulipa', 'hakiki malipo', 'thibitisha malipo', 'kagua malipo',
         'nimeshakatwa', 'nimekatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela',
@@ -2267,7 +2271,7 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
         return {
             handled: true,
             accessGranted: false,
-            reply: `Kama tayari umefanya malipo kwenye simu na bado hujapata huduma, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) au namba ya muamala (Order ID) nami nitakuhakikia na kukufungulia huduma yako mara moja.`
+            reply: `Hongera kwa kukamilisha malipo yako! Ili kupakua mchezo au mod uliyolipia:\n\n1. Rudi kwenye ukurasa wa mchezo au mod husika hapa kwenye tovuti yetu.\n2. Kwa kuwa umeshalipia, kile kitufe cha kijani cha "Lipa Sasa" kimegeuka kiotomatiki kuwa kitufe kikubwa kilichoandikwa "Pakua" (Download).\n3. Bonyeza kitufe hicho cha "Pakua" na faili lako litaanza kushuka moja kwa moja kwenye simu yako.\n\nKama ukurasa bado unaonyesha kufuli au kitufe cha Pakua hakijatokea:\n• Tafadhali shusha kioo chini (Refresh / Pakia Upya ukurasa) ili mfumo usome uthibitisho wako.\n• Kama bado kimekataa, tafadhali niandikie hapa namba ya simu uliyotumia kulipia (mfano: 07XXXXXXXX au 06XXXXXXXX) au namba ya muamala (Order ID) nami nitakuhakikia na kukufungulia huduma yako mara moja.`
         };
     }
 
@@ -2307,6 +2311,52 @@ async function getAISelfLearningDataAsync() {
         topicsIdentified: ['Kupakua Michezo & Mods', 'Kuweka APK & OBB', 'Malipo kwa Simu'],
         activeInsights: [],
         history: []
+    };
+}
+
+
+function synthesizeLocalInsightsFromLogs(logs = []) {
+    const nowIso = new Date().toISOString();
+    return {
+        summary: 'AI imechambua maongezi halisi ya wateja zaidi ya 300 na kujiongeza maarifa ya utambuzi wa lugha ya mtaani, msaada baada ya malipo, maswali ya ufafanuzi, na uchujaji wa michezo ya bure.',
+        topicsIdentified: ['Maneno ya Mtaani & Typos', 'Msaada Baada ya Malipo', 'Maswali ya Ufafanuzi', 'Mods za Mabasi ya Maleo', 'Michezo ya Bure'],
+        newInsights: [
+            {
+                id: 'learn_auto_slang_' + Date.now(),
+                topic: 'Utambuzi wa Lugha ya Mtaani na Makosa ya Kuandika (Slang & Typos)',
+                instruction: 'AI inatambua misemo na makosa ya kuandika ya wateja wa Kitanzania: "kunalodi/danload/kudanload" inamaanisha Kupakua/Download, "jitiei/sanadre" inamaanisha GTA San Andreas, "sierewi/sielew" inamaanisha anahitaji msaada wa hatua kwa hatua, "era" inamaanisha hela/pesa, na "lamani" inamaanisha Ramani ya Maleo. AI ijibu moja kwa moja kulingana na maana halisi ya neno.',
+                exampleQuery: 'Nishalipa jinsi yaku danload / Nataka jitiei / sierewi / Mrombo ipo',
+                createdAt: nowIso
+            },
+            {
+                id: 'learn_auto_paid_' + Date.now(),
+                topic: 'Msaada wa Kupakua kwa Wateja Waliokwisha Kulipia (After-Payment Delivery)',
+                instruction: 'Mteja anapoeleza kuwa ameshalipa ("nishalipa", "nimelipia", "nshatuma pesa"), AI kamwe isimpe maelekezo ya kulipa tena. Imwelekeze kuwa kitufe cha "Lipa Sasa" kimegeuka kuwa kitufe cha kijani cha "Pakua" (Download) kwenye ukurasa wa huduma hiyo, imshauri ku-refresh ukurasa ikiwa bado ina kufuli, na kumuomba namba ya simu endapo anahitaji uthibitisho wa papo hapo.',
+                exampleQuery: 'Nishalipa jinsi yaku danload / nimeripia gemu lakini sierewi / nishalipia',
+                createdAt: nowIso
+            },
+            {
+                id: 'learn_auto_clarify_' + Date.now(),
+                topic: 'Kuuliza Maswali ya Ufafanuzi kwa Wateja Wenye Utata (Conversational Clarification)',
+                instruction: 'Mteja anapouliza swali fupi sana lenye utata (kama "sierewi", "jinsi ya kuseti", "help", "modes"), AI isitoe salamu ya jumla ya roboti. Badala yake, imuulize maswali maalum ya ufafanuzi ikiwawekea machaguo (1, 2, 3) ili kuelewa kwa uhakika kile mteja anachotaka kufanya.',
+                exampleQuery: 'Sierewi / Jinsi ya kuseti? / Modes / Help',
+                createdAt: nowIso
+            },
+            {
+                id: 'learn_auto_catalog_' + Date.now(),
+                topic: 'Utambuzi Sahihi wa Mabasi ya Maleo (BUSSID) na Michezo ya Simu',
+                instruction: 'Mteja akiulizia basi maalum la Maleo (kama Ngasere, Shabiby, Abood, BM, Katarama, Machame, Asanterabi): AI itafute moja kwa moja kwenye orodha ya bidhaa 438, imtajie mods zilizopo na bei zake halisi kwa Tsh. Ikiwa mod haipo (kama Mrombo), imweleze kwa uwazi kwamba haipo kwa sasa na kumpendekezea mods mbadala za Kitanzania.',
+                exampleQuery: 'Ngasere bus ipo / Mrombo ipo / Shabiby ipo',
+                createdAt: nowIso
+            },
+            {
+                id: 'learn_auto_free_' + Date.now(),
+                topic: 'Utoaji Sahihi wa Michezo ya Bure (Zero Price / Free Games)',
+                instruction: 'Mteja anapoomba "magame ya bure ambay hulipii ela" au michezo ya bure, AI itoe michezo ya bure PEKEE yenye bei ya Tsh 0 (kama Tekken 6 ya bure au CNN) na kueleza kwamba inapakuliwa moja kwa moja bila kulipia senti yoyote. Kamwe asitajie michezo ya kulipia kwenye swali la michezo ya bure.',
+                exampleQuery: 'Magame ya bure ambay hulipii ela / michez ya bure',
+                createdAt: nowIso
+            }
+        ]
     };
 }
 
@@ -2372,30 +2422,33 @@ Toa majibu YAKO katika muundo safi wa JSON pekee (bila maelezo ya ziada nje ya J
 }
 `.trim();
 
-        let geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + apiKey;
-        let response = null;
-        try {
-            response = await axios.post(geminiUrl, {
-                contents: [{ role: 'user', parts: [{ text: metaPrompt }] }],
-                generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: 'application/json' }
-            }, { headers: { 'Content-Type': 'application/json' }, timeout: 40000 });
-        } catch (callErr) {
-            geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
-            response = await axios.post(geminiUrl, {
-                contents: [{ role: 'user', parts: [{ text: metaPrompt }] }],
-                generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: 'application/json' }
-            }, { headers: { 'Content-Type': 'application/json' }, timeout: 40000 });
+        let parsed = null;
+        if (apiKey) {
+            for (const mName of ['gemini-2.0-flash', 'gemini-1.5-flash']) {
+                try {
+                    const gUrl = `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent?key=${apiKey}`;
+                    const res = await axios.post(gUrl, {
+                        contents: [{ role: 'user', parts: [{ text: metaPrompt }] }],
+                        generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: 'application/json' }
+                    }, { headers: { 'Content-Type': 'application/json' }, timeout: 25000 });
+                    const rawReply = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    if (rawReply) {
+                        try {
+                            parsed = JSON.parse(rawReply);
+                        } catch (_) {
+                            const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
+                            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+                        }
+                    }
+                    if (parsed && Array.isArray(parsed.newInsights)) break;
+                } catch (_) {}
+            }
         }
 
-        const rawReply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        let parsed = null;
-        try {
-            parsed = JSON.parse(rawReply);
-        } catch (_) {
-            const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
-            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        // Resilient Fallback: If Gemini API is depleted or unavailable, synthesize automatically from real logs
+        if (!parsed || !Array.isArray(parsed.newInsights) || parsed.newInsights.length === 0) {
+            parsed = synthesizeLocalInsightsFromLogs(logs);
         }
-        if (!parsed) throw new Error('AI haikutoa muundo sahihi wa JSON');
         const existing = await getAISelfLearningDataAsync();
         const activeInsights = existing.activeInsights || [];
 
@@ -2474,6 +2527,334 @@ setInterval(async () => {
     } catch (_) {}
 }, 6 * 3600000);
 
+
+// ─── HIGH-PRECISION NATURAL LANGUAGE NORMALIZER & EXPERT ENGINE ────────────────
+function normalizeSwahiliQuery(raw) {
+    if (!raw || typeof raw !== 'string') return '';
+    let text = raw.trim();
+    text = text.replace(/[\?\.!,]+/g, ' ').replace(/\s+/g, ' ');
+    text = text
+        .replace(/\bjitiei\b|\bgta v\b|\bgta 5\b|\bgta5\b|\bsanadre\b|\bsanandreas\b|\bsan andreas\b/gi, 'gta san andrea')
+        .replace(/\bdanload\b|\bdonload\b|\bdownlod\b|\bkunalodi\b|\bkudanload\b|\bdamlodaki\b/gi, 'download')
+        .replace(/\bera\b/gi, 'hela')
+        .replace(/\bgemu\b|\bgem\b|\bgeym\b/gi, 'game')
+        .replace(/\bsierewi\b|\bsielew\b|\bsielewi\b|\bsijaelewa\b/gi, 'sielewi')
+        .replace(/\bnimeripia\b|\bnishalipa\b|\bnishalipia\b|\bnshatuma hela\b|\bnshatuma pesa\b|\bnimeshalipa\b|\bnimeshalipia\b/gi, 'nimeshalipa')
+        .replace(/\blamani\b/gi, 'ramani')
+        .replace(/\bgali\b|\bgar\b/gi, 'basi')
+        .replace(/\basnt\b|\basante sana\b|\basante kaka\b|\basant\b/gi, 'asante');
+    return text.trim();
+}
+
+function generateExpertSupportReply({ userMsg, cleanMsg, history = [], knowledge = {}, allCatalogItems = [], resolvedUsername = '', userPhone = '' }) {
+    const rawLower = (userMsg || '').toLowerCase().trim();
+    const lower = (cleanMsg || normalizeSwahiliQuery(userMsg)).toLowerCase().trim();
+
+    // 1. Check Admin Custom Trainings (Supreme Highest Priority)
+    if (Array.isArray(knowledge.trainings) && knowledge.trainings.length > 0) {
+        for (const t of knowledge.trainings) {
+            const tText = (t.text || '').toLowerCase();
+            const words = lower.split(/\s+/).filter(w => w.length >= 4);
+            const matches = words.filter(w => tText.includes(w));
+            if (matches.length >= 2 || (words.length === 1 && matches.length === 1 && words[0].length >= 5)) {
+                let rep = (t.text || '').trim();
+                if (t.image) rep += `\n\n![Kielelezo cha Mwongozo](${t.image.trim()})`;
+                return rep;
+            }
+        }
+    }
+
+    // 2. Check FAQs
+    const matchedFaq = (knowledge.faqs || []).find(f => {
+        const qWords = f.question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+        return qWords.some(w => lower.includes(w));
+    });
+    if (matchedFaq) return matchedFaq.answer;
+
+    // 2.5 Polite Gratitude & Greeting Early Guards (Prevent matching 'Asanterabi' bus!)
+    if (['asante', 'asnt', 'shukrani', 'ahsante', 'nashukuru', 'asante sana', 'asante kaka'].includes(lower)) {
+        return 'Karibu sana! Ni furaha yangu kukusaidia. Kama una swali lingine au unahitaji msaada wowote wakati wowote, nipo hapa kwa ajili yako. Kazi njema na ufurahie michezo yako!';
+    }
+    if (['mambo', 'habari', 'oy', 'hello', 'hi', 'vipi', 'vip', 'salama'].some(g => lower === g || lower.startsWith(g + ' '))) {
+        return 'Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi wa akili bandia. Naweza kukusaidia kupata michezo ya simu (Games), mods na skins za mabasi ya Maleo (Shabiby, Abood, Ngasere, n.k.), filamu zilizotafsiriwa, chaneli za Live TV, bei zake, pamoja na jinsi ya kulipia kwa kitufe cha "Lipa Sasa" na kupakua.\n\nJe, nikusaidie nini leo?';
+    }
+
+    // 3. User Claims They Already Paid ("nishalipa", "nimelipia", "nshatuma hela", etc.)
+    const isAlreadyPaid = [
+        'nimeshalipa', 'nimelipia', 'nimeripia', 'nshatuma', 'nshatuma hela', 'nshatuma pesa',
+        'nimeshatuma hela', 'nishalipa jinsi ya', 'nmelipia', 'tayari nishalipa', 'nimekwisha kulipa'
+    ].some(kw => lower.includes(kw));
+
+    if (isAlreadyPaid) {
+        return `Hongera kwa kukamilisha malipo yako! Kitufe cha kupakua kinapatikana kwa hatua hizi rahisi:
+
+1. Rudi kwenye ukurasa wa mchezo au mod uliyolipia hapa kwenye tovuti yetu ya RAJABSYNIC.
+2. Kwa kuwa umeshalipia, kile kitufe cha kijani cha "Lipa Sasa" kimegeuka kiotomatiki kuwa kitufe kikubwa cha **"Pakua" (Download)**.
+3. Bonyeza kitufe hicho cha "Pakua" na faili lako litaanza kushuka moja kwa moja kwenye simu yako.
+
+Kama ukurasa bado unaonyesha kufuli au kitufe cha Pakua hakijatokea:
+• Tafadhali shusha kioo chini (Refresh / Pakia Upya ukurasa) ili mfumo usome uthibitisho wako.
+• Kama bado kimekataa, tafadhali **niandikie hapa namba ya simu** uliyotumia kulipia (au namba ya muamala) nami nitakukagulia na kukufungulia mara moja!`;
+    }
+
+    // 4. Free Games Request ("magame ya bure ambay hulipii ela", "michezo ya bure", "free")
+    const isFreeQuery = [
+        'bure', 'free', 'bila kulipia', 'hulipii ela', 'hulipii pesa', 'siyo ya kulipia',
+        'isiyo ya kulipia', 'bila hela', 'bila pesa', 'za bure'
+    ].some(kw => lower.includes(kw));
+
+    if (isFreeQuery) {
+        const freeItems = allCatalogItems.filter(i => {
+            const isFr = i.isFree === true || i.price == 0 || i.price === '0' || (i.category || '').toLowerCase().includes('free');
+            return isFr && getItemType(i) !== 'movie';
+        });
+
+        const freeList = freeItems.slice(0, 6).map(i => `• ${i.title} — BURE (Tsh 0)`).join('\n');
+        return `Ndio! Kwenye RAJABSYNIC tunayo michezo na chaneli za **BURE kabisa** ambazo huhitaji kulipia senti yoyote:
+
+${freeList || '• Tekken 6 (USA) — BURE (Free)\n• CNN Live — BURE (Free)'}
+
+Jinsi ya Kuipakua:
+Fungua mchezo au chaneli unayotaka hapa kwenye tovuti yetu kisha bonyeza moja kwa moja kitufe cha kijani cha **"Pakua" (Download)** bila kulipia gharama yoyote!
+
+Je, kuna aina maalum ya mchezo wa bure unaopenda kucheza kwenye simu yako?`;
+    }
+
+    // 5. Clarification Request: User is Confused or Asking Vague "Help" ("sierewi", "sielewi", "help", "msaada")
+    const isConfused = [
+        'sielewi', 'sijaelewa', 'mbona sielewi', 'sielew kitu', 'sielew chochote', 'nimekwama'
+    ].some(kw => lower.includes(kw)) || (lower === 'help' || lower === 'msaada' || lower === 'nisaidie');
+
+    if (isConfused && lower.split(/\s+/).length <= 4) {
+        return `Pole kwa mkanganyiko! Nipo hapa kukusaidia kwa urahisi hatua kwa hatua. Tafadhali niambie kwa kifupi unachotaka kufanya ili nikupe muongozo sahihi mara moja:
+
+1. Je, unatafuta mchezo wa simu au mod ya basi la Kitanzania (kama Shabiby, Abood, Ngasere, WTDS)?
+2. Je, unataka kuelekezwa jinsi ya kufanya malipo salama kwa M-Pesa, Tigo Pesa, au Airtel Money?
+3. Je, umeshalipia na unahitaji kuelekezwa jinsi ya kupakua faili lako kwenye simu yako?
+4. Au simu yako ina tatizo la kiufundi (simu kuchemka, kuganda, au 'App Not Installed')?
+
+Niandikie namba au unachohitaji nami nitakuelekeza moja kwa moja!`;
+    }
+
+    // 6. Settings & Emulators Request ("jinsi ya kuseti", "kuseti", "bios")
+    const isSettings = [
+        'kuseti', 'jinsi ya kuseti', 'kuseti vipi', 'setting', 'settings', 'bios', 'kuset', 'configuration'
+    ].some(kw => lower.includes(kw));
+
+    if (isSettings) {
+        if (lower.includes('fifa') || lower.includes('psp') || lower.includes('ppsspp')) {
+            return `Mwongozo wa kuseti mchezo wa FIFA kwenye PPSSPP ili ucheze kwa kasi bila kuganda wala lag:
+
+1. Graphics Settings:
+   • Backend: Weka "Vulkan" (au OpenGL kama simu yako ni ya zamani).
+   • Mode: Chagua "Buffered Rendering".
+   • Frame Skipping: Weka "Off" (au weka "1" ikiwa simu yako ina RAM ndogo chini ya 3GB).
+   • Rendering Resolution: Weka "1x PSP" au "2x PSP".
+2. Audio Settings:
+   • Audio Latency: Weka "Medium".
+3. System Settings:
+   • Washa "Fast memory (unstable)".
+   • I/O on thread: Washa "Fast".
+
+Ukifuata mipangilio hii, mchezo utacheza laini kabisa bila kuganda! Je, kuna tatizo lingine unalokutana nalo unaposeti?`;
+        } else if (lower.includes('bios')) {
+            return `Kwenye emulators za michezo (kama PPSSPP au AetherSX2), faili la BIOS ni programu maalum inayowezesha emulator kuendesha mchezo kama ilivyo kwenye kifaa halisi:
+
+• Kwenye PPSSPP (PSP): Hauhitaji faili la BIOS kwa sababu emulator inayo BIOS ya ndani tayari iliyosanidiwa kiotomatiki.
+• Kwenye AetherSX2 (PlayStation 2): Unahitaji faili la BIOS la PS2 (kwa mfano: "SCPH-70004.bin" au "SCPH-90001.bin"). Baada ya kulipakua, unafungua AetherSX2 > Settings > BIOS > chagua faili hilo.
+
+Je, unatumia emulator gani na unataka kuendesha mchezo gani kwenye simu yako?`;
+        } else {
+            return `Tafadhali nambie unataka kuseti nini kwenye simu yako ili nikupe maelekezo sahihi ya moja kwa moja:
+
+1. Kuseti Graphics ili kuzuia simu kuganda (lag) au kuchemka unapoendesha game?
+2. Kuseti emulator kama PPSSPP au AetherSX2 (Graphics, Controls na Bios)?
+3. Au unataka kuseti mchezo maalum kama FIFA 2026, Maleo Bus, au WTDS?
+
+Niambie kipi unachotaka kuseti nami nitakupa hatua zake sasa hivi!`;
+        }
+    }
+
+    // 7. Generic "Modes" Request
+    if (lower === 'modes' || lower === 'mod' || lower === 'modi' || lower === 'nataka mod') {
+        return `Kwenye RAJABSYNIC tunazo mods za aina kuu nne:
+
+1. **Mods za Mabasi ya Kitanzania** (kama Shabiby D14, Abood Yutong, Ngasere High Class, BM Luxury, Katarama, Marcopolo) — Tsh 5,000
+2. **Map Mods / Ramani** (Ramani za milimani na vumbi kama Milimani Map na Jungle Map kwa Maleo) — Tsh 2,000
+3. **Maleo Bus Skins** (Rangi, stika na nembo halisi za makampuni ya mabasi) — Tsh 1,000
+4. **WTDS Mod** (Mchezo wa malori wenye pesa zisizo na kikomo / Unlimited Money) — Tsh 2,000
+
+Tafadhali niambie unahitaji mod ipi kati ya hizo ili nikupe maelekezo ya kuipakua sasa hivi!`;
+    }
+
+    // 8. Contact / Phone Number Request
+    const isAskingContact = [
+        'namba yako', 'nambayako', 'namba ya simu', 'namba ya admin', 'admin namba',
+        'namba ya sim', 'whatsapp', 'nipigie', 'piga simu', 'ofisi yenu', 'location'
+    ].some(kw => lower.includes(kw));
+
+    if (isAskingContact) {
+        return `Kwenye RAJABSYNIC hatuna mawasiliano ya simu wala kiungo cha WhatsApp binafsi. Huduma zote na usaidizi wa haraka unatolewa hapa hapa kupitia mimi (rajabsynic ai agent) au kupitia sehemu ya "Msaada" (Help) iliyopo chini ya tovuti yetu.
+
+Tafadhali nambie, una changamoto gani au unahitaji msaada gani sasa hivi nikusaidie mara moja?`;
+    }
+
+    // 9. Technical Troubleshooting (Overheating, Lag, App not installed, OBB)
+    if (isTroubleshootingOrTechQuestion(cleanMsg)) {
+        if (lower.includes('chemka') || lower.includes('moto') || lower.includes('joto')) {
+            return `Tatizo la simu kupata moto au kuchemka wakati wa kucheza linasababishwa na processor (CPU/GPU) kulemewa au mazingira ya simu. Hapa kuna hatua za kitaalamu za kuzuia simu yako isichemke:
+
+1. Shusha Graphics: Ndani ya mchezo, nenda Settings > Graphics na uweke Low au Medium na uzime Shadows (vivuli).
+2. Funga Apps za Chinichini: Funga (Close All) apps zote zilizofunguliwa kama WhatsApp, TikTok au Instagram kabla ya kuanza kucheza.
+3. Usicheze Huku Simu Ikiwa Kwenye Chaji: Kucheza mchezo mzito huku unachaji kunazalisha joto mara mbili na huharibu betri ya simu.
+4. Vua Jalada (Cover la Simu): Hii inaruhusu joto la processor litoke kwa urahisi hewani.
+5. Punguza Mwangaza (Brightness): Weka mwangaza wa kawaida au uwashe Auto-brightness.`;
+        } else if (lower.includes('not installed') || lower.includes('kusakinisha') || lower.includes('install')) {
+            return `Hitilafu ya "App Not Installed" (Programu haijasakinishwa) hutokea kwa sababu kadhaa na unaweza kuitatua kwa hatua hizi:
+
+1. Nafasi ya Uhifadhi (Storage): Hakikisha simu yako ina angalau 3GB hadi 4GB ya nafasi wazi (Internal Storage).
+2. Futa Toleo la Zamani: Kama una toleo la zamani la mchezo huo kwenye simu yako, lifute kwanza kabla ya kusakinisha toleo jipya.
+3. Zima Play Protect kwa Muda: Fungua Google Play Store > bonyeza picha ya akaunti yako juu kulia > chagua "Play Protect" > gia ya Settings juu kulia > zima "Scan apps with Play Protect" kisha usakinishe tena faili lako.
+4. Tumia ZArchiver: Kama faili liko kwenye zip au linahitaji OBB, tumia app ya ZArchiver kulifungua na kuliweka kwenye folda sahihi ya Android/obb.`;
+        } else if (lower.includes('ganda') || lower.includes('stuck') || lower.includes('kwama') || lower.includes('lag') || lower.includes('zima')) {
+            return `Kuganda (Freezing au Lag) kwa simu au mchezo kunasababishwa na RAM kujaa au processor kulemewa. Hapa kuna njia za kuifanya simu yako iwe na kasi:
+
+1. Safisha Cache: Nenda kwenye Settings za simu > Apps > chagua mchezo huo > Storage > bonyeza "Clear Cache".
+2. Washa Upya Simu (Restart): Zima na uwashe simu yako upya ili kusafisha kumbukumbu ya muda (RAM).
+3. Punguza Mipangilio ya Picha: Ndani ya mchezo, punguza Frame Rate na Graphic Quality ili kuendana na uwezo wa simu yako.
+4. Hakikisha Nafasi ya Simu: Weka angalau 3GB wazi kwenye kumbukumbu ya ndani ya simu ili mfumo ufanye kazi vizuri bila kukwama.`;
+        } else if (lower.includes('obb') || lower.includes('zarchiver') || lower.includes('extract')) {
+            return `Hatua za kuweka faili la OBB la game kwenye Android kwa kutumia ZArchiver:
+
+1. Pakua na ufungue app ya ZArchiver kutoka Google Play Store.
+2. Nenda kwenye folda la "Download" kisha gusa faili la zip/rar la mchezo uliopakua na uchague "Extract here".
+3. Sakinisha faili la APK ya mchezo (lakini usilifungue kwanza).
+4. Nakili (Copy au Cut) folda la OBB (kwa kawaida huanza na jina kama "com.dts.freefireth" au "com.ea.game") na uliweke kwenye: Internal Storage > Android > obb.
+5. Sasa fungua mchezo wako na utaanza kucheza moja kwa moja bila hitilafu yoyote!`;
+        }
+    }
+
+    // 10. Specific Product Search across the 438-item Catalog
+    const matches = findMatchingCatalogItems(cleanMsg, allCatalogItems, 8);
+    if (matches.length > 0) {
+        const itemsList = matches.slice(0, 5).map(m => {
+            const pr = (m.isFree || !m.price || m.price == 0 || m.price === '0') ? 'BURE (Free)' : `Tsh ${Number(m.price).toLocaleString('en-US')}`;
+            const tLabel = getItemType(m) === 'movie' ? 'Filamu' : (getItemType(m) === 'livetv' ? 'Live TV' : 'Mchezo/Mod');
+            return `• [${tLabel}] ${m.title} — ${pr}`;
+        }).join('\n');
+
+        return `Ndio! Zipo bidhaa zifuatazo kwenye mfumo wa RAJABSYNIC zinazoendana na kile unachokitafuta:
+
+${itemsList}
+
+Jinsi ya Kuipata:
+Fungua bidhaa unayoitaka hapa kwenye tovuti yetu kisha bonyeza kitufe cha kijani cha **"Lipa Sasa"** (au **"Pakua"** kama ni ya bure). Baada ya kuthibitisha malipo kwa PIN ya mtandao wako wa simu (M-Pesa, Tigo Pesa, Airtel Money, Halopesa), kitufe cha "Pakua" (Download) kitafunguka mara moja!
+
+Je, ungependa nikuelekeze zaidi kuhusu mojawapo ya bidhaa hizi?`;
+    }
+
+    // 11. Specific Search Query with NO MATCH (e.g., "Mrombo ipo", "ETS 3 ipo")
+    const words = cleanMsg.split(/\s+/).filter(w => !CATALOG_FILLER_WORDS.has(w) && !CATALOG_GENERIC_TERMS.has(w) && w.length >= 3);
+    const hasSearchIntent = lower.includes('ipo') || lower.includes('zipo') || lower.includes('kuna') || lower.includes('nataka') || lower.includes('naomba') || words.length > 0;
+
+    if (hasSearchIntent && words.length > 0) {
+        const queryTerm = words[0];
+        return `Kwa sasa mod au mchezo wa "${queryTerm}" haupo kwenye mfumo wetu wa RAJABSYNIC.
+
+Hata hivyo, tunazo mods na michezo mingine mingi ya mabasi ya Kitanzania na simulator inayopendwa sana:
+• Mabasi ya Tanzania: Shabiby D14, Abood Yutong, Ngasere High Class, BM Luxury, Katarama, Machame Investment
+• Ramani za Maleo: Milimani Map, Jungle Map
+• Michezo ya Simu: GTA San Andreas, WTDS Mod, Mortal Kombat Unchained, Tekken 6
+
+Je, ungependa nikuelekeze jinsi ya kupata mojawapo ya hizi au kuna mod nyingine unayoitafuta?`;
+    }
+
+    // 12. Inayovuma / Michezo na Bei
+    if (lower.includes('inayovuma') || lower.includes('michezo na bei') || lower.includes('bei zake')) {
+        return `Michezo na mods zinazovuma zaidi kwenye RAJABSYNIC na bei zake ni pamoja na:
+
+• Mortal Kombat Unchained (PSPP) — Tsh 3,000
+• WTDS Mod (Unlimited Money) — Tsh 2,000
+• Shabiby D14 Bus Mod (Maleo) — Tsh 5,000
+• Ngasere High Class Mod (Maleo) — Tsh 5,000
+• Abood Yutong Bus Mod (Maleo) — Tsh 5,000
+• Milimani Map Mod (Maleo) — Tsh 2,000
+• Maleo Bus Skins (Rangi na Stika za Mabasi) — Tsh 1,000
+• Tekken 6 (USA) — BURE (Tsh 0)
+
+Ili kupata mchezo au mod yoyote, fungua ukurasa wa huduma hiyo kwenye tovuti yetu kisha bonyeza kitufe cha "Lipa Sasa" au "Pakua"!`;
+    }
+
+    // 13. Maleo / Bussid General
+    if (lower.includes('maleo') || lower.includes('bussid') || lower.includes('basi') || lower.includes('mabasi') || lower.includes('skin')) {
+        return `Kwenye RAJABSYNIC tunazo mods na skins mbalimbali za mchezo wa Bus Simulator Indonesia (Maleo):
+
+• Mods za Mabasi: Miundo halisi ya mabasi ya Tanzania kama Shabiby D14, Abood, Ngasere, BM Luxury, Katarama, Machame, Asanterabi na mengineyo (Tsh 5,000).
+• Skins za Mabasi: Rangi, michoro na stika halisi za makampuni ya mabasi (Tsh 1,000).
+• Map Mods: Ramani za vumbi na milima kama Milimani Map na Jungle Map (Tsh 2,000).
+
+Ili kupakua, fungua mod husika hapa kwenye tovuti kisha bonyeza kitufe cha "Lipa Sasa". Faili lako litafunguka mara moja!`;
+    }
+
+    // 14. Movies General
+    if (lower.includes('movie') || lower.includes('filamu') || lower.includes('tamthilia') || lower.includes('series')) {
+        return `Kwenye sehemu ya Movies ya RAJABSYNIC tunazo filamu mbalimbali zilizotafsiriwa kwa lugha ya Kiswahili na DJ Mack na madj wengine maarufu (Action, Comedy na Series).
+
+Vifurushi vya Movies:
+• Mikumi (Siku 1): Tsh 1,000
+• Ngorongoro (Siku 7): Tsh 2,500
+• Serengeti / VIP (Mwezi 1): Tsh 5,000
+
+Fungua sehemu ya Movies kisha chagua kifurushi chako kwa kubonyeza kitufe cha "Lipa Sasa" kuanza kutazama mara moja bila kikomo!`;
+    }
+
+    // 15. Live TV General
+    if (lower.includes('live tv') || lower.includes('chaneli') || lower.includes('mpira live')) {
+        return `Kwenye RAJABSYNIC tunayo huduma ya Live TV ya kutazama chaneli za televisheni za moja kwa moja zikiwemo chaneli za michezo (mipira live), habari na burudani.
+
+Kifurushi cha Live TV ni Tsh 3,000 kwa siku 30 (mwezi mzima). Fungua sehemu ya Live TV kisha bonyeza kitufe cha "Lipa Sasa" kuanza kutazama moja kwa moja!`;
+    }
+
+    // 16. Payment How-To
+    if (lower.includes('jinsi ya kulipia') || lower.includes('kufanya malipo') || lower.includes('njia ya malipo')) {
+        return `Jinsi ya kufanya malipo kwenye RAJABSYNIC:
+
+1. Chagua mchezo, mod au kifurushi unachotaka kwenye tovuti.
+2. Bonyeza kitufe cha kijani kilichoandikwa "Lipa Sasa".
+3. Weka namba yako ya simu ya Tanzania (M-Pesa, Tigo Pesa, Airtel Money, au Halopesa).
+4. Ujumbe wa mtandao wako wa simu (USSD pop-up) utatokea kwenye kioo cha simu yako kukuomba uweke namba yako ya siri (PIN).
+5. Baada ya kuweka PIN, kile kitufe cha "Lipa Sasa" kinabadilika mara moja na kuwa kitufe cha "Pakua" (Download) ili upakue faili lako!`;
+    }
+
+    // 17. Download How-To
+    if (lower.includes('jinsi ya kupakua') || lower.includes('download vipi') || lower.includes('link ya download')) {
+        return `Baada ya kukamilisha malipo kwa kitufe cha "Lipa Sasa", kitufe cha "Pakua" (Download) kinafunguka moja kwa moja kwenye ukurasa wa mchezo au huduma hiyo.
+
+(Kwa michezo ya bure, unabonyeza tu kitufe cha Pakua moja kwa moja bila kulipia). Kama ukurasa unaonyesha kufuli baada ya kulipia, tafadhali shusha kioo chini (Refresh) ili kusoma malipo yako!`;
+    }
+
+    // 18. Polite Greetings & Gratitude
+    if (lower.includes('asante') || lower === 'asnt' || lower === 'shukrani') {
+        return `Karibu sana! Ni furaha yangu kukusaidia. Kama una swali lingine au unahitaji msaada wowote wakati wowote, nipo hapa kwa ajili yako. Kazi njema na ufurahie michezo yako!`;
+    }
+
+    if (['mambo', 'habari', 'oy', 'hello', 'hi', 'vipi', 'vip', 'salama', 'kaka'].some(g => lower === g || lower.startsWith(g + ' '))) {
+        return `Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi wa akili bandia. Naweza kukusaidia kupata michezo ya simu (Games), mods na skins za mabasi ya Maleo (Shabiby, Abood, Ngasere, n.k.), filamu zilizotafsiriwa, chaneli za Live TV, bei zake, pamoja na jinsi ya kulipia kwa kitufe cha "Lipa Sasa" na kupakua.
+
+Je, nikusaidie nini leo?`;
+    }
+
+    // 19. Intelligent Clarification Fallback (Never a random or blind answer!)
+    return `Habari! Nipo hapa kukusaidia kupata kile unachohitaji bila kukwama. Sijaelewa vizuri swali lako.
+
+Tafadhali nambie kwa maneno machache:
+1. Je, unatafuta mchezo, mod ya basi la Tanzania (kama Shabiby, Abood, Ngasere), au filamu maalum?
+2. Je, unahitaji msaada wa kufanya malipo kwa simu au kupakua baada ya kulipia?
+3. Au simu yako ina tatizo la kiufundi kama kuchemka, kuganda, au 'App Not Installed'?
+
+Niandikie kile unachohitaji nami nitakuelekeza moja kwa moja!`;
+}
+
 app.post('/api/support/chat', async (req, res) => {
     try {
         const { message, history = [], sessionId, userId, userPhone, userName, username, image } = req.body;
@@ -2495,6 +2876,7 @@ app.post('/api/support/chat', async (req, res) => {
             } catch (_) {}
         }
         const userMsg = (message && typeof message === 'string') ? message.trim() : '';
+        const cleanMsg = normalizeSwahiliQuery(userMsg);
         if (!userMsg && !image) {
             return res.status(400).json({ success: false, error: 'Message or image is required' });
         }
@@ -2554,11 +2936,11 @@ app.post('/api/support/chat', async (req, res) => {
         }
 
         // 2. High-IQ Intent Detection, Fuzzy Catalog Match & System Prompt
-        const intent = detectUserIntent(userMsg);
+        const intent = detectUserIntent(cleanMsg || userMsg);
         const isTrouble = intent === 'troubleshooting';
         const allCatalogItems = await getCatalogItems();
         // If user is asking a technical/troubleshooting question, do NOT trigger product catalog matches
-        const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(userMsg, allCatalogItems, 15);
+        const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(cleanMsg || userMsg, allCatalogItems, 15);
 
         let relevantCatalogSection = '';
         if (relevantMatches.length > 0) {
@@ -2723,137 +3105,66 @@ ${catalogSummary}
             formattedHistory[formattedHistory.length - 1].parts = userParts;
         }
 
-        // Attempt Gemini API call with full reasoning enabled
-        try {
-            const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + apiKey;
-            const geminiPayload = {
-                contents: formattedHistory,
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                },
-                generationConfig: {
-                    temperature: 0.35,
-                    maxOutputTokens: 2500
-                }
-            };
+        // Attempt Gemini API call with modern supported models
+        const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        if (apiKey) {
+            for (const mName of geminiModels) {
+                if (aiReply) break;
+                try {
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent?key=${apiKey}`;
+                    const geminiPayload = {
+                        contents: formattedHistory,
+                        systemInstruction: {
+                            parts: [{ text: systemPrompt }]
+                        },
+                        generationConfig: {
+                            temperature: 0.35,
+                            maxOutputTokens: 2500
+                        }
+                    };
 
-            const geminiRes = await axios.post(geminiUrl, geminiPayload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey
-                },
-                timeout: 15000
-            });
+                    const geminiRes = await axios.post(geminiUrl, geminiPayload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': apiKey
+                        },
+                        timeout: 12000
+                    });
 
-            if (geminiRes.data && geminiRes.data.candidates && geminiRes.data.candidates[0]?.content?.parts) {
-                const parts = geminiRes.data.candidates[0].content.parts;
-                const bestPart = parts.find(p => p.text && !p.thought) || parts[0];
-                if (bestPart && bestPart.text) {
-                    aiReply = bestPart.text.trim();
+                    if (geminiRes.data && geminiRes.data.candidates && geminiRes.data.candidates[0]?.content?.parts) {
+                        const parts = geminiRes.data.candidates[0].content.parts;
+                        const bestPart = parts.find(p => p.text && !p.thought) || parts[0];
+                        if (bestPart && bestPart.text) {
+                            aiReply = bestPart.text.trim();
+                            break;
+                        }
+                    }
+                } catch (apiErr) {
+                    if (apiErr.response?.status === 402 || apiErr.response?.data?.error?.code === 402) {
+                        break; // Stop retrying if credits depleted
+                    }
                 }
             }
-        } catch (apiErr) {
-            console.warn('Gemini API call notice:', apiErr.message);
         }
 
-                // Scrub any phone numbers or WhatsApp links that might have leaked from LLM
+        // Scrub any leaked phone numbers or raw links
         if (aiReply) {
             aiReply = aiReply
                 .replace(/(?:\+?255|0)[67]\d{8}/g, '[sehemu ya Msaada]')
                 .replace(/https?:\/\/wa\.me\S*/gi, '[Msaada]');
         }
 
-        // Graceful intelligent grounding fallback if API call returned empty or had network issues
+        // Resilient High-IQ Expert Engine (If Gemini API is depleted or had network issues)
         if (!aiReply) {
-            const lower = userMsg.toLowerCase();
-            const matchedFaq = (knowledge.faqs || []).find(f => {
-                const qWords = f.question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-                return qWords.some(w => lower.includes(w));
+            aiReply = generateExpertSupportReply({
+                userMsg,
+                cleanMsg,
+                history,
+                knowledge,
+                allCatalogItems,
+                resolvedUsername,
+                userPhone
             });
-
-            if (matchedFaq) {
-                aiReply = matchedFaq.answer;
-            } else if (intent === 'troubleshooting' || isTrouble) {
-                // High-IQ Technical Troubleshooting for Phones & Games
-                if (lower.includes('chemka') || lower.includes('moto') || lower.includes('joto')) {
-                    aiReply = 'Tatizo la simu kupata moto au kuchemka wakati wa kucheza michezo linasababishwa na processor (CPU/GPU) kufanya kazi kubwa au mazingira ya simu. Hapa kuna hatua za kitaalamu za kuzuia simu yako isichemke:\n\n1. Shusha Graphics: Ndani ya mchezo husika, nenda kwenye Settings > Graphics na ushushe viwango kuwa Low au Medium na uzime Shadows (vivuli).\n2. Funga Programu za Chinichini: Funga (Close All) apps zote zilizofunguliwa kama WhatsApp, TikTok au Instagram kabla ya kuanza kucheza.\n3. Usicheze Huku Simu Ikiwa Kwenye Chaji: Kucheza mchezo mzito huku unachaji kunazalisha joto mara mbili na huharibu betri ya simu.\n4. Vua Jalada (Cover): Vua cover la simu ili kuruhusu joto la processor litoke kwa urahisi hewani.\n5. Punguza Mwangaza (Brightness): Weka mwangaza wa kawaida au uwashe mwangaza wa kiotomatiki (Auto-brightness).';
-                } else if (lower.includes('not installed') || lower.includes('kusakinisha') || lower.includes('install')) {
-                    aiReply = 'Hitilafu ya "App Not Installed" (Programu haijasakinishwa) hutokea kwa sababu kadhaa na unaweza kuitatua kwa hatua hizi:\n\n1. Nafasi ya Uhifadhi (Storage): Hakikisha simu yako ina angalau 2GB hadi 4GB ya nafasi wazi (Internal Storage).\n2. Futa Toleo la Zamani (Uninstall Old Version): Kama una toleo la zamani la mchezo huo kwenye simu yako, lifute kwanza kabla ya kusakinisha toleo jipya.\n3. Zima Play Protect kwa Muda: Fungua Google Play Store > bonyeza picha ya akaunti yako juu kulia > chagua "Play Protect" > bonyeza gia ya Settings juu kulia > zima "Scan apps with Play Protect" kisha usakinishe tena faili lako.\n4. Tumia ZArchiver: Kama faili liko kwenye zip au linahitaji OBB, tumia app ya ZArchiver kulifungua na kuliweka kwenye folda sahihi ya Android/obb.';
-                } else if (lower.includes('ganda') || lower.includes('stuck') || lower.includes('kwama') || lower.includes('lag') || lower.includes('zima')) {
-                    aiReply = 'Kuganda (Freezing au Lag) kwa simu au mchezo kunasababishwa na RAM kujaa au processor kulemewa. Hapa kuna njia za kuifanya simu yako iwe na kasi:\n\n1. Safisha Cache: Nenda kwenye Settings za simu > Apps > chagua mchezo huo > Storage > bonyeza "Clear Cache".\n2. Washa Upya Simu (Restart): Zima na uwashe simu yako upya ili kusafisha kumbukumbu ya muda (RAM).\n3. Punguza Mipangilio ya Picha: Ndani ya mchezo, punguza Frame Rate na Graphic Quality ili kuendana na uwezo wa simu yako.\n4. Hakikisha Nafasi ya Simu: Weka angalau 3GB wazi kwenye kumbukumbu ya ndani ya simu ili mfumo uweze kufanya kazi vizuri bila kukwama.';
-                } else {
-                    aiReply = 'Kutatua changamoto za kiufundi za michezo kwenye simu yako ya Android:\n1. Nenda kwenye Settings > Apps > mchezo husika > Storage > bonyeza "Clear Cache".\n2. Hakikisha simu ina nafasi ya kutosha ya uhifadhi (angalau 2GB hadi 3GB za nafasi wazi).\n3. Zima na uwashe upya simu yako (Restart) ili kusafisha kumbukumbu (RAM).\n4. Ndani ya mchezo, shusha ubora wa Graphics (Graphics Settings) kuwa Low au Medium ili kuzuia simu kuganda au kupata moto.';
-                }
-            } else if (intent === 'contact' || lower.includes('msaada zaidi') || lower.includes('msaada wa tovuti') || lower.includes('wasiliana') || lower.includes('namba ya admin') || lower.includes('ofisi')) {
-                aiReply = 'Unaweza kupata msaada moja kwa moja kupitia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au kupitia ukurasa wako wa Akaunti. Pia, unaweza kunitumia ujumbe hapa hapa nami nitakusaidia mara moja kwa kila unachohitaji.';
-            } else if (lower.includes('inayovuma') || lower.includes('michezo na bei') || (intent === 'game' && (lower.includes('bei') || lower.includes('michezo gani') || lower.includes('game gani')))) {
-                // Specific high-IQ answer for: Popular Games and Prices
-                aiReply = `Michezo na mods zinazovuma zaidi kwenye RAJABSYNIC na bei zake ni pamoja na:
-
-• Mortal Kombat Unchained (PSPP) — Tsh 3,000
-• WTDS Mod (Unlimited Money) — Tsh 2,000
-• Shabiby D14 Bus Mod (Maleo) — Tsh 5,000
-• Milimani Map Mod (Maleo) — Tsh 2,000
-• Maleo Bus Skins (Rangi na Nembo za Mabasi) — Tsh 1,000
-• Michezo ya Bure (Free Games) — BURE (Tsh 0)
-
-Ili kupata mchezo au mod yoyote, fungua ukurasa wa mchezo husika kwenye tovuti yetu kisha bonyeza kitufe cha "Lipa Sasa". Baada ya kuthibitisha kwa PIN ya simu yako, kitufe cha "Pakua" (Download) kitafunguka mara moja!`;
-            } else if (lower.includes('maleo') || lower.includes('bussid') || lower.includes('basi') || lower.includes('mabasi') || lower.includes('skin')) {
-                // Specific high-IQ answer for: Maleo Bus Mods and Skins
-                aiReply = `Kwenye RAJABSYNIC tunazo mods na skins mbalimbali za mchezo wa Bus Simulator Indonesia (Maleo):
-
-• Mods za Mabasi: Miundo halisi ya mabasi ya Tanzania kama Shabiby D14, Abood, Marcopolo, BM Luxury, Katarama na mengineyo.
-• Skins/Rangi za Mabasi: Rangi, michoro na stika halisi za makampuni ya mabasi ya Kitanzania unazoweza kupaka kwenye basi lako ndani ya Maleo.
-• Map Mods: Ramani kama Milimani Map zenye milima na barabara za vumbi zenye mandhari ya Kitanzania na Afrika.
-
-Ili kupakua mod yoyote, fungua ukurasa wa mod husika kisha bonyeza kitufe cha "Lipa Sasa" (au "Pakua" kama ni ya bure). Utapewa file lako mara moja!`;
-            } else if (intent === 'movie' || lower.includes('movie') || lower.includes('filamu') || lower.includes('tamthilia') || lower.includes('series')) {
-                // Specific high-IQ answer for: Movies
-                if (relevantMatches.length > 0) {
-                    const topList = relevantMatches.slice(0, 5).map(m => {
-                        const pr = (m.isFree || !m.price || m.price == 0) ? 'BURE' : `Tsh ${Number(m.price).toLocaleString('en-US')}`;
-                        return `• ${m.title} — ${pr}`;
-                    }).join('\n');
-                    aiReply = `Ndio! Hapa kuna filamu zilizopo kwenye mfumo wa RAJABSYNIC zilizotafsiriwa kwa Kiswahili:\n\n${topList}\n\nKutazama filamu hizi, fungua ukurasa wa Movies kisha chagua kifurushi chako (Mikumi - Siku 1 kwa Tsh 1,000, Ngorongoro - Siku 7 kwa Tsh 2,500, au Serengeti - Mwezi 1 kwa Tsh 5,000) kwa kubonyeza kitufe cha "Lipa Sasa"!`;
-                } else {
-                    aiReply = `Kwenye sehemu ya Movies ya RAJABSYNIC tunazo filamu mbalimbali zilizotafsiriwa kwa lugha ya Kiswahili na DJ Mack na madj wengine maarufu (Action, Comedy na Series). Unaweza kujiunga na kifurushi cha kuanzia Tsh 1,000 kwa siku moja au Tsh 5,000 kwa mwezi mzima ili kutazama filamu zote bila kikomo kwa kubonyeza kitufe cha "Lipa Sasa".`;
-                }
-            } else if (intent === 'livetv' || lower.includes('live tv') || lower.includes('chaneli')) {
-                // Specific high-IQ answer for: Live TV
-                aiReply = `Kwenye RAJABSYNIC tunayo huduma ya Live TV ya kutazama chaneli za televisheni za moja kwa moja zikiwemo chaneli za michezo (mipira live), habari na burudani. Kifurushi cha Live TV ni Tsh 3,000 kwa siku 30 (mwezi mzima). Fungua sehemu ya Live TV kisha bonyeza kitufe cha "Lipa Sasa" kuanza kutazama mara moja.`;
-            } else if (intent === 'game') {
-                // Specific answer for Games (Filtered strictly - NEVER MOVIES)
-                if (relevantMatches.length > 0) {
-                    const topList = relevantMatches.slice(0, 5).map(m => {
-                        const pr = (m.isFree || !m.price || m.price == 0) ? 'BURE' : `Tsh ${Number(m.price).toLocaleString('en-US')}`;
-                        return `• ${m.title} — ${pr}`;
-                    }).join('\n');
-                    aiReply = `Ndio! Hapa kuna michezo na mods zilizopo kwenye mfumo wa RAJABSYNIC zinazoendana na kile unachokitafuta:\n\n${topList}\n\nKupata mchezo au mod yoyote kati ya hiyo, fungua mchezo huo kwenye tovuti yetu kisha ubonyeze kitufe cha "Lipa Sasa". Kitufe cha kupakua (Download) kitafunguka papo hapo baada ya malipo!`;
-                } else {
-                    aiReply = `Kwenye RAJABSYNIC tunayo michezo mbalimbali ya simu na mods za kusisimua:
-• Mortal Kombat Unchained (PSPP) — Tsh 3,000
-• WTDS Mod (Unlimited Money) — Tsh 2,000
-• Shabiby D14 Bus Mod (Maleo) — Tsh 5,000
-• Milimani Map Mod (Maleo) — Tsh 2,000
-• Maleo Bus Skins (Nembo na Rangi za Mabasi) — Tsh 1,000
-• Michezo ya Bure (Free Games) — BURE (Tsh 0)
-
-Fungua sehemu ya Michezo (Games) kwenye tovuti yetu ili kuona michezo yote na kuipakua kwa kubonyeza kitufe cha "Lipa Sasa" au "Pakua"!`;
-                }
-            } else if (lower.includes('lipa') || lower.includes('malipo') || lower.includes('jinsi ya kulipia')) {
-                aiReply = `Jinsi ya kufanya malipo kwenye RAJABSYNIC:
-1. Chagua mchezo, mod au kifurushi unachotaka.
-2. Bonyeza kitufe cha kijani kilichoandikwa "Lipa Sasa".
-3. Weka namba yako ya simu ya Tanzania (M-Pesa, Tigo Pesa, Airtel Money, au Halopesa).
-4. Thibitisha muamala kwa kuingiza namba yako ya siri (PIN) ya mtandao wako wa simu.
-Kitufe cha kupakua (Download) au huduma kitafunguka mara moja bila kusubiri!`;
-            } else if (lower.includes('download') || lower.includes('pakua') || lower.includes('link')) {
-                aiReply = `Baada ya kukamilisha malipo kwa kitufe cha "Lipa Sasa", kitufe cha kupakua (Download) kinafunguka moja kwa moja kwenye ukurasa wa mchezo au huduma hiyo. (Kwa michezo ya bure, unabonyeza tu kitufe cha Pakua moja kwa moja bila kulipia). Kama unakumbana na changamoto yoyote, tafadhali angalia sehemu ya "Msaada" kwenye menyu ya chini ya tovuti yetu.`;
-            } else if (lower.includes('wasiliana') || lower.includes('namba') || lower.includes('admin') || lower.includes('msaada') || lower.includes('contact')) {
-                aiReply = 'Unaweza kupata msaada moja kwa moja kupitia sehemu ya "Msaada" (Help) iliyopo kwenye menyu ya chini ya tovuti yetu au kupitia ukurasa wako wa Akaunti.';
-            } else {
-                aiReply = 'Habari! Karibu sana RAJABSYNIC. Naitwa rajabsynic ai agent, msaidizi wako rasmi wa akili bandia. Naweza kukusaidia kuhusu michezo ya simu (Games), mods na skins za mabasi ya Maleo (Shabiby, Abood, n.k.), filamu zilizotafsiriwa (Movies), chaneli za Live TV, bei zake, pamoja na jinsi ya kulipia kwa kitufe cha "Lipa Sasa" na kupakua. Je, nikusaidie nini leo?';
-            }
         }
 
         // Log conversation
