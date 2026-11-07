@@ -2424,7 +2424,7 @@ Toa majibu YAKO katika muundo safi wa JSON pekee (bila maelezo ya ziada nje ya J
 
         let parsed = null;
         if (apiKey) {
-            for (const mName of ['gemini-2.0-flash', 'gemini-1.5-flash']) {
+            for (const mName of ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-2.5-flash']) {
                 try {
                     const gUrl = `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent?key=${apiKey}`;
                     const res = await axios.post(gUrl, {
@@ -3105,8 +3105,8 @@ ${catalogSummary}
             formattedHistory[formattedHistory.length - 1].parts = userParts;
         }
 
-        // Attempt Gemini API call with modern supported models
-        const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        // Attempt Gemini API call with modern supported models (prioritize active 3.5 & flash-lite)
+        const geminiModels = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-2.5-flash'];
         if (apiKey) {
             for (const mName of geminiModels) {
                 if (aiReply) break;
