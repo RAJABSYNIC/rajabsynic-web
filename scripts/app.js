@@ -2060,6 +2060,10 @@ class Router {
                     <div style="width:130px; height:130px; border-radius:50%; overflow:hidden; margin:24px auto 0;">
                         <img src="/logo.jpeg" alt="Rajabsynic" style="width:100%; height:100%; object-fit:cover; transform:scale(1.04);">
                     </div>
+
+                    <p style="color:#6b7280; font-size:0.75rem; margin:16px 0 20px 0; letter-spacing:0.3px; text-align:center;">
+                        Copyright © 2026 RAJABSYNIC. All Rights Reserved.
+                    </p>
                 </div>
             </div>
         ` : `
