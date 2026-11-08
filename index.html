@@ -122,12 +122,12 @@
             <span style="color:#ffffff; margin-right:2px;">RAJAB</span><span
                 style="color:#00ff00">SYNIC</span>
         </div>
-        <div class="nav-actions flex items-center" style="gap: 15px;">
-            <div class="install-btn flex items-center" style="display: none; color: #00ff00; cursor: pointer; gap: 5px; font-weight: 600; font-size: 1rem;" onclick="triggerInstall()">
-                <ion-icon name="download-outline" style="font-size: 1.4rem;"></ion-icon>
-                <span>Install</span>
-            </div>
-            <ion-icon name="search-outline" style="font-size: 1.5rem;" id="search-trigger"
+        <div class="nav-actions flex items-center" style="gap: 12px;">
+            <button type="button" id="header-install-btn" class="install-btn flex items-center" onclick="triggerInstall()" style="display: inline-flex; background: rgba(0, 255, 0, 0.14); border: 1px solid rgba(0, 255, 0, 0.5); color: #00ff00; cursor: pointer; gap: 5px; font-weight: 700; font-size: 0.82rem; padding: 5px 11px; border-radius: 20px; text-decoration: none;">
+                <ion-icon name="cloud-download-outline" style="font-size: 1.15rem;"></ion-icon>
+                <span>Weka App</span>
+            </button>
+            <ion-icon name="search-outline" style="font-size: 1.5rem; cursor: pointer;" id="search-trigger"
                 onclick="app.router.toggleSearch()"></ion-icon>
             <!-- profile icon hidden for now; uncomment to restore
             <div class="profile-icon" id="profile-trigger" onclick="app.router.navigate('account')">
@@ -362,10 +362,118 @@
             style="background:none;border:none;color:#6b7280;font-size:1.3rem;cursor:pointer;padding:0;flex-shrink:0;line-height:1;">✕</button>
     </div>
 
+    <!-- 📲 PWA Smart Floating Install Banner -->
+    <div id="pwa-install-banner" style="
+        display: none;
+        position: fixed;
+        bottom: calc(var(--bottom-nav-height, 60px) + 14px);
+        left: 12px;
+        right: 12px;
+        max-width: 440px;
+        margin: 0 auto;
+        background: #0d131f;
+        border: 1px solid rgba(0, 255, 0, 0.45);
+        border-radius: 16px;
+        padding: 11px 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 255, 0, 0.2);
+        z-index: 999;
+        align-items: center;
+        gap: 12px;
+        animation: pwaSlideUp 0.35s ease-out;
+    ">
+        <img src="/logo.jpeg" alt="RAJABSYNIC" style="width: 42px; height: 42px; border-radius: 10px; object-fit: cover; flex-shrink: 0; border: 1px solid #333;">
+        <div style="flex: 1; min-width: 0;">
+            <div style="color: #fff; font-weight: 800; font-size: 0.9rem; line-height: 1.2;">Weka App ya RAJABSYNIC</div>
+            <div style="color: #9ca3af; font-size: 0.75rem; margin-top: 2px;">Fungua haraka bila browser • Bure</div>
+        </div>
+        <button type="button" onclick="triggerInstall()" style="
+            background: #00ff00;
+            color: #000;
+            border: none;
+            font-weight: 800;
+            font-size: 0.82rem;
+            padding: 8px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,255,0,0.35);
+        ">Weka Sasa</button>
+        <button type="button" onclick="dismissInstallBanner()" style="
+            background: none;
+            border: none;
+            color: #6b7280;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            flex-shrink: 0;
+        " title="Funga">&times;</button>
+    </div>
+
+    <!-- 📲 PWA Guided Installation Modal (for iOS Safari, Incognito, or manual install) -->
+    <div id="pwa-guide-modal" style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+    ">
+        <div style="
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 20px;
+            max-width: 420px;
+            width: 100%;
+            padding: 22px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+            position: relative;
+            color: #fff;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="/logo.jpeg" alt="RAJABSYNIC" style="width: 38px; height: 38px; border-radius: 10px; object-fit: cover;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #fff;">Weka App ya RAJABSYNIC</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #9ca3af;">Fuata hatua hizi kuweka app kwenye simu yako</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeInstallGuide()" style="background: none; border: none; color: #9ca3af; font-size: 1.4rem; cursor: pointer; padding: 4px;">✕</button>
+            </div>
+
+            <!-- Dynamic Guide Steps (filled by JS depending on iOS or Android/PC) -->
+            <div id="pwa-guide-steps" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+            </div>
+
+            <button type="button" onclick="closeInstallGuide()" style="
+                width: 100%;
+                background: #00ff00;
+                color: #000;
+                border: none;
+                font-weight: 800;
+                font-size: 0.95rem;
+                padding: 12px;
+                border-radius: 12px;
+                cursor: pointer;
+            ">Nimeelewa / Tayari</button>
+        </div>
+    </div>
+
     <style>
         @keyframes notifSlide {
             from { opacity:0; transform:translateX(-50%) translateY(-20px); }
             to   { opacity:1; transform:translateX(-50%) translateY(0); }
+        }
+        @keyframes pwaSlideUp {
+            from { opacity:0; transform:translateY(25px); }
+            to   { opacity:1; transform:translateY(0); }
         }
     </style>
 
@@ -424,9 +532,9 @@
         }
     </script>
 
-    <!-- PWA: Service Worker + Install Prompt -->
+    <!-- PWA: Service Worker + Intelligent Universal Install Prompt -->
     <script>
-        // Register Service Worker
+        // 1. Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
@@ -435,62 +543,151 @@
             });
         }
 
-        // Helper: Check if app is already installed or running in standalone mode
+        // 2. Check if currently running in installed standalone app mode
         function isAppInstalled() {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                               window.navigator.standalone === true ||
-                               document.referrer.includes('android-app://');
-            const isSaved = localStorage.getItem('pwa_installed') === 'true';
-            return isStandalone || isSaved;
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone === true ||
+                   document.referrer.includes('android-app://');
         }
 
-        // Hide install button immediately if app is already installed or running as PWA
-        function checkInstallButtonVisibility() {
-            const installBtn = document.querySelector('.install-btn');
-            if (!installBtn) return;
-            if (isAppInstalled()) {
-                localStorage.setItem('pwa_installed', 'true');
-                installBtn.style.display = 'none';
+        // 3. Manage UI visibility for navbar button & floating banner
+        let deferredPrompt = null;
+
+        function updateInstallUI() {
+            const installed = isAppInstalled();
+            const headerBtn = document.querySelector('.install-btn');
+            const banner = document.getElementById('pwa-install-banner');
+
+            if (installed) {
+                if (headerBtn) headerBtn.style.display = 'none';
+                if (banner) banner.style.display = 'none';
+                return;
+            }
+
+            // Always make the header button visible if not running as installed PWA
+            if (headerBtn) {
+                headerBtn.style.display = 'inline-flex';
+            }
+
+            // Show floating bottom banner after smooth delay if user hasn't dismissed it
+            const isDismissed = sessionStorage.getItem('pwa_banner_dismissed') === 'true';
+            if (banner && !isDismissed) {
+                setTimeout(() => {
+                    if (!isAppInstalled() && sessionStorage.getItem('pwa_banner_dismissed') !== 'true') {
+                        banner.style.display = 'flex';
+                    }
+                }, 1600);
             }
         }
-        checkInstallButtonVisibility();
-        document.addEventListener('DOMContentLoaded', checkInstallButtonVisibility);
 
-        // Capture install prompt (only show if not installed)
-        let deferredPrompt = null;
+        window.dismissInstallBanner = function() {
+            sessionStorage.setItem('pwa_banner_dismissed', 'true');
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'none';
+        };
+
+        // 4. Capture native browser install prompt (Chrome, Edge, Samsung Internet)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if (!isAppInstalled()) {
-                const installBtn = document.querySelector('.install-btn');
-                if (installBtn) installBtn.style.display = 'flex';
-            }
+            updateInstallUI();
         });
 
-        // Called when user taps Install button
+        // 5. Native appinstalled event
+        window.addEventListener('appinstalled', () => {
+            console.log('RAJABSYNIC PWA was successfully installed');
+            deferredPrompt = null;
+            const headerBtn = document.querySelector('.install-btn');
+            const banner = document.getElementById('pwa-install-banner');
+            const guideModal = document.getElementById('pwa-guide-modal');
+            if (headerBtn) headerBtn.style.display = 'none';
+            if (banner) banner.style.display = 'none';
+            if (guideModal) guideModal.style.display = 'none';
+        });
+
+        // 6. Main install action trigger
         window.triggerInstall = function() {
             if (deferredPrompt) {
+                // Native install dialog supported directly
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then(choice => {
                     if (choice.outcome === 'accepted') {
-                        console.log('App installed!');
-                        localStorage.setItem('pwa_installed', 'true');
-                        const installBtn = document.querySelector('.install-btn');
-                        if (installBtn) installBtn.style.display = 'none';
+                        console.log('PWA installation accepted by user');
+                        dismissInstallBanner();
                     }
                     deferredPrompt = null;
+                }).catch(err => {
+                    console.warn('Prompt error:', err);
+                    openInstallGuide();
                 });
+            } else {
+                // Fallback: iOS Safari, Incognito, or browser without active deferred prompt
+                openInstallGuide();
             }
         };
 
-        // Hide install button when appinstalled event fires
-        window.addEventListener('appinstalled', () => {
-            console.log('App installed event triggered');
-            localStorage.setItem('pwa_installed', 'true');
-            const installBtn = document.querySelector('.install-btn');
-            if (installBtn) installBtn.style.display = 'none';
-            deferredPrompt = null;
-        });
+        // 7. Interactive Step-by-Step Guide Modal (iOS Safari, Android Chrome, Incognito)
+        window.openInstallGuide = function() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const stepsContainer = document.getElementById('pwa-guide-steps');
+            const modal = document.getElementById('pwa-guide-modal');
+            if (!stepsContainer || !modal) return;
+
+            if (isIOS) {
+                stepsContainer.innerHTML = `
+                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
+                        <div style="font-size:0.85rem; line-height:1.4;">
+                            Kwenye <strong>Safari</strong>, bonyeza kitufe cha <strong>Share</strong> (alama ya kibox chenye mshale unaoelekea juu <ion-icon name="share-outline" style="vertical-align:middle;"></ion-icon>) chini ya screen.
+                        </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
+                        <div style="font-size:0.85rem; line-height:1.4;">
+                            Shuka chini kidogo kwenye orodha kisha uguse <strong>"Add to Home Screen"</strong> (Ongeza kwenye Skrini ya Mwanzo).
+                        </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
+                        <div style="font-size:0.85rem; line-height:1.4;">
+                            Bonyeza <strong>"Add"</strong> juu kulia. Icon ya RAJABSYNIC itawekwa mara moja kwenye screen ya simu yako!
+                        </div>
+                    </div>
+                `;
+            } else {
+                stepsContainer.innerHTML = `
+                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
+                        <div style="font-size:0.85rem; line-height:1.4;">
+                            Bonyeza alama ya <strong>nukta tatu (⋮)</strong> iliyopo juu kulia mwa browser yako ya Chrome.
+                        </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
+                        <div style="font-size:0.85rem; line-height:1.4;">
+                            Chagua <strong>"Install app"</strong> au <strong>"Weka kwenye skrini ya mwanzo"</strong> (Add to Home screen).
+                        </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
+                        <div style="font-size:0.85rem; line-height:1.4;">
+                            Thibitisha kwa kubonyeza <strong>"Install"</strong>. App itatokea kama application rasmi ya simu!
+                        </div>
+                    </div>
+                `;
+            }
+
+            modal.style.display = 'flex';
+        };
+
+        window.closeInstallGuide = function() {
+            const modal = document.getElementById('pwa-guide-modal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        // Initialize UI on load
+        document.addEventListener('DOMContentLoaded', updateInstallUI);
+        window.addEventListener('load', updateInstallUI);
     </script>
 
     <script>
