@@ -3110,21 +3110,29 @@ app.post('/api/support/chat', async (req, res) => {
         const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(cleanMsg || userMsg, allCatalogItems, 10);
 
         // 2b. Track Missing Demanded Content (User asking for games/mods/movies missing from catalog)
-        if (relevantMatches.length === 0 && !isTrouble) {
+        if (!isTrouble) {
             const isContentQuery = (intent === 'game' || intent === 'movie' || intent === 'livetv' || intent === 'both') ||
                 ['ipo', 'zipo', 'kuna', 'mna', 'mnao', 'naomba', 'nahitaji', 'nataka', 'game', 'mchezo', 'mod', 'movie', 'filamu', 'basi'].some(kw => (cleanMsg || userMsg).toLowerCase().includes(kw));
 
             if (isContentQuery) {
                 const missingItem = extractMissingItemInfo(userMsg, intent);
                 if (missingItem && missingItem.itemName) {
-                    recordMissingCatalogRequestAsync({
-                        itemName: missingItem.itemName,
-                        category: missingItem.category,
-                        rawQuery: userMsg,
-                        userPhone,
-                        userName: resolvedUsername,
-                        userId
-                    }).catch(err => console.warn('Record missing catalog demand notice:', err.message));
+                    const itemClean = missingItem.itemName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const existsInCatalog = allCatalogItems.some(i => {
+                        const tClean = (i.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                        return tClean.includes(itemClean) || (itemClean.length >= 6 && levenshteinDistance(tClean, itemClean) <= 1);
+                    });
+
+                    if (!existsInCatalog) {
+                        recordMissingCatalogRequestAsync({
+                            itemName: missingItem.itemName,
+                            category: missingItem.category,
+                            rawQuery: userMsg,
+                            userPhone,
+                            userName: resolvedUsername,
+                            userId
+                        }).catch(err => console.warn('Record missing catalog demand notice:', err.message));
+                    }
                 }
             }
         }
