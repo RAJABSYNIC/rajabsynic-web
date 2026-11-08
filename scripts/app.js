@@ -1999,6 +1999,18 @@ class Router {
                             <ion-icon name="logo-instagram" style="font-size:1.6rem; color:#fff;"></ion-icon>
                         </a>
 
+                        <!-- Facebook -->
+                        <a href="https://www.facebook.com/share/1CJR15w7V3/" target="_blank" rel="noopener noreferrer" style="
+                            width:50px; height:50px; border-radius:14px;
+                            background:#1877F2;
+                            display:flex; align-items:center; justify-content:center; text-decoration:none;
+                            box-shadow: 0 4px 12px rgba(24,119,242,0.35);
+                        ">
+                            <svg viewBox="0 0 320 512" width="18" height="26" fill="#ffffff" style="display:block;">
+                                <path d="M80 299.3V512H196V299.3h86.5l18-97.8H196V166.9c0-51.7 20.3-71.5 72.7-71.5c16.3 0 29.4 .4 37 1.2V7.9C291.4 4 256.4 0 236.2 0C129.3 0 80 50.5 80 159.4v42.1H14v97.8H80z"/>
+                            </svg>
+                        </a>
+
                         <!-- TikTok -->
                         <a href="https://www.tiktok.com/@rajabsynic?_r=1&_t=ZS-99hMHLZgQjv" target="_blank" style="
                             width:50px; height:50px; border-radius:14px;
