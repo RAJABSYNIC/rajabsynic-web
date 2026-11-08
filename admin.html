@@ -841,66 +841,6 @@
                 </div>
             </div>
 
-            <!-- DEMANDED MISSING PRODUCTS / REQUESTS TRACKER -->
-            <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; margin-top:20px; position:relative; overflow:hidden;">
-                <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #f97316, #ef4444, #eab308);"></div>
-                
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.3); display:flex; align-items:center; justify-content:center;">
-                            <ion-icon name="flame" style="color:#f97316; font-size:1.4rem;"></ion-icon>
-                        </div>
-                        <div>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <h2 style="margin:0; font-size:1.15rem; font-weight:800; color:#fff;">Huduma Zinazotafutwa Zisizopo Kwenye Mfumo</h2>
-                                <span id="ai-missing-count-badge" style="background:rgba(249,115,22,0.18); color:#f97316; border:1px solid rgba(249,115,22,0.35); padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:800;">0 maombi</span>
-                            </div>
-                            <p style="margin:2px 0 0 0; color:#9ca3af; font-size:0.78rem;">
-                                Michezo, modi na maudhui yaliyoulizwa na wateja kwenye AI lakini hayapo kwenye mfumo. Tumia orodha hii kupakia michezo inayotafutwa zaidi!
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Filter tabs & Refresh button -->
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <div style="display:flex; background:#0b0f19; border:1px solid #374151; border-radius:8px; padding:2px;">
-                            <button type="button" id="missing-tab-pending" class="missing-filter-btn" onclick="adminApp.filterMissingRequests('pending')" style="background:#1f2937; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
-                                Zinazosubiri (<span id="missing-pending-count">0</span>)
-                            </button>
-                            <button type="button" id="missing-tab-all" class="missing-filter-btn" onclick="adminApp.filterMissingRequests('all')" style="background:transparent; color:#9ca3af; border:none; padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
-                                Zote (<span id="missing-total-count">0</span>)
-                            </button>
-                            <button type="button" id="missing-tab-resolved" class="missing-filter-btn" onclick="adminApp.filterMissingRequests('resolved')" style="background:transparent; color:#9ca3af; border:none; padding:5px 12px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
-                                Zilizopakiwa (<span id="missing-resolved-count">0</span>)
-                            </button>
-                        </div>
-
-                        <button type="button" onclick="adminApp.loadMissingRequests()" style="background:#1f2937; border:1px solid #374151; color:#00ff80; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px;" title="Sasisha Orodha">
-                            <ion-icon name="refresh" style="font-size:1rem;"></ion-icon> <span>Sasisha</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Missing items table container -->
-                <div class="data-table-container" style="max-height:360px; overflow-y:auto; border:1px solid #1f2937; border-radius:10px;">
-                    <table class="data-table" style="width:100%; border-collapse:collapse;">
-                        <thead>
-                            <tr style="background:#0b0f19;">
-                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Jina la Huduma / Mchezo</th>
-                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Aina</th>
-                                <th style="padding:10px 14px; text-align:center; color:#9ca3af; font-size:0.78rem;">Wateja Walioomba</th>
-                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Muda wa Mwisho</th>
-                                <th style="padding:10px 14px; text-align:left; color:#9ca3af; font-size:0.78rem;">Swali Halisi la Mteja</th>
-                                <th style="padding:10px 14px; text-align:center; color:#9ca3af; font-size:0.78rem;">Vitendo (Actions)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ai-missing-requests-tbody">
-                            <tr><td colspan="6" style="text-align:center; padding:26px; color:#6b7280; font-size:0.85rem;">Inapakia maombi ya bidhaa zisizopo...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             <!-- LIVE AI CHAT LOGS TABLE -->
             <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; margin-top:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
