@@ -1284,6 +1284,115 @@ class ApiService {
             return [];
         }
     }
+
+    async getMissingRequests() {
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/missing-requests`, {
+                headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success) return data;
+            }
+        } catch (e) {
+            console.warn('Server getMissingRequests notice:', e);
+        }
+
+        // Client-side Firestore fallback
+        try {
+            if (db) {
+                const q = query(collection(db, 'missing_catalog_requests'), orderBy('count', 'desc'), limit(150));
+                const snap = await getDocs(q);
+                const items = [];
+                snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+                const pending = items.filter(i => i.status === 'pending').length;
+                const resolved = items.filter(i => i.status === 'resolved').length;
+                return {
+                    success: true,
+                    total: items.length,
+                    pending,
+                    resolved,
+                    items
+                };
+            }
+        } catch (fsErr) {
+            console.warn('Client Firestore getMissingRequests notice:', fsErr);
+        }
+
+        return { success: true, total: 0, pending: 0, resolved: 0, items: [] };
+    }
+
+    async resolveMissingRequest(id, status = 'resolved') {
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/missing-requests/${encodeURIComponent(id)}/resolve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': tok ? ('Bearer ' + tok) : ''
+                },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) return await res.json();
+        } catch (e) {
+            console.warn('Server resolveMissingRequest warning:', e);
+        }
+
+        // Firestore client fallback
+        try {
+            if (db) {
+                await updateDoc(doc(db, 'missing_catalog_requests', id), {
+                    status,
+                    resolvedAt: (status === 'resolved') ? new Date().toISOString() : null
+                });
+                return { success: true };
+            }
+        } catch (e) {}
+        return { success: false };
+    }
+
+    async deleteMissingRequest(id) {
+        try {
+            let tok = sessionStorage.getItem('rajab_admin_token') || '';
+            if (auth && auth.currentUser) {
+                try {
+                    tok = await auth.currentUser.getIdToken(true);
+                    sessionStorage.setItem('rajab_admin_token', tok);
+                } catch (_) {}
+            }
+            const res = await fetch(`${this.baseUrl}/api/admin/ai/missing-requests/${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': tok ? ('Bearer ' + tok) : ''
+                }
+            });
+            if (res.ok) return await res.json();
+        } catch (e) {
+            console.warn('Server deleteMissingRequest warning:', e);
+        }
+
+        // Firestore client fallback
+        try {
+            if (db) {
+                await deleteDoc(doc(db, 'missing_catalog_requests', id));
+                return { success: true };
+            }
+        } catch (e) {}
+        return { success: false };
+    }
 }
 
 const api = new ApiService();
