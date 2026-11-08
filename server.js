@@ -1630,9 +1630,14 @@ function extractMissingItemInfo(msg, intent) {
     const text = msg.trim();
     const lower = text.toLowerCase();
 
-    // Skip if troubleshooting, payment, greeting, or pure gratitude
-    const skipTrouble = ['simu inachemka', 'inaganda', 'haifunguki', 'jinsi ya kulipia', 'malipo', 'm-pesa', 'tigopesa', 'airtel', 'halopesa', 'kujiunga', 'akaunti', 'password', 'asante', 'ahsante', 'shukrani'];
-    if (skipTrouble.some(w => lower.includes(w)) && !lower.includes('game') && !lower.includes('mchezo') && !lower.includes('mod') && !lower.includes('movie') && !lower.includes('filamu')) {
+    // Skip if troubleshooting, payment claim, purchase complaint, greeting, or pure gratitude
+    const skipPaymentAndTrouble = [
+        'simu inachemka', 'inaganda', 'haifunguki', 'jinsi ya kulipia', 'malipo', 'm-pesa', 'tigopesa', 'airtel', 'halopesa',
+        'kujiunga', 'akaunti', 'password', 'asante', 'ahsante', 'shukrani',
+        'nimenunua', 'nimeshanunua', 'nmenunua', 'nishanunua', 'silipati', 'sijalipata', 'sijapata', 'ilasilipati', 'ila silipati',
+        'nimelipa', 'nimeshalipa', 'nimelipia', 'nimekatwa', 'sijapewa', 'pesa imetoka'
+    ];
+    if (skipPaymentAndTrouble.some(w => lower.includes(w))) {
         return null;
     }
 
@@ -2111,6 +2116,7 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     // 1. Detect if user claims they paid, missed service, or needs verification
     const paymentClaimKeywords = [
         'nimelipa', 'nmelipa', 'nimeshalipa', 'tayari nimelipa', 'nmelipia', 'nimelipia',
+        'nimenunua', 'nimeshanunua', 'nmenunua', 'nishanunua', 'nimenunua game', 'silipati', 'sijalipata', 'ila silipati', 'ilasilipati',
         'nishalipa', 'nimeripia', 'nishalipia', 'nshatuma', 'nshatuma hela', 'nshatuma pesa', 'nimeshatuma hela',
         'nishalipa era', 'nishalipa jinsi', 'nimekwisha kulipa', 'tayari nishalipa',
         'namba niliyolipia', 'sijapata link', 'sijaona link', 'sijapata access', 'bado imefungwa',
