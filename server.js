@@ -1907,7 +1907,7 @@ function findMatchingCatalogItems(query, allItems = [], maxResults = 25) {
     return scored.slice(0, maxResults).map(s => s.item);
 }
 
-// Helper: Build Catalog Summary for AI System Prompt, Strictly Grouped by Type
+// Helper: Build Lean, High-Efficiency Catalog Summary for AI System Prompt (Save tokens)
 async function getCatalogSummary() {
     const items = await getCatalogItems();
     if (!items || items.length === 0) {
@@ -1919,17 +1919,17 @@ async function getCatalogSummary() {
     const livetv = items.filter(i => getItemType(i) === 'livetv');
 
     const fmt = (i, label) => {
-        const price = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
-        return '- [' + label + '] "' + i.title + '" | Kategoria: ' + (i.category || label) + ' | Bei: ' + price;
+        const price = (i.isFree || !i.price || i.price == 0) ? 'BURE' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
+        return '- [' + label + '] "' + i.title + '" | Bei: ' + price;
     };
 
-    let summary = '═══ BIDHAA ZILIZOPO KWENYE MFUMO (ORODHA RASMI NA AINA YAKE) ═══\n';
-    summary += '1. MICHEZO NA MODS ZA MICHEZO (GAMES & MODS):\n';
-    summary += games.slice(0, 100).map(i => fmt(i, 'MCHEZO/MOD')).join('\n') + '\n\n';
-    summary += '2. FILAMU NA TAMTHILIA (MOVIES - zilizotafsiriwa kwa Kiswahili na DJ Mack n.k.):\n';
-    summary += movies.slice(0, 40).map(i => fmt(i, 'FILAMU/MOVIE')).join('\n') + '\n\n';
+    let summary = '═══ MUHTASARI MAALUM WA BIDHAA ZA MFUMO ═══\n';
+    summary += '1. MICHEZO NA MODS ZA MALEO (Shabiby, Abood, Ngasere, Katarama, n.k.):\n';
+    summary += games.slice(0, 15).map(i => fmt(i, 'MCHEZO/MOD')).join('\n') + '\n\n';
+    summary += '2. FILAMU ZILIZOTAFSIRIWA (DJ Mack n.k.):\n';
+    summary += movies.slice(0, 8).map(i => fmt(i, 'FILAMU/MOVIE')).join('\n') + '\n\n';
     summary += '3. CHANELI ZA LIVE TV:\n';
-    summary += livetv.slice(0, 15).map(i => fmt(i, 'LIVE TV')).join('\n');
+    summary += livetv.slice(0, 5).map(i => fmt(i, 'LIVE TV')).join('\n');
 
     return summary;
 }
@@ -2940,7 +2940,47 @@ app.post('/api/support/chat', async (req, res) => {
         const isTrouble = intent === 'troubleshooting';
         const allCatalogItems = await getCatalogItems();
         // If user is asking a technical/troubleshooting question, do NOT trigger product catalog matches
-        const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(cleanMsg || userMsg, allCatalogItems, 15);
+        const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(cleanMsg || userMsg, allCatalogItems, 10);
+
+        // 3. ZERO-TOKEN FAST LOCAL BRAIN:
+        // For pure greetings, gratitude, contacts, and basic clarification without images,
+        // answer instantly locally to save 100% of API token credits ($0.00 cost)!
+        const lowerClean = (cleanMsg || userMsg).toLowerCase().trim();
+        const isPureGreeting = !inlineImagePart && ['mambo', 'habari', 'oy', 'hello', 'hi', 'vipi', 'vip', 'salama', 'kaka', 'hallow', 'morning', 'habari za asubuhi', 'habari za mchana', 'habari za jioni'].some(g => lowerClean === g || lowerClean === g + '!');
+        const isPureGratitude = !inlineImagePart && ['asante', 'ahsante', 'shukrani', 'asnt', 'shukran', 'nashukuru', 'asante sana', 'ahsante sana', 'shukrani sana', 'poa', 'vizuri', 'ok', 'sawa'].some(g => lowerClean === g || lowerClean === g + '!');
+        const isPureContact = !inlineImagePart && isContactOrSupportQuestion(lowerClean) && (lowerClean.includes('namba') || lowerClean.includes('whatsapp') || lowerClean.includes('piga') || lowerClean.includes('simu') || lowerClean.includes('wasiliana'));
+        const isPureVague = !inlineImagePart && ['sierewi', 'sielewi', 'msaada', 'help', 'naomba msaada', 'nashindwa kuelewa', 'sijaelewa'].includes(lowerClean);
+
+        if (isPureGreeting || isPureGratitude || isPureContact || isPureVague) {
+            const localReply = generateExpertSupportReply({
+                userMsg,
+                cleanMsg,
+                intent,
+                relevantMatches,
+                knowledge
+            });
+
+            // Log conversation cleanly
+            const logEntry = {
+                id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                sessionId: sessionId || ('guest_' + Date.now()),
+                userMessage: userMsg,
+                botResponse: localReply,
+                timestamp: new Date().toISOString(),
+                isLocalSavedCost: true,
+                ip: req.ip || req.headers['x-forwarded-for'] || 'local'
+            };
+            logEntry.userName = resolvedUsername || null;
+            logEntry.username = resolvedUsername || null;
+            appendAIChatLog(logEntry);
+            if (fsdb) fsdb.collection('ai_chat_logs').add(logEntry).catch(() => {});
+
+            return res.json({
+                success: true,
+                reply: localReply,
+                botName: knowledge.botName || 'rajabsynic ai agent'
+            });
+        }
 
         let relevantCatalogSection = '';
         if (relevantMatches.length > 0) {
@@ -3076,9 +3116,10 @@ ${catalogSummary}
         const apiKey = process.env.GEMINI_API_KEY;
         let aiReply = '';
 
-        // Prepare clean, properly-alternating contents for Gemini API
+        // Prepare clean, cost-optimized alternating contents for Gemini API (Keep only last 4 messages)
         const formattedHistory = [];
-        for (const h of (history || [])) {
+        const trimmedHistory = Array.isArray(history) ? history.slice(-4) : [];
+        for (const h of trimmedHistory) {
             const role = (h.role === 'user') ? 'user' : 'model';
             const text = (h.text || h.message || '').trim();
             if (!text) continue;
@@ -3119,7 +3160,7 @@ ${catalogSummary}
                         },
                         generationConfig: {
                             temperature: 0.35,
-                            maxOutputTokens: 2500
+                            maxOutputTokens: 500
                         }
                     };
 
