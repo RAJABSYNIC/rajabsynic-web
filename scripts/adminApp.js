@@ -1475,18 +1475,19 @@
                     let todayGateways = {};
                     let yesterdayGateways = {};
 
+                    // Standard Tanzania Time (EAT = UTC+3) — all business metrics are based on Tanzania calendar day
                     const now = new Date();
-                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    
-                    const yesterdayStart = new Date(todayStart); 
-                    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-                    const yesterdayEnd = new Date(todayStart);
+                    const eatNow = new Date(now.getTime() + (3 * 3600000));
+                    const curYear = eatNow.getUTCFullYear();
+                    const curMonth = eatNow.getUTCMonth();
+                    const curDate = eatNow.getUTCDate();
 
-                    const last7DaysStart = new Date(todayStart);
-                    last7DaysStart.setDate(last7DaysStart.getDate() - 6);
-
-                    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const thisYearStart = new Date(now.getFullYear(), 0, 1);
+                    const todayStartMs = Date.UTC(curYear, curMonth, curDate) - (3 * 3600000);
+                    const yesterdayStartMs = todayStartMs - (24 * 3600000);
+                    const yesterdayEndMs = todayStartMs;
+                    const last7DaysStartMs = todayStartMs - (6 * 24 * 3600000);
+                    const thisMonthStartMs = Date.UTC(curYear, curMonth, 1) - (3 * 3600000);
+                    const thisYearStartMs = Date.UTC(curYear, 0, 1) - (3 * 3600000);
                     
                     if (!payments || payments.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #6b7280;">No payment records found.</td></tr>';
@@ -1496,8 +1497,8 @@
 
                     // Sort payments by date descending
                     payments.sort((a, b) => {
-                        const da = new Date(a.timestamp || a.createdAt || a.created_at || 0);
-                        const db = new Date(b.timestamp || b.createdAt || b.created_at || 0);
+                        const da = new Date(a.timestamp || a.createdAt || a.created_at || 0).getTime();
+                        const db = new Date(b.timestamp || b.createdAt || b.created_at || 0).getTime();
                         return db - da;
                     });
 
@@ -1522,14 +1523,14 @@
                         
                         const amt = parseFloat(p.amount) || 0;
                         const ts = p.timestamp || p.createdAt || p.created_at || '';
-                        const d = ts ? new Date(ts) : null;
+                        const d = ts ? new Date(ts).getTime() : 0;
                         
                         if (isCompleted) {
                             totalRev += amt; totalCount++;
                         }
                         
-                        if (d) {
-                            if (d >= todayStart) { 
+                        if (d > 0) {
+                            if (d >= todayStartMs) { 
                                 if(!todayGateways[gateway]) todayGateways[gateway] = {total: 0, count: 0, completed: 0, pending: 0, failed: 0, pendingAmt: 0, failedAmt: 0};
                                 todayGateways[gateway].count++;
                                 
@@ -1546,7 +1547,7 @@
                                     todayGateways[gateway].pending++;
                                 }
                             }
-                            else if (d >= yesterdayStart && d < yesterdayEnd) { 
+                            else if (d >= yesterdayStartMs && d < yesterdayEndMs) { 
                                 if(!yesterdayGateways[gateway]) yesterdayGateways[gateway] = {total: 0, count: 0, completed: 0, pending: 0, failed: 0, pendingAmt: 0, failedAmt: 0};
                                 yesterdayGateways[gateway].count++;
                                 
@@ -1565,9 +1566,9 @@
                             }
 
                             if (isCompleted) {
-                                if (d >= last7DaysStart) last7DaysRev += amt;
-                                if (d >= thisMonthStart) thisMonthRev += amt;
-                                if (d >= thisYearStart) thisYearRev += amt;
+                                if (d >= last7DaysStartMs) last7DaysRev += amt;
+                                if (d >= thisMonthStartMs) thisMonthRev += amt;
+                                if (d >= thisYearStartMs) thisYearRev += amt;
                             }
                         }
                     });
@@ -1694,7 +1695,7 @@
 
                     const tsRaw = p.timestamp || p.createdAt || p.created_at || '';
                     const dateObj = tsRaw ? new Date(tsRaw) : new Date();
-                    const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString();
+                    const dateStr = dateObj.toLocaleDateString('sw-TZ', { timeZone: 'Africa/Dar_es_Salaam', day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + dateObj.toLocaleTimeString('en-US', { timeZone: 'Africa/Dar_es_Salaam', hour: '2-digit', minute: '2-digit', hour12: true });
                     
                     const orderId = p.orderId || p.reference || p.order_id || p.id || '-';
                     let gateway = (p.gateway || '').toLowerCase();
@@ -1788,17 +1789,21 @@
                 let payments = this._allPayments || [];
                 if (!payments.length) { alert('No payments loaded. Click Refresh first.'); return; }
                 
+                // Standard Tanzania Time (EAT = UTC+3)
                 const now = new Date();
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const last7Start = new Date(todayStart);
-                last7Start.setDate(last7Start.getDate() - 6);
+                const eatNow = new Date(now.getTime() + (3 * 3600000));
+                const curYear = eatNow.getUTCFullYear();
+                const curMonth = eatNow.getUTCMonth();
+                const curDate = eatNow.getUTCDate();
+
+                const todayStartMs = Date.UTC(curYear, curMonth, curDate) - (3 * 3600000);
+                const last7StartMs = todayStartMs - (6 * 24 * 3600000);
 
                 let customStart = null, customEnd = null;
                 if (range === 'custom') {
                     if(!startDate || !endDate) { alert('Please select both start and end dates.'); return; }
-                    customStart = new Date(startDate);
-                    customEnd = new Date(endDate);
-                    customEnd.setHours(23, 59, 59, 999);
+                    customStart = new Date(startDate + 'T00:00:00+03:00').getTime();
+                    customEnd = new Date(endDate + 'T23:59:59.999+03:00').getTime();
                 }
 
                 // Filter for completed/success
@@ -1809,12 +1814,12 @@
                     
                     const ts = p.timestamp || p.createdAt || p.created_at || '';
                     if (!ts) return false;
-                    const d = new Date(ts);
+                    const d = new Date(ts).getTime();
                     
                     if (range === 'today') {
-                        return d >= todayStart;
+                        return d >= todayStartMs;
                     } else if (range === 'last7') {
-                        return d >= last7Start;
+                        return d >= last7StartMs;
                     } else if (range === 'custom') {
                         return d >= customStart && d <= customEnd;
                     }
@@ -2213,15 +2218,20 @@
                     // Lifetime total (used for chart summary)
                     const totalRevenue = completed.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
-                    // ── Calculate Month Revenue for Top Stat Card ─────────────────
+                    // ── Calculate Month Revenue for Top Stat Card (Tanzania Time) ──
                     const now = new Date();
-                    const currentYear = now.getFullYear();
-                    const currentMonth = now.getMonth();
+                    const eatNow = new Date(now.getTime() + (3 * 3600000));
+                    const currentYear = eatNow.getUTCFullYear();
+                    const currentMonth = eatNow.getUTCMonth();
+                    const curDate = eatNow.getUTCDate();
+                    const monthStartMs = Date.UTC(currentYear, currentMonth, 1) - (3 * 3600000);
+                    const monthEndMs = Date.UTC(currentYear, currentMonth + 1, 1) - (3 * 3600000);
+
                     const monthPayments = completed.filter(p => {
                         const ts = p.timestamp || p.createdAt || p.created_at || '';
                         if (!ts) return false;
-                        const d = new Date(ts);
-                        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+                        const d = new Date(ts).getTime();
+                        return !isNaN(d) && d >= monthStartMs && d < monthEndMs;
                     });
                     const monthRevenue = monthPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
@@ -2236,60 +2246,53 @@
                     const monthBadge = document.getElementById('stat-month-badge');
                     if (monthBadge) monthBadge.textContent = `${monthNamesSw[currentMonth]} ${currentYear}`;
 
-                    // ── Build period buckets ──────────────────────────────────
+                    // ── Build period buckets (Tanzania Time) ─────────────────────
                     let buckets = {}; // key → total amount
                     let filteredPayments = [];
                     let labelFn; // key → display label
 
+                    const todayStartMs = Date.UTC(currentYear, currentMonth, curDate) - (3 * 3600000);
+
                     if (period === '7days') {
-                        // Last 7 days: one bucket per day
+                        // Last 7 days: one bucket per day in Tanzania Time
                         for (let i = 6; i >= 0; i--) {
-                            const d = new Date(now);
-                            d.setDate(d.getDate() - i);
-                            const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+                            const bucketTime = new Date(todayStartMs - (i * 24 * 3600000) + (3 * 3600000));
+                            const key = bucketTime.toISOString().slice(0, 10); // YYYY-MM-DD
                             buckets[key] = 0;
                         }
-                        const cutoff = new Date(now); cutoff.setDate(now.getDate() - 6); cutoff.setHours(0,0,0,0);
+                        const cutoff = todayStartMs - (6 * 24 * 3600000);
                         filteredPayments = completed.filter(p => {
                             const ts = p.timestamp || p.createdAt || '';
-                            return ts && new Date(ts) >= cutoff;
+                            return ts && new Date(ts).getTime() >= cutoff;
                         });
                         labelFn = key => {
-                            const d = new Date(key + 'T00:00:00');
-                            return d.toLocaleDateString('sw-TZ', { weekday: 'short', day: 'numeric' });
+                            const d = new Date(key + 'T00:00:00+03:00');
+                            return d.toLocaleDateString('sw-TZ', { weekday: 'short', day: 'numeric', timeZone: 'Africa/Dar_es_Salaam' });
                         };
 
                     } else if (period === 'month') {
-                        // Current month: one bucket per day (1 → today)
-                        const year = now.getFullYear();
-                        const month = now.getMonth();
-                        const daysInMonth = now.getDate();
-                        for (let i = 1; i <= daysInMonth; i++) {
-                            const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                        // Current month: one bucket per day (1 → today in Tanzania Time)
+                        for (let i = 1; i <= curDate; i++) {
+                            const key = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
                             buckets[key] = 0;
                         }
-                        filteredPayments = completed.filter(p => {
-                            const ts = p.timestamp || p.createdAt || '';
-                            if (!ts) return false;
-                            const d = new Date(ts);
-                            return d.getFullYear() === year && d.getMonth() === month;
-                        });
+                        filteredPayments = monthPayments;
                         labelFn = key => {
-                            const d = new Date(key + 'T00:00:00');
-                            return d.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short' });
+                            const d = new Date(key + 'T00:00:00+03:00');
+                            return d.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', timeZone: 'Africa/Dar_es_Salaam' });
                         };
 
                     } else if (period === 'year') {
-                        // Current year: one bucket per month (Jan → now)
-                        const year = now.getFullYear();
-                        for (let m = 0; m <= now.getMonth(); m++) {
-                            const key = `${year}-${String(m + 1).padStart(2, '0')}`;
+                        // Current year: one bucket per month (Jan → now in Tanzania Time)
+                        for (let m = 0; m <= currentMonth; m++) {
+                            const key = `${currentYear}-${String(m + 1).padStart(2, '0')}`;
                             buckets[key] = 0;
                         }
+                        const yearStartMs = Date.UTC(currentYear, 0, 1) - (3 * 3600000);
                         filteredPayments = completed.filter(p => {
                             const ts = p.timestamp || p.createdAt || '';
                             if (!ts) return false;
-                            return new Date(ts).getFullYear() === year;
+                            return new Date(ts).getTime() >= yearStartMs;
                         });
                         labelFn = key => {
                             const [y, m] = key.split('-');
@@ -2301,8 +2304,8 @@
                         filteredPayments.forEach(p => {
                             const ts = p.timestamp || p.createdAt || '';
                             if (!ts) return;
-                            const d = new Date(ts);
-                            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            const d = new Date(new Date(ts).getTime() + (3 * 3600000));
+                            const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
                             if (!buckets[key]) buckets[key] = 0;
                         });
                         // Sort keys chronologically
@@ -2317,12 +2320,12 @@
                     filteredPayments.forEach(p => {
                         const ts = p.timestamp || p.createdAt || '';
                         if (!ts) return;
-                        const d = new Date(ts);
+                        const d = new Date(new Date(ts).getTime() + (3 * 3600000));
                         let key;
                         if (period === '7days' || period === 'month') {
                             key = d.toISOString().slice(0, 10);
                         } else {
-                            key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
                         }
                         if (key in buckets) buckets[key] += parseFloat(p.amount) || 0;
                     });
