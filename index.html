@@ -16,6 +16,30 @@
     <link rel="apple-touch-icon" href="/logo.jpeg">
     <link rel="icon" type="image/jpeg" href="/logo.jpeg">
     
+    <!-- ⚡ Early Native PWA Install Prompt Capture -->
+    <script>
+        window.deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.deferredPrompt = e;
+            console.log('⚡ [PWA] Native install prompt captured in head!');
+            if (typeof window.updateInstallUI === 'function') {
+                window.updateInstallUI();
+            }
+        });
+
+        window.addEventListener('appinstalled', function() {
+            console.log('🎉 [PWA] App was successfully installed!');
+            window.deferredPrompt = null;
+            const headerBtn = document.getElementById('header-install-btn');
+            if (headerBtn) headerBtn.style.display = 'none';
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'none';
+            const guideModal = document.getElementById('pwa-guide-modal');
+            if (guideModal) guideModal.style.display = 'none';
+        });
+    </script>
+    
     <!-- OneSignal Push Notifications -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -547,12 +571,15 @@
 
     <!-- PWA: Service Worker + Intelligent Universal Install Prompt -->
     <script>
-        // 1. Register Service Worker
+        // 1. Register Service Worker (OneSignalSDKWorker imports /sw.js)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('SW registered:', reg.scope))
-                    .catch(err => console.warn('SW registration failed:', err));
+                navigator.serviceWorker.register('/OneSignalSDKWorker.js', { scope: '/' })
+                    .then(reg => console.log('✅ PWA SW registered:', reg.scope))
+                    .catch(err => {
+                        console.warn('OneSignalSDKWorker failed, fallback /sw.js:', err);
+                        navigator.serviceWorker.register('/sw.js');
+                    });
             });
         }
 
@@ -564,11 +591,9 @@
         }
 
         // 3. Manage UI visibility for navbar button & floating banner
-        let deferredPrompt = null;
-
         function updateInstallUI() {
             const installed = isAppInstalled();
-            const headerBtn = document.querySelector('.install-btn');
+            const headerBtn = document.getElementById('header-install-btn') || document.querySelector('.install-btn');
             const banner = document.getElementById('pwa-install-banner');
 
             if (installed) {
@@ -589,7 +614,7 @@
                     if (!isAppInstalled() && sessionStorage.getItem('pwa_banner_dismissed') !== 'true') {
                         banner.style.display = 'flex';
                     }
-                }, 1600);
+                }, 1200);
             }
         }
 
@@ -602,15 +627,15 @@
         // 4. Capture native browser install prompt (Chrome, Edge, Samsung Internet)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
-            deferredPrompt = e;
+            window.deferredPrompt = e;
             updateInstallUI();
         });
 
         // 5. Native appinstalled event
         window.addEventListener('appinstalled', () => {
             console.log('RAJABSYNIC PWA was successfully installed');
-            deferredPrompt = null;
-            const headerBtn = document.querySelector('.install-btn');
+            window.deferredPrompt = null;
+            const headerBtn = document.getElementById('header-install-btn') || document.querySelector('.install-btn');
             const banner = document.getElementById('pwa-install-banner');
             const guideModal = document.getElementById('pwa-guide-modal');
             if (headerBtn) headerBtn.style.display = 'none';
@@ -618,25 +643,61 @@
             if (guideModal) guideModal.style.display = 'none';
         });
 
-        // 6. Main install action trigger
-        window.triggerInstall = function() {
-            if (deferredPrompt) {
-                // Native install dialog supported directly
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(choice => {
-                    if (choice.outcome === 'accepted') {
-                        console.log('PWA installation accepted by user');
+        // 6. Main install action trigger — Native prompt first!
+        window.triggerInstall = async function() {
+            if (isAppInstalled()) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'App Tayari Ipo Kwenye Simu!',
+                        text: 'App ya RAJABSYNIC tayari imewekwa kwenye kifaa chako.',
+                        icon: 'success',
+                        confirmButtonColor: '#00ff00',
+                        confirmButtonText: 'Sawa'
+                    });
+                }
+                return;
+            }
+
+            // A. If native prompt is ready, trigger it immediately
+            if (window.deferredPrompt) {
+                try {
+                    const promptEvent = window.deferredPrompt;
+                    await promptEvent.prompt();
+                    const choice = await promptEvent.userChoice;
+                    console.log('Install prompt result:', choice ? choice.outcome : '');
+                    if (choice && choice.outcome === 'accepted') {
                         dismissInstallBanner();
                     }
-                    deferredPrompt = null;
-                }).catch(err => {
-                    console.warn('Prompt error:', err);
-                    openInstallGuide();
-                });
-            } else {
-                // Fallback: iOS Safari, Incognito, or browser without active deferred prompt
-                openInstallGuide();
+                    window.deferredPrompt = null;
+                } catch (err) {
+                    console.warn('Install prompt error:', err);
+                }
+                return;
             }
+
+            // B. If prompt is in-flight on initial page load, wait up to 400ms
+            for (let i = 0; i < 4; i++) {
+                if (window.deferredPrompt) break;
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            if (window.deferredPrompt) {
+                try {
+                    const promptEvent = window.deferredPrompt;
+                    await promptEvent.prompt();
+                    const choice = await promptEvent.userChoice;
+                    if (choice && choice.outcome === 'accepted') {
+                        dismissInstallBanner();
+                    }
+                    window.deferredPrompt = null;
+                } catch (err) {
+                    console.warn('Install prompt error:', err);
+                }
+                return;
+            }
+
+            // C. Fallback for iOS Safari or Chrome Incognito
+            openInstallGuide();
         };
 
         // 7. Interactive Step-by-Step Guide Modal (iOS Safari, Android Chrome, Incognito)
