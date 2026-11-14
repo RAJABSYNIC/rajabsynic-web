@@ -85,6 +85,11 @@ class Router {
             this.movieHeroTimer = null;
         }
 
+        if (this.slideInterval && route !== 'home') {
+            clearInterval(this.slideInterval);
+            this.slideInterval = null;
+        }
+
         console.log(`Navigating to ${route} with param ${param}`);
         this.currentRoute = route;
 
@@ -169,6 +174,7 @@ class Router {
         await this.ensureContent();
         await this.loadCustomCategories();
         this.renderSections();
+        this.renderSlider();
         this.initCategoryFilter();
     }
 
@@ -267,56 +273,235 @@ class Router {
 
     renderSlider() {
         const sliderContainer = document.getElementById('hero-slider');
-        let trendingPool = this.cachedContent.filter(i => i.isTrending);
-        if (trendingPool.length === 0) trendingPool = this.cachedContent.slice(0, 3);
+        const dotsContainer = document.getElementById('hero-slider-dots');
+        if (!sliderContainer) return;
 
-        const slides = trendingPool.slice(0, 3).map(i => ({
-            title: i.title, desc: "New Release", image: i.image.replace('300x450', '800x600'), action: i.category
-        }));
+        // 1. Gather candidates: prioritizing trending items
+        let pool = (this.cachedContent || []).filter(i => i.isTrending && i.contentType !== 'adult');
 
-        // Fallback if no content at all
-        if (slides.length === 0) {
-            slides.push({ title: "Welcome", desc: "Enjoy our content", image: "https://placehold.co/800x600/111/fff", action: "tanzania-games" });
+        // 2. Supplement if fewer than 5 items
+        if (pool.length < 5) {
+            const tzGames = this.sortTanzaniaGames(
+                (this.cachedContent || []).filter(i => i.category === 'tanzania-games' && !pool.some(p => p.id === i.id))
+            );
+            pool = pool.concat(tzGames);
+        }
+        if (pool.length < 5) {
+            const maleoMods = (this.cachedContent || []).filter(i => 
+                (i.category === 'maleo-bus-mod' || i.category === 'maleo-map-mod' || i.category === 'ets-2-mod-bus') &&
+                !pool.some(p => p.id === i.id)
+            );
+            pool = pool.concat(maleoMods);
+        }
+        if (pool.length < 5) {
+            const otherItems = (this.cachedContent || []).filter(i => 
+                !pool.some(p => p.id === i.id) && i.contentType !== 'adult'
+            );
+            pool = pool.concat(otherItems);
+        }
+
+        const featuredItems = pool.slice(0, 5);
+
+        // Fallback placeholder if no items
+        if (featuredItems.length === 0) {
+            sliderContainer.innerHTML = '<div class="hero-slide-placeholder shimmer"></div>';
+            if (dotsContainer) dotsContainer.innerHTML = '';
+            return;
         }
 
         let slideHTML = '';
-        let dotsHTML = '<div class="slider-dots">';
+        let dotsHTML = '';
 
-        slides.forEach((slide, index) => {
-            const item = trendingPool[index];
+        featuredItems.forEach((item, index) => {
+            const isActive = index === 0;
+            const isFree = item.isFree === true || !item.price || item.price == 0;
+            const priceText = isFree ? 'BURE' : `Tsh ${Number(item.price).toLocaleString()}`;
+            const categoryLabel = this.formatCategoryLabel(item.category);
+            const imageUrl = item.image ? item.image.replace('300x450', '800x600') : '/assets/hero-avengers.jpg';
+            const badge = item.isTrending ? 'Inavuma Sasa' : categoryLabel;
+
             slideHTML += `
-                <div class="hero-slide ${index === 0 ? 'active' : ''}" style="background-image: url('${slide.image}');" onclick="window.app.router.navigate('details', '${item.id}')">
-                    <div class="slider-overlay">
-                        <div class="slide-content">
-                            <h2>${slide.title}</h2>
-                            <p>${slide.desc}</p>
+                <div class="hero-slide ${isActive ? 'active' : ''}" 
+                     onclick="window.app.router.onSlideClick('${item.id}')"
+                     role="button"
+                     tabindex="0"
+                     aria-label="${(item.title || 'Game').replace(/"/g, '&quot;')}">
+                    <img src="${imageUrl}" class="hero-slide-bg" alt="${(item.title || 'Banner').replace(/"/g, '&quot;')}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async" onerror="this.src='/assets/hero-avengers.jpg'">
+                    <div class="hero-slider-overlay">
+                        <div class="hero-slide-content">
+                            <span class="hero-slide-badge">
+                                <ion-icon name="${item.isTrending ? 'flame' : 'game-controller'}"></ion-icon>
+                                ${badge}
+                            </span>
+                            <h2 class="hero-slide-title">${item.title || ''}</h2>
+                            <div class="hero-slide-meta">
+                                <span class="hero-slide-price ${isFree ? 'is-free' : ''}">
+                                    <ion-icon name="${isFree ? 'checkmark-circle' : 'lock-closed'}"></ion-icon>
+                                    ${priceText}
+                                </span>
+                                <span class="hero-slide-cta">
+                                    <span>Tazama</span>
+                                    <ion-icon name="arrow-forward"></ion-icon>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
-            dotsHTML += `<div class="dot ${index === 0 ? 'active' : ''}" onclick="window.app.router.goToSlide(${index})"></div>`;
-        });
-        dotsHTML += '</div>';
 
-        if (sliderContainer) {
-            sliderContainer.innerHTML = slideHTML + dotsHTML;
-            if (this.slideInterval) clearInterval(this.slideInterval);
-            this.currentSlide = 0;
-            this.slideInterval = setInterval(() => this.nextSlide(), 4000);
+            dotsHTML += `
+                <div class="hero-dot ${isActive ? 'active' : ''}" 
+                     onclick="event.stopPropagation(); window.app.router.goToSlide(${index})" 
+                     title="Slide ${index + 1}"></div>
+            `;
+        });
+
+        sliderContainer.innerHTML = slideHTML;
+        if (dotsContainer) dotsContainer.innerHTML = featuredItems.length > 1 ? dotsHTML : '';
+
+        // Arrows visibility: hide if only 1 item
+        const prevBtn = document.querySelector('.hero-slider-arrow.prev');
+        const nextBtn = document.querySelector('.hero-slider-arrow.next');
+        if (prevBtn) prevBtn.style.display = featuredItems.length > 1 ? 'flex' : 'none';
+        if (nextBtn) nextBtn.style.display = featuredItems.length > 1 ? 'flex' : 'none';
+
+        // Setup timer & gestures
+        this.currentSlide = 0;
+        if (this.slideInterval) clearInterval(this.slideInterval);
+        if (featuredItems.length > 1) {
+            this.startSlideTimer();
         }
+        this.initSliderGestures();
     }
 
-    nextSlide() { this.goToSlide(this.currentSlide + 1); }
+    formatCategoryLabel(cat) {
+        if (!cat) return 'Tanzania Games';
+        const map = {
+            'tanzania-games': 'Tanzania Games',
+            'maleo-bus-mod': 'Maleo Bus Mod',
+            'maleo-bus-mod-multi': 'Maleo Bus Mod',
+            'maleo-bus-skin': 'Maleo Bus Skin',
+            'maleo-map-mod': 'Maleo Map Mod',
+            'ets-2-mod-bus': 'ETS 2 Mod Bus',
+            'free-games': 'Games',
+            'free-games-all': 'Free Games',
+            'free': 'Free Games',
+            'program-and-app': 'Program & App',
+            'movies': 'Movies'
+        };
+        return map[cat] || cat.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    onSlideClick(itemId) {
+        if (this.isSwiping) return;
+        if (!itemId) return;
+        this.navigate('details', itemId);
+    }
+
+    nextSlide() {
+        this.goToSlide(this.currentSlide + 1);
+        this.startSlideTimer();
+    }
+
+    prevSlide() {
+        this.goToSlide(this.currentSlide - 1);
+        this.startSlideTimer();
+    }
 
     goToSlide(n) {
         const slides = document.querySelectorAll('.hero-slide');
-        const dots = document.querySelectorAll('.dot');
+        const dots = document.querySelectorAll('.hero-dot');
         if (slides.length === 0) return;
         this.currentSlide = (n + slides.length) % slides.length;
-        slides.forEach(s => s.classList.remove('active'));
-        dots.forEach(d => d.classList.remove('active'));
-        slides[this.currentSlide].classList.add('active');
-        dots[this.currentSlide].classList.add('active');
+        slides.forEach((s, idx) => {
+            if (idx === this.currentSlide) {
+                s.classList.add('active');
+            } else {
+                s.classList.remove('active');
+            }
+        });
+        dots.forEach((d, idx) => {
+            if (idx === this.currentSlide) {
+                d.classList.add('active');
+            } else {
+                d.classList.remove('active');
+            }
+        });
+    }
+
+    startSlideTimer() {
+        if (this.slideInterval) clearInterval(this.slideInterval);
+        this.slideInterval = setInterval(() => {
+            if (this.currentRoute === 'home') {
+                const slides = document.querySelectorAll('.hero-slide');
+                if (slides.length > 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+        }, 4500);
+    }
+
+    pauseSlideTimer() {
+        if (this.slideInterval) {
+            clearInterval(this.slideInterval);
+            this.slideInterval = null;
+        }
+    }
+
+    resumeSlideTimer() {
+        if (this.currentRoute === 'home' && !this.slideInterval) {
+            this.startSlideTimer();
+        }
+    }
+
+    initSliderGestures() {
+        const container = document.getElementById('hero-slider-container');
+        if (!container || container._gesturesBound) return;
+        container._gesturesBound = true;
+
+        let startX = 0;
+        let startY = 0;
+        let isTouching = false;
+
+        container.addEventListener('mouseenter', () => this.pauseSlideTimer());
+        container.addEventListener('mouseleave', () => this.resumeSlideTimer());
+
+        container.addEventListener('touchstart', (e) => {
+            if (!e.touches || e.touches.length === 0) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isTouching = true;
+            this.pauseSlideTimer();
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!isTouching || !e.touches || e.touches.length === 0) return;
+            const diffX = Math.abs(e.touches[0].clientX - startX);
+            const diffY = Math.abs(e.touches[0].clientY - startY);
+            if (diffX > 15 && diffX > diffY) {
+                this.isSwiping = true;
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchend', (e) => {
+            if (!isTouching) return;
+            isTouching = false;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const endX = e.changedTouches[0].clientX;
+                const diff = startX - endX;
+                if (Math.abs(diff) > 40) {
+                    if (diff > 0) {
+                        this.nextSlide();
+                    } else {
+                        this.prevSlide();
+                    }
+                }
+            }
+            setTimeout(() => {
+                this.isSwiping = false;
+            }, 250);
+            this.resumeSlideTimer();
+        }, { passive: true });
     }
 
     sortTanzaniaGames(items) {
@@ -2926,7 +3111,7 @@ const app = {
                 if (parsedContent && parsedContent.length > 0) {
                     this.router.cachedContent = parsedContent;
                     if (this.router.currentRoute === 'home') {
-                        this.router.renderHero();
+                        this.router.renderSlider();
                         this.router.renderSections();
                     }
                 }
