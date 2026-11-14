@@ -235,12 +235,12 @@ a {
 }
 
 .hero-slide-title {
-    font-size: clamp(0.92rem, 3.2vw, 1.45rem);
+    font-size: clamp(1rem, 3.6vw, 1.55rem);
     font-weight: 800;
     color: #ffffff;
-    line-height: 1.2;
-    margin: 2px 0 4px 0;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+    line-height: 1.25;
+    margin: 0 0 6px 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -255,16 +255,18 @@ a {
 }
 
 .hero-slide-price {
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.8);
     color: #00ff00;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(0, 255, 0, 0.35);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 0, 0.4);
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .hero-slide-price.is-free {
@@ -375,21 +377,13 @@ a {
     .hero-slider-overlay {
         padding: 10px 12px;
     }
-    .hero-slide-badge {
-        font-size: 0.62rem;
-        padding: 2px 7px;
-    }
     .hero-slide-title {
-        font-size: 0.92rem;
-        margin-bottom: 2px;
+        font-size: 0.98rem;
+        margin-bottom: 4px;
     }
     .hero-slide-price {
-        font-size: 0.66rem;
-        padding: 2px 6px;
-    }
-    .hero-slide-cta {
-        font-size: 0.64rem;
-        padding: 2px 8px;
+        font-size: 0.7rem;
+        padding: 3px 8px;
     }
     .hero-slider-arrow {
         width: 26px;

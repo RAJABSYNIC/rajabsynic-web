@@ -316,9 +316,7 @@ class Router {
             const isActive = index === 0;
             const isFree = item.isFree === true || !item.price || item.price == 0;
             const priceText = isFree ? 'BURE' : `Tsh ${Number(item.price).toLocaleString()}`;
-            const categoryLabel = this.formatCategoryLabel(item.category);
             const imageUrl = item.image ? item.image.replace('300x450', '800x600') : '/assets/hero-avengers.jpg';
-            const badge = item.isTrending ? 'Inavuma Sasa' : categoryLabel;
 
             slideHTML += `
                 <div class="hero-slide ${isActive ? 'active' : ''}" 
@@ -329,19 +327,11 @@ class Router {
                     <img src="${imageUrl}" class="hero-slide-bg" alt="${(item.title || 'Banner').replace(/"/g, '&quot;')}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async" onerror="this.src='/assets/hero-avengers.jpg'">
                     <div class="hero-slider-overlay">
                         <div class="hero-slide-content">
-                            <span class="hero-slide-badge">
-                                <ion-icon name="${item.isTrending ? 'flame' : 'game-controller'}"></ion-icon>
-                                ${badge}
-                            </span>
                             <h2 class="hero-slide-title">${item.title || ''}</h2>
                             <div class="hero-slide-meta">
                                 <span class="hero-slide-price ${isFree ? 'is-free' : ''}">
                                     <ion-icon name="${isFree ? 'checkmark-circle' : 'lock-closed'}"></ion-icon>
                                     ${priceText}
-                                </span>
-                                <span class="hero-slide-cta">
-                                    <span>Tazama</span>
-                                    <ion-icon name="arrow-forward"></ion-icon>
                                 </span>
                             </div>
                         </div>
