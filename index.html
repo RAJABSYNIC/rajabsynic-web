@@ -447,62 +447,6 @@
         " title="Funga">&times;</button>
     </div>
 
-    <!-- 📲 PWA Guided Installation Modal (for iOS Safari, Incognito, or manual install) -->
-    <div id="pwa-guide-modal" style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(5px);
-        z-index: 10000;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-        box-sizing: border-box;
-    ">
-        <div style="
-            background: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 20px;
-            max-width: 420px;
-            width: 100%;
-            padding: 22px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.85);
-            position: relative;
-            color: #fff;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <img src="/logo.jpeg" alt="RAJABSYNIC" style="width: 38px; height: 38px; border-radius: 10px; object-fit: cover;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #fff;">RAJABSYNIC</h3>
-                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #9ca3af;">Fuata hatua hizi kuweka app kwenye simu yako</p>
-                    </div>
-                </div>
-                <button type="button" onclick="closeInstallGuide()" style="background: none; border: none; color: #9ca3af; font-size: 1.4rem; cursor: pointer; padding: 4px;">✕</button>
-            </div>
-
-            <!-- Dynamic Guide Steps (filled by JS depending on iOS or Android/PC) -->
-            <div id="pwa-guide-steps" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
-            </div>
-
-            <button type="button" onclick="closeInstallGuide()" style="
-                width: 100%;
-                background: #00ff00;
-                color: #000;
-                border: none;
-                font-weight: 800;
-                font-size: 0.95rem;
-                padding: 12px;
-                border-radius: 12px;
-                cursor: pointer;
-            ">Nimeelewa / Tayari</button>
-        </div>
-    </div>
-
     <style>
         @keyframes notifSlide {
             from { opacity:0; transform:translateX(-50%) translateY(-20px); }
@@ -637,14 +581,13 @@
             window.deferredPrompt = null;
             const headerBtn = document.getElementById('header-install-btn') || document.querySelector('.install-btn');
             const banner = document.getElementById('pwa-install-banner');
-            const guideModal = document.getElementById('pwa-guide-modal');
             if (headerBtn) headerBtn.style.display = 'none';
             if (banner) banner.style.display = 'none';
-            if (guideModal) guideModal.style.display = 'none';
         });
 
-        // 6. Main install action trigger — Native prompt first!
+        // 6. Main install action trigger — Instant native prompt or instant APK download!
         window.triggerInstall = async function() {
+            // A. If already running as standalone app
             if (isAppInstalled()) {
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
@@ -658,7 +601,7 @@
                 return;
             }
 
-            // A. If native prompt is ready, trigger it immediately
+            // B. If native PWA install prompt is available (Chrome/Edge/Samsung outside Incognito)
             if (window.deferredPrompt) {
                 try {
                     const promptEvent = window.deferredPrompt;
@@ -669,94 +612,51 @@
                         dismissInstallBanner();
                     }
                     window.deferredPrompt = null;
+                    return;
                 } catch (err) {
                     console.warn('Install prompt error:', err);
                 }
-                return;
             }
 
-            // B. If prompt is in-flight on initial page load, wait up to 400ms
-            for (let i = 0; i < 4; i++) {
-                if (window.deferredPrompt) break;
-                await new Promise(r => setTimeout(r, 100));
-            }
-
-            if (window.deferredPrompt) {
-                try {
-                    const promptEvent = window.deferredPrompt;
-                    await promptEvent.prompt();
-                    const choice = await promptEvent.userChoice;
-                    if (choice && choice.outcome === 'accepted') {
-                        dismissInstallBanner();
-                    }
-                    window.deferredPrompt = null;
-                } catch (err) {
-                    console.warn('Install prompt error:', err);
-                }
-                return;
-            }
-
-            // C. Fallback for iOS Safari or Chrome Incognito
-            openInstallGuide();
-        };
-
-        // 7. Interactive Step-by-Step Guide Modal (iOS Safari, Android Chrome, Incognito)
-        window.openInstallGuide = function() {
+            // C. Special handling for iOS Safari (iPhone / iPad)
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            const stepsContainer = document.getElementById('pwa-guide-steps');
-            const modal = document.getElementById('pwa-guide-modal');
-            if (!stepsContainer || !modal) return;
-
             if (isIOS) {
-                stepsContainer.innerHTML = `
-                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
-                        <div style="font-size:0.85rem; line-height:1.4;">
-                            Kwenye <strong>Safari</strong>, bonyeza kitufe cha <strong>Share</strong> (alama ya kibox chenye mshale unaoelekea juu <ion-icon name="share-outline" style="vertical-align:middle;"></ion-icon>) chini ya screen.
-                        </div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
-                        <div style="font-size:0.85rem; line-height:1.4;">
-                            Shuka chini kidogo kwenye orodha kisha uguse <strong>"Add to Home Screen"</strong> (Ongeza kwenye Skrini ya Mwanzo).
-                        </div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
-                        <div style="font-size:0.85rem; line-height:1.4;">
-                            Bonyeza <strong>"Add"</strong> juu kulia. Icon ya RAJABSYNIC itawekwa mara moja kwenye screen ya simu yako!
-                        </div>
-                    </div>
-                `;
-            } else {
-                stepsContainer.innerHTML = `
-                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
-                        <div style="font-size:0.85rem; line-height:1.4;">
-                            Bonyeza alama ya <strong>nukta tatu (⋮)</strong> iliyopo juu kulia mwa browser yako ya Chrome.
-                        </div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
-                        <div style="font-size:0.85rem; line-height:1.4;">
-                            Chagua <strong>"Install app"</strong> au <strong>"Weka kwenye skrini ya mwanzo"</strong> (Add to Home screen).
-                        </div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.05); border:1px solid #374151; border-radius:12px; padding:12px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="background:#00ff00; color:#000; font-weight:800; font-size:0.75rem; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
-                        <div style="font-size:0.85rem; line-height:1.4;">
-                            Thibitisha kwa kubonyeza <strong>"Install"</strong>. App itatokea kama application rasmi ya simu!
-                        </div>
-                    </div>
-                `;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Weka Kwenye iPhone (iOS)',
+                        html: '<p style="font-size:0.9rem; line-height:1.5; color:#cbd5e1;">Kwenye Safari, bonyeza alama ya <strong>Share</strong> (mshale unaoelekea juu) kisha chagua <strong>"Add to Home Screen"</strong> ili kuweka app moja kwa moja kwenye screen yako.</p>',
+                        icon: 'info',
+                        confirmButtonColor: '#00ff00',
+                        confirmButtonText: 'Nimeelewa',
+                        background: '#111827',
+                        color: '#fff'
+                    });
+                }
+                return;
             }
 
-            modal.style.display = 'flex';
-        };
+            // D. DIRECT INSTANT APK DOWNLOAD (Android, Incognito, WhatsApp, Facebook, PC)!
+            // User downloads the real RAJABSYNIC.apk immediately!
+            dismissInstallBanner();
 
-        window.closeInstallGuide = function() {
-            const modal = document.getElementById('pwa-guide-modal');
-            if (modal) modal.style.display = 'none';
+            const link = document.createElement('a');
+            link.href = '/RAJABSYNIC.apk';
+            link.setAttribute('download', 'RAJABSYNIC.apk');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Inapakua App...',
+                    text: 'Faili la RAJABSYNIC.apk linapakuliwa moja kwa moja. Bonyeza "Open" likimaliza kupakua ili kulisakinisha kwenye simu yako!',
+                    icon: 'success',
+                    timer: 3500,
+                    showConfirmButton: false,
+                    background: '#111827',
+                    color: '#fff'
+                });
+            }
         };
 
         // Initialize UI on load

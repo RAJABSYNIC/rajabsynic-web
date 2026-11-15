@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.rajabsynic.app",
+    "sha256_cert_fingerprints": ["63:45:3F:E4:C4:DB:97:AB:10:2F:A6:AE:1E:B3:21:03:63:AC:E3:71:E7:68:7B:D4:54:C3:1B:27:35:81:AF:F3"]
+  }
+}]
