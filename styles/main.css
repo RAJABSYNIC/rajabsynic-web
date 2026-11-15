@@ -308,8 +308,17 @@ a {
     right: 14px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     z-index: 10;
+    max-width: 52%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0;
+}
+
+.hero-slider-dots::-webkit-scrollbar {
+    display: none;
 }
 
 .hero-dot {
@@ -319,14 +328,16 @@ a {
     background: rgba(255, 255, 255, 0.35);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
 }
 
 .hero-dot.active {
-    width: 22px;
+    width: 18px;
     height: 6px;
     border-radius: 10px;
     background: #00ff00;
     box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    flex-shrink: 0;
 }
 
 /* Arrows */

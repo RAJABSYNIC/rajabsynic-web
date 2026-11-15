@@ -276,31 +276,17 @@ class Router {
         const dotsContainer = document.getElementById('hero-slider-dots');
         if (!sliderContainer) return;
 
-        // 1. Gather candidates: prioritizing trending items
-        let pool = (this.cachedContent || []).filter(i => i.isTrending && i.contentType !== 'adult');
+        // 1. Gather all Tanzania Games (matching the Tanzania Games section)
+        let tanzaniaGames = this.sortTanzaniaGames(
+            (this.cachedContent || []).filter(i => i.category === 'tanzania-games')
+        );
 
-        // 2. Supplement if fewer than 5 items
-        if (pool.length < 5) {
-            const tzGames = this.sortTanzaniaGames(
-                (this.cachedContent || []).filter(i => i.category === 'tanzania-games' && !pool.some(p => p.id === i.id))
-            );
-            pool = pool.concat(tzGames);
-        }
-        if (pool.length < 5) {
-            const maleoMods = (this.cachedContent || []).filter(i => 
-                (i.category === 'maleo-bus-mod' || i.category === 'maleo-map-mod' || i.category === 'ets-2-mod-bus') &&
-                !pool.some(p => p.id === i.id)
-            );
-            pool = pool.concat(maleoMods);
-        }
-        if (pool.length < 5) {
-            const otherItems = (this.cachedContent || []).filter(i => 
-                !pool.some(p => p.id === i.id) && i.contentType !== 'adult'
-            );
-            pool = pool.concat(otherItems);
+        // Fallback: if no tanzania-games items exist yet, fallback to all games
+        if (tanzaniaGames.length === 0) {
+            tanzaniaGames = (this.cachedContent || []).filter(i => i.contentType !== 'adult');
         }
 
-        const featuredItems = pool.slice(0, 5);
+        const featuredItems = tanzaniaGames;
 
         // Fallback placeholder if no items
         if (featuredItems.length === 0) {
@@ -413,6 +399,9 @@ class Router {
         dots.forEach((d, idx) => {
             if (idx === this.currentSlide) {
                 d.classList.add('active');
+                if (typeof d.scrollIntoView === 'function') {
+                    d.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
             } else {
                 d.classList.remove('active');
             }
