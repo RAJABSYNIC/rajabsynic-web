@@ -1622,7 +1622,7 @@ async function getCatalogItems() {
 
 // ─── HIGH-IQ CATALOG CLASSIFICATION & INTENT DIRECTIVES ────────────────────────
 
-// 1. Precise Item Classification: Distinguish Games vs Movies vs LiveTV vs Adult
+// 1. Precise Item Classification: Distinguish Games vs Mods vs Movies vs LiveTV vs Adult
 function getItemType(item) {
     if (!item) return 'other';
     const cat = (item.category || '').toLowerCase();
@@ -1643,13 +1643,41 @@ function getItemType(item) {
 
     if (isMovieCategory || hasMovieKeywords) return 'movie';
 
-    // Games and Mods (Mortal Kombat, Maleo Bus Mods, Skins, Maps, ETS2, GTA, etc.)
-    const gameCategories = ['free-games', 'tanzania-games', 'maleo-bus-mod', 'maleo-map-mod', 'maleo-bus-skin', 'maleo-bus-mod-multi', 'ets-2-mod-bus', 'program-and-app'];
-    if (gameCategories.includes(cat) || type === 'game' || title.includes('game') || title.includes('mod') || title.includes('skin') || title.includes('map')) {
+    // Distinct Mod Types (Mods are add-ons for Maleo / ETS2, NOT standalone games!)
+    if (cat === 'maleo-map-mod' || title.includes('map mod')) return 'mod-map';
+    if (cat === 'maleo-bus-skin' || title.includes('skin')) return 'mod-skin';
+    if (cat === 'maleo-bus-mod' || cat === 'maleo-bus-mod-multi' || cat === 'ets-2-mod-bus') return 'mod-bus';
+
+    // Standalone Games (Tanzania Games, Free Games, Games)
+    if (cat === 'tanzania-games' || cat === 'free-games' || cat === 'games' || type === 'game') {
         return 'game';
     }
 
-    return 'game'; // default to game for gaming platform
+    return 'game';
+}
+
+function isStandaloneGame(item) {
+    if (!item) return false;
+    const cat = (item.category || '').toLowerCase();
+    return cat === 'tanzania-games' || cat === 'free-games' || cat === 'games';
+}
+
+function isModBus(item) {
+    if (!item) return false;
+    const cat = (item.category || '').toLowerCase();
+    return cat === 'maleo-bus-mod' || cat === 'maleo-bus-mod-multi' || cat === 'ets-2-mod-bus';
+}
+
+function isModMap(item) {
+    if (!item) return false;
+    const cat = (item.category || '').toLowerCase();
+    return cat === 'maleo-map-mod';
+}
+
+function isModSkin(item) {
+    if (!item) return false;
+    const cat = (item.category || '').toLowerCase();
+    return cat === 'maleo-bus-skin';
 }
 
 // 2. Precise Detection: Support, Contact & Technical Troubleshooting
@@ -1735,20 +1763,43 @@ function detectUserIntent(text) {
     ];
     const isAskingMovie = movieKeywords.some(kw => lower.includes(kw));
 
-    // 7. Game / Mchezo keywords
+    // 7. Mod Keywords & Specific Mod Types (Buses, Maps, Skins)
+    const mapKeywords = ['map mod', 'map mods', 'ramani', 'map ya maleo', 'milimani map', 'jungle map', 'mod ya map', 'mod map', 'modi ya map', 'ramani za maleo'];
+    const busKeywords = [
+        'mod bus', 'mod ya basi', 'mod za mabasi', 'modi za mabasi', 'mabasi ya maleo', 'maleo bus mod', 'modi ya basi', 'mod ya mabasi',
+        'shabiby', 'abood', 'ngasere', 'bm luxury', 'katarama', 'machame', 'asanterabi',
+        'burdan', 'zhongtong', 'yutong', 'higer', 'scania', 'marcopolo', 'd14'
+    ];
+    const skinKeywords = ['skin', 'skins', 'livery', 'liveries', 'stika'];
+    const generalModKeywords = ['mod', 'mods', 'modi', 'maleo', 'bussid'];
+
+    const isAskingMap = mapKeywords.some(kw => lower.includes(kw));
+    const isAskingBus = busKeywords.some(kw => lower.includes(kw));
+    const isAskingSkin = skinKeywords.some(kw => lower.includes(kw));
+    const isAskingGeneralMod = generalModKeywords.some(kw => lower.includes(kw));
+
+    // 8. Game / Mchezo keywords (Games ONLY - Tanzania Games & Standalone Games)
     const gameKeywords = [
-        'game', 'games', 'mchezo', 'michezo', 'kucheza', 'magame', 'mod', 'mods',
-        'skin', 'skins', 'maleo', 'bussid', 'map mod', 'basi', 'mabasi', 'bus', 'buses', 'gari', 'magari',
-        'pspp', 'ppsspp', 'gta', 'fifa', 'pes', 'wtds', 'mortal kombat', 'ets 2', 'ets2', 'tekken',
-        'ngasere', 'shabiby', 'abood', 'katarama', 'bm', 'marcopolo', 'mrombo', 'machame', 'asanterabi',
-        'burdan', 'zhongtong', 'yutong', 'higer', 'rosa', 'scania', 'd14',
-        'maleo bus', 'maleo tz', 'maleo multiplayer', 'maleo map'
+        'game', 'games', 'mchezo', 'michezo', 'kucheza', 'magame',
+        'pspp', 'ppsspp', 'gta', 'fifa', 'pes', 'fts', 'wtds', 'mortal kombat', 'tekken',
+        'driving job', 'truckers of europe', 'race bus', 'world truck', 'dls', 'simba', 'yanga'
     ];
     const isAskingGame = gameKeywords.some(kw => lower.includes(kw));
 
-    if (isAskingMovie && !isAskingGame) return 'movie';
-    if (isAskingGame && !isAskingMovie) return 'game';
-    if (isAskingGame && isAskingMovie) return 'both';
+    if (isAskingMovie && !isAskingGame && !isAskingGeneralMod) return 'movie';
+    if (isAskingMap) return 'mod-map';
+    if (isAskingBus) return 'mod-bus';
+    if (isAskingSkin) return 'mod-skin';
+
+    // If user asked about "mod" without specifying bus or map:
+    // (e.g., "nataka mod", "kuna mod gani", "mods za maleo", "naomba mods")
+    if (isAskingGeneralMod && !isAskingGame) return 'mod-general';
+    if (isAskingGeneralMod && isAskingGame) {
+        // e.g. "game za mod" or "mod za game"
+        return 'mod-general';
+    }
+
+    if (isAskingGame) return 'game';
 
     return 'general';
 }
@@ -1807,10 +1858,20 @@ function findMatchingCatalogItems(query, allItems = [], maxResults = 25) {
 
     const intent = detectUserIntent(query);
 
-    // Filter candidate items by intent: NEVER show movies when asked for games, and vice versa!
+    // Filter candidate items by intent:
     let candidateItems = allItems;
     if (intent === 'game') {
-        candidateItems = allItems.filter(i => getItemType(i) === 'game');
+        // STRICT RULE: Only real games from Tanzania Games and Free Games!
+        // Never include Maleo Bus Mods or Map Mods!
+        candidateItems = allItems.filter(i => isStandaloneGame(i));
+    } else if (intent === 'mod-bus') {
+        candidateItems = allItems.filter(i => isModBus(i));
+    } else if (intent === 'mod-map') {
+        candidateItems = allItems.filter(i => isModMap(i));
+    } else if (intent === 'mod-skin') {
+        candidateItems = allItems.filter(i => isModSkin(i));
+    } else if (intent === 'mod-general') {
+        candidateItems = allItems.filter(i => isModBus(i) || isModMap(i));
     } else if (intent === 'movie') {
         candidateItems = allItems.filter(i => getItemType(i) === 'movie');
     } else if (intent === 'livetv') {
@@ -1825,7 +1886,7 @@ function findMatchingCatalogItems(query, allItems = [], maxResults = 25) {
     // If generic question about games or movies without a specific title (e.g., "michezo inayovuma", "kuna game gani")
     const specificKeywords = keywords.filter(k => !CATALOG_GENERIC_TERMS.has(k));
     if (keywords.length === 0 || specificKeywords.length === 0) {
-        if (intent === 'game' || intent === 'movie' || intent === 'livetv') {
+        if (intent === 'game' || intent === 'mod-bus' || intent === 'mod-map' || intent === 'mod-general' || intent === 'movie' || intent === 'livetv') {
             return candidateItems.slice(0, maxResults);
         }
     }
@@ -1911,10 +1972,13 @@ function findMatchingCatalogItems(query, allItems = [], maxResults = 25) {
 async function getCatalogSummary() {
     const items = await getCatalogItems();
     if (!items || items.length === 0) {
-        return 'Maudhui makuu: Maleo Bus Mods, Maleo Bus Skins, Maleo Map Mods, ETS 2 Mods, Tanzania Games, Free Games, na Program/Apps.';
+        return 'Maudhui makuu: Tanzania Games, Free Games, Maleo Bus Mods, Maleo Map Mods, na Movies.';
     }
 
-    const games = items.filter(i => getItemType(i) === 'game');
+    const tanzaniaGames = items.filter(i => (i.category || '').toLowerCase() === 'tanzania-games');
+    const freeGames = items.filter(i => (i.category || '').toLowerCase() === 'free-games' || (i.category || '').toLowerCase() === 'games');
+    const busMods = items.filter(i => isModBus(i));
+    const mapMods = items.filter(i => isModMap(i));
     const movies = items.filter(i => getItemType(i) === 'movie');
     const livetv = items.filter(i => getItemType(i) === 'livetv');
 
@@ -1924,12 +1988,23 @@ async function getCatalogSummary() {
     };
 
     let summary = '═══ MUHTASARI MAALUM WA BIDHAA ZA MFUMO ═══\n';
-    summary += '1. MICHEZO NA MODS ZA MALEO (Shabiby, Abood, Ngasere, Katarama, n.k.):\n';
-    summary += games.slice(0, 15).map(i => fmt(i, 'MCHEZO/MOD')).join('\n') + '\n\n';
-    summary += '2. FILAMU ZILIZOTAFSIRIWA (DJ Mack n.k.):\n';
-    summary += movies.slice(0, 8).map(i => fmt(i, 'FILAMU/MOVIE')).join('\n') + '\n\n';
-    summary += '3. CHANELI ZA LIVE TV:\n';
-    summary += livetv.slice(0, 5).map(i => fmt(i, 'LIVE TV')).join('\n');
+    summary += '1. MICHEZO YA TANZANIA (TANZANIA GAMES) — HII NI MICHEZO KAMILI:\n';
+    summary += tanzaniaGames.slice(0, 10).map(i => fmt(i, 'MCHEZO - TANZANIA GAME')).join('\n') + '\n\n';
+
+    summary += '2. MICHEZO MINGINE YA SIMU & PSP (GAMES / FREE GAMES) — HII NI MICHEZO KAMILI:\n';
+    summary += freeGames.slice(0, 10).map(i => fmt(i, 'MCHEZO - GAME')).join('\n') + '\n\n';
+
+    summary += '3. MODS ZA MABASI YA MALEO (MALEO BUS MODS) — SIO MICHEZO KAMILI! (Hizi ni mods za mabasi zinazotumika ndani ya mchezo wa Bus Simulator Indonesia / Maleo):\n';
+    summary += busMods.slice(0, 10).map(i => fmt(i, 'MOD YA BASI (MALEO)')).join('\n') + '\n\n';
+
+    summary += '4. MODS ZA RAMANI YA MALEO (MALEO MAP MODS) — SIO MICHEZO KAMILI! (Hizi ni ramani za mchezo wa Maleo):\n';
+    summary += mapMods.slice(0, 8).map(i => fmt(i, 'MOD YA RAMANI (MALEO)')).join('\n') + '\n\n';
+
+    summary += '5. FILAMU ZILIZOTAFSIRIWA (DJ Mack n.k.):\n';
+    summary += movies.slice(0, 6).map(i => fmt(i, 'FILAMU/MOVIE')).join('\n') + '\n\n';
+
+    summary += '6. CHANELI ZA LIVE TV:\n';
+    summary += livetv.slice(0, 4).map(i => fmt(i, 'LIVE TV')).join('\n');
 
     return summary;
 }
@@ -2345,9 +2420,9 @@ function synthesizeLocalInsightsFromLogs(logs = []) {
             },
             {
                 id: 'learn_auto_catalog_' + Date.now(),
-                topic: 'Utambuzi Sahihi wa Mabasi ya Maleo (BUSSID) na Michezo ya Simu',
-                instruction: 'Mteja akiulizia basi maalum la Maleo (kama Ngasere, Shabiby, Abood, BM, Katarama, Machame, Asanterabi): AI itafute moja kwa moja kwenye orodha ya bidhaa 438, imtajie mods zilizopo na bei zake halisi kwa Tsh. Ikiwa mod haipo (kama Mrombo), imweleze kwa uwazi kwamba haipo kwa sasa na kumpendekezea mods mbadala za Kitanzania.',
-                exampleQuery: 'Ngasere bus ipo / Mrombo ipo / Shabiby ipo',
+                topic: 'Kutofautisha Michezo (Games) na Mods za Mabasi/Ramani (Maleo BUSSID)',
+                instruction: 'Mteja akiulizia "games" au "michezo": mtajie michezo iliyopo kwenye kategoria za Tanzania Games na Games pekee (kama Race bus Tanzania simulator, World bus mod tz, Efootball pes nbc 27, Dls la Simba, Dls Yanga 2026, Fts nbc 2027, Tekken 6, Mortal Kombat, WTDS Mod). KAMWE usimpe orodha ya Maleo bus mods kama mchezo, kwani mods za Maleo ni vifaa vinavyotumika ndani ya mchezo wa Bus Simulator Indonesia (Maleo). Mteja akiulizia "mod" kwa ujumla, kabla ya kumpa orodha muulize kwanza kama anataka Mod ya Ramani (Mod Map) au Mod ya Basi (Mod Bus), na mwelekeze atembelee kategoria husika kwenye tovuti (Maleo Bus Mod au Maleo Map Mod) ili aone picha, maelezo na kupakua kwa urahisi.',
+                exampleQuery: 'Naomba games / kuna game gani / nataka mod / naomba mods / shabiby ipo',
                 createdAt: nowIso
             },
             {
@@ -2551,16 +2626,22 @@ function generateExpertSupportReply({ userMsg, cleanMsg, history = [], knowledge
     const rawLower = (userMsg || '').toLowerCase().trim();
     const lower = (cleanMsg || normalizeSwahiliQuery(userMsg)).toLowerCase().trim();
 
-    // 1. Check Admin Custom Trainings (Supreme Highest Priority)
+    // 1. Check Admin Custom Trainings (Direct FAQ/Correction matching only, ignoring generic fillers)
     if (Array.isArray(knowledge.trainings) && knowledge.trainings.length > 0) {
-        for (const t of knowledge.trainings) {
-            const tText = (t.text || '').toLowerCase();
-            const words = lower.split(/\s+/).filter(w => w.length >= 4);
-            const matches = words.filter(w => tText.includes(w));
-            if (matches.length >= 2 || (words.length === 1 && matches.length === 1 && words[0].length >= 5)) {
-                let rep = (t.text || '').trim();
-                if (t.image) rep += `\n\n![Kielelezo cha Mwongozo](${t.image.trim()})`;
-                return rep;
+        const meaningfulWords = lower.split(/\s+/).filter(w => w.length >= 4 && !CATALOG_FILLER_WORDS.has(w) && !CATALOG_GENERIC_TERMS.has(w));
+        if (meaningfulWords.length >= 2) {
+            for (const t of knowledge.trainings) {
+                const tText = (t.text || '').toLowerCase();
+                // Do not spit out meta-instructions meant for the AI behavior
+                if (tText.startsWith('user aki') || tText.startsWith('mteja aki') || tText.startsWith('ikiwa ') || tText.startsWith('kwenye mazungumzo') || tText.startsWith('kanuni ')) {
+                    continue;
+                }
+                const matches = meaningfulWords.filter(w => tText.includes(w));
+                if (matches.length >= 2) {
+                    let rep = (t.text || '').trim();
+                    if (t.image) rep += `\n\n![Kielelezo cha Mwongozo](${t.image.trim()})`;
+                    return rep;
+                }
             }
         }
     }
@@ -2676,16 +2757,51 @@ Niambie kipi unachotaka kuseti nami nitakupa hatua zake sasa hivi!`;
         }
     }
 
-    // 7. Generic "Modes" Request
-    if (lower === 'modes' || lower === 'mod' || lower === 'modi' || lower === 'nataka mod') {
-        return `Kwenye RAJABSYNIC tunazo mods za aina kuu nne:
+    // 7. Generic "Modes" Request - Prompt user to clarify Mod Map vs Mod Bus and direct to category
+    const isGenericModQuery = ['modes', 'mod', 'mods', 'modi', 'nataka mod', 'naomba mod', 'naomba mods', 'kuna mod gani', 'mods zilizopo', 'maleo mod', 'maleo mods'].some(kw => lower === kw || lower.startsWith(kw + ' '));
+    if (isGenericModQuery) {
+        return `Kwenye RAJABSYNIC tunazo aina kuu mbili za mods kwa ajili ya mchezo wa Bus Simulator Indonesia (Maleo):
 
-1. **Mods za Mabasi ya Kitanzania** (kama Shabiby D14, Abood Yutong, Ngasere High Class, BM Luxury, Katarama, Marcopolo) — Tsh 5,000
-2. **Map Mods / Ramani** (Ramani za milimani na vumbi kama Milimani Map na Jungle Map kwa Maleo) — Tsh 2,000
-3. **Maleo Bus Skins** (Rangi, stika na nembo halisi za makampuni ya mabasi) — Tsh 1,000
-4. **WTDS Mod** (Mchezo wa malori wenye pesa zisizo na kikomo / Unlimited Money) — Tsh 2,000
+1. **Mod ya Basi (Mod Bus)** — Miundo halisi ya mabasi ya Kitanzania (kama Shabiby D14, Abood Yutong, Ngasere High Class, BM Luxury, Machame Investment, Katarama, n.k.)
+2. **Mod ya Ramani (Mod Map)** — Ramani za kusisimua za milimani, kona kali na njia za vumbi (kama Milimani Map, Jungle Map, n.k.)
 
-Tafadhali niambie unahitaji mod ipi kati ya hizo ili nikupe maelekezo ya kuipakua sasa hivi!`;
+Tafadhali nambie, **ulikuwa unahitaji mod gani kati ya Mod Map au Mod Bus** ili nikupatie orodha yake kamili na bei zake?
+
+Pia, unashauriwa kutembelea moja kwa moja kategoria ya **Maleo Bus Mod** au **Maleo Map Mod** kwenye ukurasa wa mwanzo wa tovuti yetu ili uweze kujionea picha za muonekano, maelezo kamili, bei, na kupakua kwa urahisi zaidi!`;
+    }
+
+    // 7.1 Specific Mod Bus Request
+    const isModBusSpecific = ['mod ya basi', 'mod za basi', 'mod bus', 'modi ya basi', 'mod za mabasi', 'mabasi ya maleo', 'maleo bus mod', 'mod ya mabasi'].some(kw => lower.includes(kw));
+    if (isModBusSpecific) {
+        return `Orodha ya Mods za Mabasi ya Kitanzania (Maleo Bus Mods) zinazopendwa zaidi kwenye RAJABSYNIC:
+
+• Shabiby D14 for Maleo — Tsh 5,000
+• Machame Investment Yutong F12 — Tsh 5,000
+• D14 Abc Upper Class for Maleo — Tsh 5,000
+• Golden Deer Zhongtong Climber — Tsh 5,000
+• Ngasere High Class Yutong F12 — Tsh 5,000
+• Abood Yutong Bus Mod — Tsh 5,000
+• BM Luxury Coach Mod — Tsh 5,000
+
+Pia unashauriwa kutembelea kategoria ya **Maleo Bus Mod** kwenye tovuti yetu ya RAJABSYNIC ili uweze kujionea picha za kila basi, maelezo yake na kubonyeza kitufe cha "Lipa Sasa" kupakua moja kwa moja!
+
+Je, ungependa kupata mojawapo ya mabasi haya au basi maalum unalolitafuta?`;
+    }
+
+    // 7.2 Specific Mod Map Request
+    const isModMapSpecific = ['mod ya map', 'mod ya ramani', 'mod map', 'modi ya map', 'ramani za maleo', 'maleo map mod', 'ramani ya maleo'].some(kw => lower.includes(kw));
+    if (isModMapSpecific) {
+        return `Orodha ya Mods za Ramani (Maleo Map Mods) zinazopendwa zaidi kwenye RAJABSYNIC:
+
+• Milimani Map Mod for Maleo — Tsh 2,000
+• Jungle Map for Maleo — Tsh 2,000
+• Jalur Sebia Bea Map Mod — Tsh 2,000
+• Kota Mati Aliyan Map Mod — Tsh 2,000
+• Coonoor Hill Maleo Map Mod — Tsh 2,000
+
+Pia unashauriwa kutembelea kategoria ya **Maleo Map Mod** kwenye tovuti yetu ya RAJABSYNIC ili uweze kujionea picha za njia na mandhari za ramani hizi na kubonyeza kitufe cha "Lipa Sasa" kupakua moja kwa moja!
+
+Je, ungependa kuelekezwa jinsi ya kupata mojawapo ya ramani hizi?`;
     }
 
     // 8. Contact / Phone Number Request
@@ -2770,20 +2886,32 @@ Wakati huo huo, tunazo mods na michezo mingine mingi inayopendwa sana:
 Je, ungependa nikuelekeze jinsi ya kupata mojawapo ya hizi au kuna mchezo mwingine unaoutafuta?`;
     }
 
-    // 12. Inayovuma / Michezo na Bei
-    if (lower.includes('inayovuma') || lower.includes('michezo na bei') || lower.includes('bei zake')) {
-        return `Michezo na mods zinazovuma zaidi kwenye RAJABSYNIC na bei zake ni pamoja na:
+    // 12. Inayovuma / Michezo na Bei (ONLY Tanzania Games and Games)
+    if (lower.includes('inayovuma') || lower.includes('michezo na bei') || lower.includes('bei zake') || ((lower.includes('mchezo') || lower.includes('michezo') || lower.includes('game') || lower.includes('games')) && (lower.includes('orodha') || lower.includes('gani') || lower.includes('zilizopo') || lower.includes('kuna')) && !lower.includes('mod'))) {
+        return `Kwenye RAJABSYNIC tunayo michezo mizuri ya simu na PC iliyopo kwenye kategoria za **Tanzania Games** na **Games**:
 
+1. **Tanzania Games:**
+• Race bus Tanzania simulator (driving job online) — Tsh 11,000
+• World bus mod tz — Tsh 9,000
+• Efootball pes nbc 27 — Tsh 10,000
+• Dls la Simba — Tsh 3,500
+• Dls Yanga 2026 — Tsh 3,500
+• Fts nbc 2027 — Tsh 6,000
+• World truck tz simulator — Tsh 9,000
+• Driving job online multiplayer — Tsh 9,000
+
+2. **Games (Michezo Mingine ya Simu):**
 • Mortal Kombat Unchained (PSPP) — Tsh 3,000
-• WTDS Mod (Unlimited Money) — Tsh 2,000
-• Shabiby D14 Bus Mod (Maleo) — Tsh 5,000
-• Ngasere High Class Mod (Maleo) — Tsh 5,000
-• Abood Yutong Bus Mod (Maleo) — Tsh 5,000
-• Milimani Map Mod (Maleo) — Tsh 2,000
-• Maleo Bus Skins (Rangi na Stika za Mabasi) — Tsh 1,000
-• Tekken 6 (USA) — BURE (Tsh 0)
+• WTDS Mod (Unlimited Money) — Tsh 3,000
+• Tekken 6 (USA) — Tsh 3,000
+• Spider man for ppsspp game — Tsh 3,000
+• God of War 2 PS2 for Android — Tsh 3,000
+• EFootball PES 2026 PS2 Game — BURE (Tsh 0)
+• Dls 2026 mod 19 apk — BURE (Tsh 0)
 
-Ili kupata mchezo au mod yoyote, fungua ukurasa wa huduma hiyo kwenye tovuti yetu kisha bonyeza kitufe cha "Lipa Sasa" au "Pakua"!`;
+Kumbuka: Modi za Maleo (kama Shabiby, Abood, Ngasere, Ramani) sio michezo kamili inayojitegemea, bali ni mods za mabasi na ramani zinazotumika ndani ya mchezo wa Bus Simulator Indonesia (Maleo). Kama unahitaji mods hizo, unaweza kutembelea kategoria ya **Maleo Bus Mod** au **Maleo Map Mod** kwenye tovuti yetu.
+
+Ili kupata mchezo wowote, bonyeza mchezo huo kwenye tovuti yetu kisha bonyeza kitufe cha "Lipa Sasa" au "Pakua"!`;
     }
 
     // 13. Maleo / Bussid General
@@ -2794,7 +2922,8 @@ Ili kupata mchezo au mod yoyote, fungua ukurasa wa huduma hiyo kwenye tovuti yet
 • Skins za Mabasi: Rangi, michoro na stika halisi za makampuni ya mabasi (Tsh 1,000).
 • Map Mods: Ramani za vumbi na milima kama Milimani Map na Jungle Map (Tsh 2,000).
 
-Ili kupakua, fungua mod husika hapa kwenye tovuti kisha bonyeza kitufe cha "Lipa Sasa". Faili lako litafunguka mara moja!`;
+Kumbuka kuwa hizi ni mods zinazotumika ndani ya mchezo wa Maleo (Bus Simulator Indonesia) na si michezo kamili inayojitegemea.
+Tafadhali tembelea kategoria husika ya **Maleo Bus Mod** au **Maleo Map Mod** kwenye ukurasa wa mwanzo wa tovuti yetu ili uone picha, maelezo kamili na kubonyeza kitufe cha "Lipa Sasa" kupakua moja kwa moja!`;
     }
 
     // 14. Movies General
@@ -2944,15 +3073,16 @@ app.post('/api/support/chat', async (req, res) => {
         const relevantMatches = isTrouble ? [] : findMatchingCatalogItems(cleanMsg || userMsg, allCatalogItems, 10);
 
         // 3. ZERO-TOKEN FAST LOCAL BRAIN:
-        // For pure greetings, gratitude, contacts, and basic clarification without images,
+        // For pure greetings, gratitude, contacts, mod clarification, and basic clarification without images,
         // answer instantly locally to save 100% of API token credits ($0.00 cost)!
         const lowerClean = (cleanMsg || userMsg).toLowerCase().trim();
         const isPureGreeting = !inlineImagePart && ['mambo', 'habari', 'oy', 'hello', 'hi', 'vipi', 'vip', 'salama', 'kaka', 'hallow', 'morning', 'habari za asubuhi', 'habari za mchana', 'habari za jioni'].some(g => lowerClean === g || lowerClean === g + '!');
         const isPureGratitude = !inlineImagePart && ['asante', 'ahsante', 'shukrani', 'asnt', 'shukran', 'nashukuru', 'asante sana', 'ahsante sana', 'shukrani sana', 'poa', 'vizuri', 'ok', 'sawa'].some(g => lowerClean === g || lowerClean === g + '!');
         const isPureContact = !inlineImagePart && isContactOrSupportQuestion(lowerClean) && (lowerClean.includes('namba') || lowerClean.includes('whatsapp') || lowerClean.includes('piga') || lowerClean.includes('simu') || lowerClean.includes('wasiliana'));
         const isPureVague = !inlineImagePart && ['sierewi', 'sielewi', 'msaada', 'help', 'naomba msaada', 'nashindwa kuelewa', 'sijaelewa'].includes(lowerClean);
+        const isPureModClarify = !inlineImagePart && ['mod', 'mods', 'modi', 'nataka mod', 'naomba mod', 'naomba mods', 'kuna mod gani', 'mods zilizopo', 'maleo mod', 'maleo mods'].includes(lowerClean);
 
-        if (isPureGreeting || isPureGratitude || isPureContact || isPureVague) {
+        if (isPureGreeting || isPureGratitude || isPureContact || isPureVague || isPureModClarify) {
             const localReply = generateExpertSupportReply({
                 userMsg,
                 cleanMsg,
@@ -2990,14 +3120,32 @@ app.post('/api/support/chat', async (req, res) => {
 Hapa chini ni bidhaa halisi zilizopo kwenye mfumo wa RAJABSYNIC:
 ${relevantMatches.map(i => {
     const p = (i.isFree || !i.price || i.price == 0) ? 'BURE (Free)' : ('Tsh ' + Number(i.price).toLocaleString('en-US'));
-    const typeLabel = getItemType(i) === 'movie' ? 'FILAMU / MOVIE' : (getItemType(i) === 'livetv' ? 'LIVE TV' : 'MCHEZO / MOD');
+    const cat = (i.category || '').toLowerCase();
+    let typeLabel = '';
+    if (cat === 'tanzania-games') typeLabel = 'MCHEZO (TANZANIA GAME - Mchezo Kamili)';
+    else if (cat === 'free-games' || cat === 'games') typeLabel = 'MCHEZO (GAME - Mchezo Kamili)';
+    else if (isModBus(i)) typeLabel = 'MOD YA BASI (MALEO BUS MOD - Sio Mchezo Kamili)';
+    else if (isModMap(i)) typeLabel = 'MOD YA RAMANI (MALEO MAP MOD - Sio Mchezo Kamili)';
+    else if (isModSkin(i)) typeLabel = 'SKIN YA BASI (MALEO BUS SKIN - Sio Mchezo Kamili)';
+    else if (getItemType(i) === 'movie') typeLabel = 'FILAMU / MOVIE';
+    else if (getItemType(i) === 'livetv') typeLabel = 'LIVE TV';
+    else typeLabel = 'MCHEZO / BIDHAA';
     return `- [${typeLabel}] Jina: "${i.title}" | Kategoria: ${i.category || i.contentType || ''} | Bei: ${p}`;
 }).join('\n')}
 
-KANUNI KUU YA UTAMBUZI WA BIDHAA:
-- Kama mteja anauliza kuhusu MCHEZO au GAME: Mtajie bidhaa zenye alama ya [MCHEZO / MOD] PEKEE. Kamwe usimtaje bidhaa yenye alama ya [FILAMU / MOVIE]!
-- Kama mteja anauliza kuhusu FILAMU au MOVIE: Mtajie bidhaa zenye alama ya [FILAMU / MOVIE] PEKEE. Kamwe usimtaje mchezo wa simu au mod!
-- Mtajie bei yake halisi kwa Shilingi ya Kitanzania (Tsh) na umwelekeze kuipata kwa kubonyeza kitufe cha "Lipa Sasa" kwenye ukurasa wa huduma husika.
+KANUNI KALI ZA UTAMBUZI WA BIDHAA:
+1. MTEJA AKIULIZA KUHUSU MCHEZO (GAME / GAMES / MICHEZO):
+   - Mtajie PEKEE bidhaa zenye alama ya [MCHEZO (TANZANIA GAME - Mchezo Kamili)] au [MCHEZO (GAME - Mchezo Kamili)].
+   - KANUNI KALI YA KUZUIA: KAMWE usimtajie wala kumpa orodha ya [MOD YA BASI] au [MOD YA RAMANI] kama mchezo!
+   - Eleza wazi: Modi za Maleo sio mchezo kamili, bali ni mods za mabasi zinazotumika ndani ya mchezo wa Bus Simulator Indonesia (Maleo).
+2. MTEJA AKIULIZA KUHUSU MOD (MOD / MODS / MALEO):
+   - Kabla ya kumpatia orodha, muulize kwanza alikuwa anataka mod gani: Mod ya Ramani (Mod Map) au Mod ya Basi (Mod Bus)?
+   - Mteja akishachagua ndipo umpatie orodha ya kile alichochagua chenye bei zake.
+   - Pamoja na hayo, mwelekeze atembelee kategoria husika kwenye tovuti ya RAJABSYNIC (kwa mfano kategoria ya "Maleo Bus Mod" au "Maleo Map Mod") ili aone picha za muonekano, maelezo na kupakua kwa urahisi!
+3. MTEJA AKIULIZA KUHUSU FILAMU (MOVIE / FILAMU):
+   - Mtajie bidhaa zenye alama ya [FILAMU / MOVIE] PEKEE. Kamwe usimpe mchezo wala mod.
+4. BEI NA MALIPO:
+   - Mtajie bei yake halisi kwa Shilingi ya Kitanzania (Tsh) na umwelekeze kuipata kwa kubonyeza kitufe cha "Lipa Sasa" kwenye ukurasa wa huduma husika.
 `.trim();
         }
 
@@ -3054,11 +3202,32 @@ KANUNI KUU ZA UTAMBUZI WA JUU NA UTENDAJI (SUPERIOR IQ & INTENT RECOGNITION)
 
 1. TOFAUTISHA KWA USAHIHI WA 100% KATI YA MICHEZO (GAMES) NA FILAMU (MOVIES):
    - KANUNI KALI: KAMWE USICHANGANYE MCHEZO NA FILAMU!
-   - MICHEZO (GAMES) & MODS: Hizi ni michezo ya video ya simu au PC (kama Mortal Kombat, GTA, Bus Simulator Indonesia / Maleo Bus Mods, Maleo Skins, Map Mods, ETS 2, WTDS, n.k.). Mteja akiuliza kuhusu MCHEZO au GAME, JIBU KUHUSU MICHEZO PEKEE! Kamwe usimtaje au kumpa jina la filamu (movie) kama mchezo!
    - FILAMU (MOVIES): Hizi ni video/sinema za kuangalia (kama filamu za kutafsiriwa na DJ Mack, DJ Afro, tamthilia za Kikorea, n.k.). Mteja akiuliza kuhusu FILAMU au MOVIE, JIBU KUHUSU FILAMU PEKEE! Kamwe usimpe mchezo wa simu badala ya filamu.
    - Kategoria za "Action", "Comedy", "Romantic", "Series" kwenye mfumo wetu NI FILAMU (MOVIES), SIYO MICHEZO YA SIMU! Usije ukataja filamu ya Action kwa mtu anayeomba mchezo wa video!
    - LIVE TV: Hizi ni chaneli za televisheni za moja kwa moja.
-   - MODS ZA MALEO: Hizi ni mabasi, skins, na ramani zinazoongezwa ndani ya mchezo wa Bus Simulator Indonesia (Maleo).
+
+1.1. KANUNI KALI: KUTOFAUTISHA KWA USAHIHI KATI YA MICHEZO (GAMES) NA MODS ZA MALEO:
+   - KAMWE USICHANGANYE MICHEZO (GAMES) NA MODS ZA MALEO!
+
+   - A. MTEJA AKIULIZIA GAMES / MICHEZO / MCHEZO:
+     * Mtajie PEKEE michezo iliyopo kwenye kategoria za "Tanzania Games" (mfano: Race bus Tanzania simulator, World bus mod tz, Efootball pes nbc 27, Dls la Simba, Dls Yanga 2026, Fts nbc 2027, World truck tz simulator) na "Games / Free Games" (mfano: Mortal Kombat Unchained, Tekken 6, WTDS Mod, Spider man, God of War 2, PES 2026).
+     * KANUNI KALI YA KUZUIA: KAMWE USIMTAJIE wala kumpa orodha ya "Maleo Bus Mods" kama mchezo!
+     * Eleza wazi: Modi za Maleo (kama Shabiby D14, Abood Yutong, Ngasere, Machame, BM Luxury, Golden Deer) SIO michezo inayojitegemea (not standalone games), bali ni miundo ya mabasi inayotumika ndani ya mchezo wa Maleo au Bus Simulator Indonesia (BUSSID). Mteja anayetaka mchezo apewe michezo kamili pekee!
+
+   - B. MTEJA AKIULIZIA MODS KWA JUMLA BILA KUTAJA AINA (mfano: "nataka mod", "kuna mod gani", "mods zilizopo", "naomba mods", "mods za maleo"):
+     * KABLA YA KUMPATIA ORODHA YA BIDHAA:
+       Muulize kwanza alikuwa anataka mod gani:
+       1. Mod ya Basi (Mod Bus) — miundo ya mabasi ya Kitanzania kama Shabiby, Abood, Ngasere, BM Luxury, Machame, n.k.
+       2. Mod ya Ramani (Mod Map) — ramani kama Milimani Map, Jungle Map, n.k.
+     * Na mwelekeze kutembelea kategoria husika kwenye ukurasa wa mwanzo wa tovuti yetu ya RAJABSYNIC ("Maleo Bus Mod" au "Maleo Map Mod") ili kuona picha, maelezo na bei.
+
+   - C. MTEJA AKIULIZIA MOJA KWA MOJA AU AKICHAGUA MOD YA BASI (mfano: "mod ya basi", "mod bus", "mabasi ya maleo", "shabiby", "abood", "ngasere", n.k.):
+     * Mtajie mara moja orodha ya mods za mabasi ya Maleo na bei zake (mfano: Shabiby D14 - Tsh 5,000, Machame Investment - Tsh 5,000, Abood Yutong - Tsh 5,000, BM Luxury - Tsh 5,000, Golden Deer - Tsh 5,000, Ngasere High Class - Tsh 5,000). USIMUULIZE TENA!
+     * Pia mwelekeze kutembelea kategoria ya "Maleo Bus Mod" kwenye ukurasa wa mwanzo wa tovuti yetu ili aweze kujionea picha za muonekano, maelezo kamili na kubonyeza "Lipa Sasa" kupakua moja kwa moja!
+
+   - D. MTEJA AKIULIZIA MOJA KWA MOJA AU AKICHAGUA MOD YA RAMANI (mfano: "mod ya map", "mod map", "ramani za maleo", "milimani map", "jungle map", n.k.):
+     * Mtajie mara moja orodha ya mods za ramani za Maleo na bei zake (mfano: Milimani Map Mod - Tsh 2,000, Jungle Map - Tsh 2,000, Jalur Sebia Bea - Tsh 2,000, Coonoor Hill - Tsh 2,000, Kota Mati Aliyan - Tsh 2,000). USIMUULIZE TENA!
+     * Pia mwelekeze kutembelea kategoria ya "Maleo Map Mod" kwenye ukurasa wa mwanzo wa tovuti yetu ili aweze kujionea picha za ramani hizo na kubonyeza "Lipa Sasa" kupakua moja kwa moja!
 
 2. ELEWA KWA KINA SWAHI LA MTEJA (DEEP COMPREHENSION & DIRECT RELEVANCE):
    - Kamwe usijibu ili mradi umejibu! Chambua kwa umakini kile mteja anachouliza, dhamira yake, na muktadha kamili.
