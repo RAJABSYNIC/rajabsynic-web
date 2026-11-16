@@ -167,7 +167,7 @@ class ApiService {
         }
     }
 
-    async grantUserAccess(userId, itemId = 'movies-package-ngorongoro', durationDays = null) {
+    async grantUserAccess(userId, itemId = 'movies-package-ngorongoro', durationDays = null, itemTitle = '') {
         try {
             let days = durationDays;
             if (!days || isNaN(days) || Number(days) <= 0) {
@@ -187,21 +187,23 @@ class ApiService {
                 uid: userId,
                 itemId: itemId,
                 contentId: itemId,
+                contentTitle: itemTitle || itemId,
                 amount: 0,
                 status: 'COMPLETED',
                 method: 'manual_admin_grant',
-                description: 'Admin Granted Access: ' + itemId,
-                timestamp: new Date().toISOString()
+                description: 'Admin Granted Access: ' + (itemTitle || itemId),
+                timestamp: new Date().toISOString(),
+                createdAt: new Date().toISOString()
             };
             const docRef = await addDoc(collection(db, "payments"), paymentData);
             
             // Create the subscription record so user gets access immediately
-            await this.createSubscription(userId, itemId, docRef.id, days);
+            await this.createSubscription(userId, itemId, docRef.id, days, itemTitle);
             
             // If any movie package was granted, also grant 'movies-access' so all movie pages allow viewing/download
             if (itemId.startsWith('movies-package-') || itemId === 'movies-access') {
                 if (itemId !== 'movies-access') {
-                    await this.createSubscription(userId, 'movies-access', docRef.id, days);
+                    await this.createSubscription(userId, 'movies-access', docRef.id, days, 'Movies VIP Access');
                 }
             }
 
@@ -655,7 +657,7 @@ class ApiService {
     }
 
     // --- SUBSCRIPTIONS ---
-    async createSubscription(userId, contentId, orderId, durationDays = 14) {
+    async createSubscription(userId, contentId, orderId, durationDays = 14, contentTitle = '') {
         try {
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + durationDays);
@@ -665,8 +667,12 @@ class ApiService {
                 contentId,
                 orderId,
                 expiresAt: expiresAt.toISOString(),
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                grantedByAdmin: true
             };
+            if (contentTitle) {
+                subscriptionData.contentTitle = contentTitle;
+            }
 
             const docRef = await addDoc(collection(db, "subscriptions"), subscriptionData);
             return { success: true, id: docRef.id };

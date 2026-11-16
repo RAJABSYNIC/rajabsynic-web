@@ -1145,19 +1145,19 @@
                             <td style="padding: 16px; color: #d1d5db;">${u.username || 'Unknown'}</td>
                             <td style="padding: 16px; color: #9ca3af;">${contact}</td>
                             <td style="padding: 16px; color: #d1d5db;">${joined}</td>
-                            <td style="padding: 16px; color: #10b981; font-weight: 600;">${spent} TSH</td>
+                            <td style="padding: 16px; color: #10b981; font-weight: 600;">${(spent || 0).toLocaleString()} TSH</td>
                             <td style="padding: 16px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="background: ${hasAccess ? '#065f46' : '#374151'}; color: ${hasAccess ? '#34d399' : '#9ca3af'}; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 500;">${hasAccess ? 'Access' : 'No Access'}</div>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div style="background: ${hasAccess ? '#065f46' : '#374151'}; color: ${hasAccess ? '#34d399' : '#9ca3af'}; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500;">${hasAccess ? 'Access' : 'No Access'}</div>
+                                    <button onclick="adminApp.openGrantAccessModal('${u.id}')" style="background: #10b981; border: none; color: white; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600;" title="Mpe Access (Grant Access)">
+                                        <ion-icon name="add-circle" style="font-size: 15px;"></ion-icon>
+                                        <span>Mpe Access</span>
+                                    </button>
                                     ${hasAccess ? `
-                                    <button onclick="adminApp.revokeAccess('${u.id}')" style="background: #ef4444; border: none; color: white; width: 28px; height: 28px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;" title="Revoke Premium Access">
+                                    <button onclick="adminApp.revokeAccess('${u.id}')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;" title="Ondoa Access Yote (Revoke Access)">
                                         <ion-icon name="close-circle" style="font-size: 16px;"></ion-icon>
                                     </button>
-                                    ` : `
-                                    <button onclick="adminApp.openGrantAccessModal('${u.id}')" style="background: #10b981; border: none; color: white; width: 28px; height: 28px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;" title="Grant Premium Access">
-                                        <ion-icon name="checkmark-circle" style="font-size: 16px;"></ion-icon>
-                                    </button>
-                                    `}
+                                    ` : ''}
                                 </div>
                             </td>
                             <td style="padding: 16px; text-align: center;">
@@ -1186,11 +1186,8 @@
                             spentMap[uid] = (spentMap[uid] || 0) + (parseFloat(p.amount) || 0);
                         }
                         const st = (p.status || '').toLowerCase();
-                        if (st === 'completed' || st === 'success') {
-                            const cId = p.itemId || p.contentId || '';
-                            if (cId === 'adult-section-access' || cId.startsWith('movies-package-') || cId === 'movies-access' || cId === 'livetv-all') {
-                                accessMap[uid] = true;
-                            }
+                        if (st === 'completed' || st === 'success' || p.method === 'manual_admin_grant') {
+                            accessMap[uid] = true;
                         }
                     });
                     this._userSpentMap = spentMap;
@@ -1247,8 +1244,14 @@
             openGrantAccessModal: async function (userId) {
                 document.getElementById('grant-user-id').value = userId;
                 
+                const user = (this._allUsers || []).find(u => u.id === userId);
+                const userDisp = document.getElementById('grant-user-display');
+                if (userDisp) {
+                    userDisp.textContent = user ? `— ${user.username || user.phone || user.email}` : '';
+                }
+
                 const grantTypeSelect = document.getElementById('grant-type');
-                if (grantTypeSelect) grantTypeSelect.value = 'games';
+                if (grantTypeSelect) grantTypeSelect.value = 'apps';
                 
                 const daysInput = document.getElementById('grant-duration-days');
                 if (daysInput) daysInput.value = '3650';
@@ -1257,7 +1260,7 @@
                 if (searchInput) searchInput.value = '';
 
                 const itemSelect = document.getElementById('grant-item-select');
-                if (itemSelect) itemSelect.innerHTML = '<option disabled>Inapakia michezo...</option>';
+                if (itemSelect) itemSelect.innerHTML = '<option disabled>Inapakia orodha...</option>';
 
                 const selectionDiv = document.getElementById('grant-item-selection');
                 if (selectionDiv) selectionDiv.style.display = 'block';
@@ -1322,6 +1325,11 @@
                 
                 const isLive = (i) => i.contentType === 'live';
                 const isAdult = (i) => i.contentType === 'adult' || i.isAdult;
+                const isApp = (i) => {
+                    const cat = (i.category || '').toLowerCase();
+                    const title = (i.title || '').toLowerCase();
+                    return cat === 'program-and-app' || cat.includes('app') || cat.includes('program') || title.includes('virtual dj') || title.includes('winlator');
+                };
                 const isGame = (i) => {
                     if (i.contentType === 'games') return true;
                     if (i.contentType === 'movies' || isAdult(i) || isLive(i)) return false;
@@ -1330,7 +1338,11 @@
                            cat.includes('game') || cat.includes('mod') || cat.includes('maleo') || cat.includes('ets') || cat.includes('bus');
                 };
 
-                if (type === 'games') {
+                if (type === 'apps') {
+                    labelEl.innerText = "Chagua Programu / App (Virtual DJ, Winlator, n.k.)";
+                    if (daysInput) daysInput.value = '3650';
+                    items = data.filter(i => isApp(i) && !isLive(i) && !isAdult(i));
+                } else if (type === 'games') {
                     labelEl.innerText = "Select Game / Mod";
                     if (daysInput) daysInput.value = '3650';
                     items = data.filter(i => isGame(i) && !isLive(i));
@@ -1418,7 +1430,7 @@
                     return;
                 }
                 
-                if (['movies-single', 'livetv', 'games', 'adult'].includes(type)) {
+                if (['movies-single', 'livetv', 'games', 'adult', 'apps'].includes(type)) {
                     const selectEl = document.getElementById('grant-item-select');
                     if (!selectEl.value || selectEl.value === 'Loading...' || selectEl.value === 'No items found') {
                         alert('Tafadhali chagua item kwanza.');
@@ -1430,7 +1442,7 @@
                 
                 const daysStr = (customDays && customDays > 0) ? ` kwa siku ${customDays}` : '';
                 if (confirm(`Una uhakika unataka kumpatia huyu mtumiaji access ya:\n"${itemTitle}"${daysStr}?`)) {
-                    const res = await api.grantUserAccess(userId, itemId, customDays);
+                    const res = await api.grantUserAccess(userId, itemId, customDays, itemTitle);
                     if (res.success) {
                         alert(`Mtumiaji amepewa access kikamilifu ya "${itemTitle}"${daysStr}!`);
                         document.getElementById('grant-access-modal').classList.remove('show');

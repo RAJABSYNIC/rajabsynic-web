@@ -457,8 +457,8 @@
                             <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: left; font-weight: 600;">USERNAME</th>
                             <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: left; font-weight: 600;">CONTACT</th>
                             <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: left; font-weight: 600;">JOINED</th>
-                            <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: left; font-weight: 600;">ACCESS</th>
                             <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: left; font-weight: 600;">TOTAL SPENT</th>
+                            <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: left; font-weight: 600;">ACCESS</th>
                             <th style="color: #9ca3af; text-transform: uppercase; font-size: 0.8rem; padding: 16px; text-align: center; font-weight: 600;">ACTIONS</th>
                         </tr>
                     </thead>
@@ -1172,7 +1172,7 @@
     <div id="grant-access-modal" class="modal">
         <div class="modal-content" style="max-width: 520px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #374151; padding-bottom:15px;">
-                <h2 style="margin:0; font-size:1.25rem; font-weight:700;">Grant Premium Access</h2>
+                <h2 style="margin:0; font-size:1.25rem; font-weight:700;">Grant Premium Access <span id="grant-user-display" style="font-size:0.9rem; color:#10b981; font-weight:normal;"></span></h2>
                 <ion-icon name="close" style="font-size:1.5rem; cursor:pointer; color:#9ca3af;" onclick="document.getElementById('grant-access-modal').classList.remove('show')"></ion-icon>
             </div>
             
@@ -1181,12 +1181,12 @@
             <div class="input-group">
                 <label>Access Type</label>
                 <select id="grant-type" onchange="window.adminApp.onGrantTypeChange()" style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:#fff; border-radius:6px;">
-                    <!-- Original options kept exactly as they were -->
-                    <option value="games" selected>Games</option>
-                    <option value="livetv-all">All Live TV Channels</option>
-                    <option value="livetv">Specific Live TV Channel</option>
-                    <option value="adult-section-access">18+ Section Access</option>
-                    <option value="adult">Specific 18+ Content</option>
+                    <option value="apps" selected>📱 Programu & Apps (Virtual DJ, Winlator, n.k.)</option>
+                    <option value="games">🎮 Games & Mods (Tanzania Games, Maleo Mods, ETS, n.k.)</option>
+                    <option value="livetv-all">📺 All Live TV Channels</option>
+                    <option value="livetv">📺 Specific Live TV Channel</option>
+                    <option value="adult-section-access">🔞 18+ Section Access</option>
+                    <option value="adult">🔞 Specific 18+ Content</option>
                     <!-- Supplementary movie packages -->
                     <optgroup label="🎬 Vifurushi vya Movies (Movie Passes)">
                         <option value="movies-package-mikumi">Kifurushi cha Mikumi — Siku 1 (Masaa 24)</option>
