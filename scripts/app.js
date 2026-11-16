@@ -387,6 +387,7 @@ class Router {
     goToSlide(n) {
         const slides = document.querySelectorAll('.hero-slide');
         const dots = document.querySelectorAll('.hero-dot');
+        const dotsContainer = document.getElementById('hero-slider-dots');
         if (slides.length === 0) return;
         this.currentSlide = (n + slides.length) % slides.length;
         slides.forEach((s, idx) => {
@@ -399,8 +400,10 @@ class Router {
         dots.forEach((d, idx) => {
             if (idx === this.currentSlide) {
                 d.classList.add('active');
-                if (typeof d.scrollIntoView === 'function') {
-                    d.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                // Only scroll the dots container horizontally if it overflows, NEVER scroll the window/page
+                if (dotsContainer && dotsContainer.scrollWidth > dotsContainer.clientWidth) {
+                    const targetLeft = d.offsetLeft - (dotsContainer.clientWidth / 2) + (d.offsetWidth / 2);
+                    dotsContainer.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
                 }
             } else {
                 d.classList.remove('active');
