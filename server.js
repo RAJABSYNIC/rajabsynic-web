@@ -2018,6 +2018,48 @@ function formatSwahiliDate(dateInput) {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// Helper: Actively verify a PENDING payment directly with the payment gateway
+// (covers the case where the customer paid but the webhook never reached us).
+// Returns the resulting status: 'completed' | 'failed' | 'pending'
+async function verifyPendingPaymentWithGateway(p) {
+    if (!p || !fsdb) return 'pending';
+    const orderId = p.order_id || p.id;
+    if (!orderId) return 'pending';
+    const gateway = p.gateway || 'pressopay';
+    const ref = fsdb.collection('payments').doc(orderId);
+    try {
+        let gStatus = '';
+        if (gateway === 'harakapay') {
+            const harakaApiKey = process.env.HARAKAPAY_API_KEY || 'hpk_2956fec8e3e5f80597bb59c734275096e99a6e6628046826';
+            const r = await axios.get('https://harakapay.net/api/v1/status/' + orderId, {
+                headers: { 'X-API-Key': harakaApiKey },
+                timeout: 8000
+            });
+            gStatus = String(r.data?.payment?.status || r.data?.status || '').toUpperCase();
+        } else if (PRESSSO_API_KEY && PRESSSO_API_SECRET) {
+            const apiPath = '/api/v1/payments/' + orderId;
+            const r = await axios.get(PRESSSO_BASE_URL + apiPath, {
+                headers: { ...pressoAuthHeaders('GET', apiPath) },
+                timeout: 8000
+            });
+            gStatus = String(r.data?.status || '').toUpperCase();
+        }
+        if (gStatus === 'COMPLETED' || gStatus === 'SUCCESS') {
+            await ref.update({ status: 'completed', updatedAt: new Date().toISOString(), verifiedByAI: true }).catch(() => {});
+            p.status = 'completed';
+            return 'completed';
+        }
+        if (gStatus === 'FAILED' || gStatus === 'CANCELLED') {
+            await ref.update({ status: 'failed', updatedAt: new Date().toISOString() }).catch(() => {});
+            p.status = 'failed';
+            return 'failed';
+        }
+    } catch (e) {
+        console.warn('Gateway verify notice for ' + orderId + ': ' + (e.response?.status || e.message));
+    }
+    return 'pending';
+}
+
 // Helper: Verify Payment and Grant Access Automatically (Zero-prompt AI Verification with Strict Expiration Enforcement)
 async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = '', history = [] }) {
     if (!userMsg) return null;
@@ -2035,9 +2077,19 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
         'nimeshakatwa', 'nimekatwa', 'nimekatwa pesa', 'nimeshalipia', 'nmelipa hela',
         'nimeshatuma pesa', 'haina link', 'kifurushi hakijafunguka', 'sioni movies',
         'sijapewa huduma', 'sijapata huduma', 'nimelipia sijapata huduma', 'nimekwama baada ya kulipa', 'pesa imetoka', 'malipo yamepita',
-        'nililipia', 'nililipa', 'nimefanya malipo', 'hakiki', 'thibitisha'
+        'nililipia', 'nililipa', 'nimefanya malipo', 'hakiki', 'thibitisha',
+        'nadaiwa', 'nadai', 'inadai', 'inanidai', 'naambiwa nilipe', 'inaniambia nilipe', 'inataka nilipe', 'inasema nilipe',
+        'sijafanikiwa kupata', 'sijafanikiwa kufungua', 'sipati access', 'sipati huduma', 'sipati game', 'sipati mchezo',
+        'nimelipa lakini', 'nimelipia lakini', 'nimelipa ila', 'nimelipia ila', 'malipo yangu', 'malipo yangu yamekamilika',
+        'haifunguki', 'haifungui', 'imekataa kufunguka', 'bado inaniomba pesa', 'inaniomba pesa tena', 'inaniomba kulipa'
     ];
-    const hasClaimedPaid = paymentClaimKeywords.some(kw => lower.includes(kw));
+    const claimRegexes = [
+        /\b(nime|nimesha|nisha|nili)\s*(lipa|lipia|tuma|katwa|nunua|fanya malipo)/,
+        /(sipati|sijapata|sijapewa|siwezi kupata|sijafanikiwa|haifunguki|haifungui|imefungwa|haijafunguka|sioni).{0,40}(access|link|game|mchezo|mod|app|movie|movies|filamu|kifurushi|huduma|download|kupakua|pakua)/,
+        /(access|huduma|kifurushi|link|download).{0,30}(sijapata|sipati|haipo|haijafunguka|haifunguki|imefungwa)/,
+        /(malipo|nililipa|nimelipa).{0,30}(complete|completed|yamekamilika|yamepita|sawa|yapo)/
+    ];
+    const hasClaimedPaid = paymentClaimKeywords.some(kw => lower.includes(kw)) || claimRegexes.some(rx => rx.test(lower));
 
     // 2. Extract phone numbers explicitly written in userMsg
     const phoneRegex = /(?:(?:\+?255)|0)([67]\d{8})/;
@@ -2063,45 +2115,52 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     // Now resolve phone number to search: prioritize phone typed in message, then userPhone from session context
     let extractedPhone = '';
     let phoneVariations = [];
+    const addPhoneVariations = (digits9) => {
+        for (const v of ['0' + digits9, '255' + digits9, '+255' + digits9, digits9]) {
+            if (!phoneVariations.includes(v)) phoneVariations.push(v);
+        }
+    };
     if (phoneMatch) {
-        const digits = phoneMatch[1];
-        extractedPhone = '0' + digits;
-        phoneVariations = ['0' + digits, '255' + digits, '+255' + digits, digits];
-    } else if (userPhone) {
+        extractedPhone = '0' + phoneMatch[1];
+        addPhoneVariations(phoneMatch[1]);
+    }
+    if (userPhone) {
         const upClean = String(userPhone).replace(/[^0-9]/g, '');
         if (upClean.length >= 9) {
-            extractedPhone = upClean.startsWith('0') ? upClean : ('0' + upClean.slice(-9));
-            phoneVariations = [extractedPhone, '255' + extractedPhone.slice(1), '+' + '255' + extractedPhone.slice(1)];
+            const last9 = upClean.slice(-9);
+            if (!extractedPhone) extractedPhone = '0' + last9;
+            addPhoneVariations(last9);
         }
     }
 
-    // Search payments in Firestore / local DB automatically without demanding user input
-    let payments = [];
+    // Search payments in Firestore / local DB. Merge ALL sources (userId + phone + order id)
+    // so a completed payment is never hidden behind a newer pending attempt.
+    const paymentMap = new Map();
+    const addPayment = (id, data) => {
+        const key = data.order_id || data.id || id;
+        if (!paymentMap.has(key)) paymentMap.set(key, { ...data, id: data.id || id });
+    };
     if (fsdb) {
         try {
             if (extractedOrderId) {
                 const snap1 = await fsdb.collection('payments').where('id', '==', extractedOrderId).limit(5).get();
-                snap1.forEach(d => payments.push({ id: d.id, ...d.data() }));
-                if (payments.length === 0) {
-                    const snap2 = await fsdb.collection('payments').where('merchantReference', '==', extractedOrderId).limit(5).get();
-                    snap2.forEach(d => payments.push({ id: d.id, ...d.data() }));
-                }
+                snap1.forEach(d => addPayment(d.id, d.data()));
+                const snap2 = await fsdb.collection('payments').where('merchantReference', '==', extractedOrderId).limit(5).get();
+                snap2.forEach(d => addPayment(d.id, d.data()));
             }
-            if (payments.length === 0 && phoneVariations.length > 0) {
-                for (const pv of phoneVariations) {
-                    const snap3 = await fsdb.collection('payments').where('phone', '==', pv).limit(5).get();
-                    snap3.forEach(d => payments.push({ id: d.id, ...d.data() }));
-                    if (payments.length > 0) break;
-                }
+            if (userId) {
+                const snap4 = await fsdb.collection('payments').where('userId', '==', userId).limit(60).get();
+                snap4.forEach(d => addPayment(d.id, d.data()));
             }
-            if (payments.length === 0 && userId) {
-                const snap4 = await fsdb.collection('payments').where('userId', '==', userId).limit(5).get();
-                snap4.forEach(d => payments.push({ id: d.id, ...d.data() }));
+            for (const pv of phoneVariations) {
+                const snap3 = await fsdb.collection('payments').where('phone', '==', pv).limit(30).get();
+                snap3.forEach(d => addPayment(d.id, d.data()));
             }
         } catch (dbErr) {
             console.warn('Payment search notice:', dbErr.message);
         }
     }
+    let payments = Array.from(paymentMap.values());
 
     // Fallback search in local db.json
     if (payments.length === 0) {
@@ -2118,42 +2177,38 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     }
 
     // Sort by createdAt descending
-    payments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    payments.sort((a, b) => new Date(b.createdAt || b.timestamp || 0) - new Date(a.createdAt || a.timestamp || 0));
 
     if (payments.length > 0) {
-        // Live-verify any pending payments in Firestore in case webhook just arrived
-        for (const p of payments) {
-            let status = String(p.status || '').toLowerCase();
-            if (status === 'pending' && p.id && fsdb) {
-                try {
-                    const pDoc = await fsdb.collection('payments').doc(p.id).get();
-                    if (pDoc.exists) {
-                        const liveStatus = String(pDoc.data()?.status || '').toLowerCase();
-                        if (['completed', 'success', 'complete'].includes(liveStatus)) {
-                            p.status = 'completed';
-                        }
-                    }
-                } catch (_) {}
-            }
+        const completedStatuses = ['completed', 'success', 'complete'];
+        const msgLower = lower;
+        const isTargeted = (cp) => {
+            const title = (cp.contentTitle || '').toLowerCase();
+            const cid = (cp.contentId || '').toLowerCase();
+            return (title && msgLower.includes(title)) || (cid && msgLower.includes(cid));
+        };
+
+        // ACTIVELY VERIFY pending payments with the gateway (webhook may have been missed).
+        // Targeted ones first, then the most recent, max 4 gateway calls.
+        const pendingToVerify = payments
+            .filter(p => String(p.status || '').toLowerCase() === 'pending' && (p.order_id || p.id))
+            .sort((a, b) => Number(isTargeted(b)) - Number(isTargeted(a)))
+            .slice(0, 4);
+        for (const p of pendingToVerify) {
+            await verifyPendingPaymentWithGateway(p);
         }
 
-        const completedPayments = payments.filter(p => ['completed', 'success', 'complete'].includes(String(p.status || '').toLowerCase()));
+        const completedPayments = payments.filter(p => completedStatuses.includes(String(p.status || '').toLowerCase()));
         const pendingPayments = payments.filter(p => String(p.status || '').toLowerCase() === 'pending');
         const failedPayments = payments.filter(p => ['failed', 'cancelled', 'canceled'].includes(String(p.status || '').toLowerCase()));
 
         if (completedPayments.length > 0) {
             // If user mentioned a specific item name or id, prioritize that payment
-            const msgLower = lower;
-            const matchingTargeted = completedPayments.filter(cp => {
-                const title = (cp.contentTitle || '').toLowerCase();
-                const cid = (cp.contentId || '').toLowerCase();
-                return (title && msgLower.includes(title)) || (cid && msgLower.includes(cid));
-            });
+            const matchingTargeted = completedPayments.filter(isTargeted);
             const paymentsToEvaluate = matchingTargeted.length > 0 ? matchingTargeted : completedPayments;
 
             const now = new Date();
-            let activePayment = null;
-            let activeExpiresAt = null;
+            const activeByContent = new Map(); // contentId -> { p, expiresAt }
             let latestExpiredPayment = null;
             let latestExpiredDate = null;
 
@@ -2194,9 +2249,10 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
 
                 if (now.getTime() <= expiresAt.getTime()) {
                     // PAYMENT IS ACTIVE AND WITHIN USAGE DURATION!
-                    if (!activePayment || expiresAt.getTime() > activeExpiresAt.getTime()) {
-                        activePayment = p;
-                        activeExpiresAt = expiresAt;
+                    const key = p.contentId || p.id;
+                    const prev = activeByContent.get(key);
+                    if (!prev || expiresAt.getTime() > prev.expiresAt.getTime()) {
+                        activeByContent.set(key, { p, expiresAt });
                     }
                 } else {
                     // PAYMENT HAS EXPIRED (OUTSIDE USAGE DURATION)!
@@ -2207,83 +2263,93 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
                 }
             }
 
-            // Case A: User has an ACTIVE payment within validity period
-            if (activePayment && activeExpiresAt) {
-                const p = activePayment;
-                const contentName = p.contentTitle || 'mchezo/filamu yako';
-                const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
-                const searchPhone = p.phone || extractedPhone || userPhone;
-                const targetUid = userId || p.userId || p.uid || searchPhone;
+            // Case A: User has one or more ACTIVE payments within validity period -> grant ALL of them
+            if (activeByContent.size > 0) {
+                const activeList = Array.from(activeByContent.values())
+                    .sort((a, b) => b.expiresAt.getTime() - a.expiresAt.getTime());
+                const lines = [];
+                for (const { p, expiresAt: activeExpiresAt } of activeList) {
+                    const contentName = p.contentTitle || 'mchezo/filamu yako';
+                    const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
+                    const searchPhone = p.phone || extractedPhone || userPhone;
+                    const targetUid = userId || p.userId || p.uid || searchPhone;
 
-                try {
-                    if (userId && !p.userId) p.userId = userId;
-                    await grantAccessForPayment(p);
+                    try {
+                        if (userId && p.userId !== userId) p.userId = userId;
+                        await grantAccessForPayment(p);
 
-                    if (fsdb && targetUid) {
-                        const durationDays = getDurationDays(null, p.contentId);
-                        const subId = 'SUB-' + (p.order_id || p.id || Date.now());
-                        await fsdb.collection('subscriptions').doc(subId).set({
-                            id: subId,
-                            userId: targetUid,
-                            contentId: p.contentId || '',
-                            orderId: p.order_id || p.id || '',
-                            contentTitle: contentName,
-                            durationDays,
-                            createdAt: p.createdAt || now.toISOString(),
-                            expiresAt: activeExpiresAt.toISOString(),
-                            grantedByAI: true
-                        }, { merge: true }).catch(() => {});
-
-                        if (String(p.contentId || '').startsWith('movies-package-') || p.contentId === 'movies-access') {
-                            const mSubId = 'SUB-MOVIES-' + targetUid;
-                            await fsdb.collection('subscriptions').doc(mSubId).set({
-                                id: mSubId,
+                        if (fsdb && targetUid) {
+                            const durationDays = getDurationDays(null, p.contentId);
+                            const subId = 'SUB-' + (p.order_id || p.id || Date.now());
+                            await fsdb.collection('subscriptions').doc(subId).set({
+                                id: subId,
                                 userId: targetUid,
-                                contentId: 'movies-access',
-                                packageId: p.contentId,
+                                contentId: p.contentId || '',
                                 orderId: p.order_id || p.id || '',
+                                contentTitle: contentName,
+                                durationDays,
                                 createdAt: p.createdAt || now.toISOString(),
                                 expiresAt: activeExpiresAt.toISOString(),
                                 grantedByAI: true
                             }, { merge: true }).catch(() => {});
+
+                            if (String(p.contentId || '').startsWith('movies-package-') || p.contentId === 'movies-access') {
+                                const mSubId = 'SUB-MOVIES-' + targetUid;
+                                await fsdb.collection('subscriptions').doc(mSubId).set({
+                                    id: mSubId,
+                                    userId: targetUid,
+                                    contentId: 'movies-access',
+                                    packageId: p.contentId,
+                                    orderId: p.order_id || p.id || '',
+                                    createdAt: p.createdAt || now.toISOString(),
+                                    expiresAt: activeExpiresAt.toISOString(),
+                                    grantedByAI: true
+                                }, { merge: true }).catch(() => {});
+                            }
                         }
+
+                        // Log this automated grant event
+                        if (fsdb) {
+                            fsdb.collection('ai_access_grants').add({
+                                id: 'grant_' + Date.now(),
+                                phone: searchPhone,
+                                orderId: p.order_id || p.id || '',
+                                contentTitle: contentName,
+                                amount: p.amount || 0,
+                                userId: targetUid,
+                                expiresAt: activeExpiresAt.toISOString(),
+                                timestamp: new Date().toISOString()
+                            }).catch(() => {});
+                        }
+                    } catch (grantErr) {
+                        console.error('Error granting access by AI:', grantErr.message);
                     }
 
-                    // Log this automated grant event
-                    if (fsdb) {
-                        fsdb.collection('ai_access_grants').add({
-                            id: 'grant_' + Date.now(),
-                            phone: searchPhone,
-                            orderId: p.order_id || p.id || '',
-                            contentTitle: contentName,
-                            amount: p.amount || 0,
-                            userId: targetUid,
-                            expiresAt: activeExpiresAt.toISOString(),
-                            timestamp: new Date().toISOString()
-                        }).catch(() => {});
+                    const remainingMs = activeExpiresAt.getTime() - now.getTime();
+                    const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+                    const remainingDays = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+                    let remainingText = '';
+                    if (remainingDays >= 1) {
+                        const extraHours = remainingHours % 24;
+                        remainingText = `siku ${remainingDays}${extraHours > 0 ? ` na masaa ${extraHours}` : ''}`;
+                    } else {
+                        remainingText = `masaa ${Math.max(1, remainingHours)}`;
                     }
-                } catch (grantErr) {
-                    console.error('Error granting access by AI:', grantErr.message);
+                    lines.push(`• "${contentName}" (Tsh ${amountStr}) — halali hadi ${formatSwahiliDate(activeExpiresAt)} (umebakiza ${remainingText})`);
                 }
 
-                const remainingMs = activeExpiresAt.getTime() - now.getTime();
-                const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
-                const remainingDays = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
-                let remainingText = '';
-                if (remainingDays >= 1) {
-                    const extraHours = remainingHours % 24;
-                    remainingText = `siku ${remainingDays}${extraHours > 0 ? ` na masaa ${extraHours}` : ''}`;
-                } else {
-                    remainingText = `masaa ${Math.max(1, remainingHours)}`;
-                }
-
+                const first = activeList[0].p;
+                const stillPending = pendingPayments.filter(isTargeted);
+                const pendingNote = stillPending.length > 0
+                    ? `\n\nTahadhari: muamala wa "${stillPending[0].contentTitle || 'huduma nyingine'}" bado haujakamilika kwenye mtandao wa simu (unangoja PIN). Ukiweka PIN utafunguka pia.`
+                    : '';
                 return {
                     handled: true,
                     accessGranted: true,
                     expired: false,
-                    contentId: p.contentId,
-                    expiresAt: activeExpiresAt.toISOString(),
-                    reply: `Nimehakiki malipo yako na yapo HAI!\n\nMalipo yako ya Tsh ${amountStr} kwa ajili ya "${contentName}" ni halali hadi tarehe ${formatSwahiliDate(activeExpiresAt)} (bado una muda wa ${remainingText}).\n\nSasa unaweza kufungua ukurasa wa "${contentName}" na kuanza kupakua au kutazama mara moja bila kizuizi chochote. Karibu sana!`
+                    contentId: first.contentId,
+                    expiresAt: activeList[0].expiresAt.toISOString(),
+                    reply: `Nimehakiki malipo yako na yapo HAI! Nimekufungulia access sasa hivi.\n\n${lines.join('\n')}\n\nFungua ukurasa wa huduma uliyolipia (na ukiona bado imefungwa, shusha kioo chini kupakia upya ukurasa au toka na uingie tena kwenye akaunti yako) kisha anza kupakua au kutazama mara moja. Karibu sana!${pendingNote}`
                 };
             }
 
@@ -2317,16 +2383,16 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
             }
         }
 
-        // Case C: Pending payment exists
+        // Case C: Pending payment exists (still pending even after checking with the gateway)
         if (pendingPayments.length > 0) {
-            const p = pendingPayments[0];
+            const p = pendingPayments.find(isTargeted) || pendingPayments[0];
             const contentName = p.contentTitle || 'mchezo/filamu yako';
             const amountStr = p.amount ? Number(p.amount).toLocaleString('en-US') : '0';
             const searchPhone = p.phone || extractedPhone || userPhone;
             return {
                 handled: true,
                 accessGranted: false,
-                reply: `Hujakamilisha malipo. Muamala wako wa Tsh ${amountStr} kwa ajili ya "${contentName}" bado unangoja uthibitisho (PIN) kwenye simu yako (${searchPhone}). Tafadhali weka namba yako ya siri (PIN) ili ukamilishe muamala huo na upate huduma mara moja.`
+                reply: `Nimeangalia moja kwa moja kwenye mtandao wa malipo na muamala wako wa Tsh ${amountStr} kwa ajili ya "${contentName}" bado haujakamilika (unangoja uthibitisho wa PIN kwenye simu ${searchPhone}). Tafadhali weka namba yako ya siri (PIN) ili ukamilishe muamala huo; ukishakamilika nitumie ujumbe "nimelipa" nami nitakufungulia huduma mara moja.`
             };
         }
 
@@ -2355,7 +2421,7 @@ async function checkPaymentAndGrantAccess({ userMsg, userId = '', userPhone = ''
     return {
         handled: true,
         accessGranted: false,
-        reply: `Hakuna rekodi ya malipo yaliyokamilika iliyopatikana kwa namba ${extractedPhone || userPhone || 'yako'}${extractedOrderId ? ` au Order ID: ${extractedOrderId}` : ''}. Tafadhali hakikisha umeingiza namba sahihi uliyotumia kulipia au bonyeza "Lipa Sasa" kwenye ukurasa wa huduma husika.`
+        reply: `Hakuna rekodi ya malipo yaliyokamilika iliyopatikana kwa namba ${extractedPhone || userPhone || 'yako'}${extractedOrderId ? ` au Order ID: ${extractedOrderId}` : ''}. Tafadhali niandikie namba ya simu uliyotumia kulipia au Order ID (mfano PAY-xxxx) nitahakiki tena, au bonyeza "Lipa Sasa" kwenye ukurasa wa huduma husika.`
     };
 }
 
